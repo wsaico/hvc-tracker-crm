@@ -756,7 +756,7 @@ const setupInteractionFormHandlers = () => {
 
             // Limpiar formulario y volver a búsqueda
             StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
-            render();
+            changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
 
         } catch (error) {
             console.error('Error saving interaction:', error);
@@ -841,16 +841,40 @@ const setupLoginHandlers = async () => {
     });
 
     // Manejar envío del formulario de login
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const airportId = document.getElementById('airportSelect').value;
         const role = document.querySelector('input[name="role"]:checked').value;
-        const userName = document.getElementById('userName').value;
+        const userName = document.getElementById('userName').value.trim();
 
         if (airportId === 'new' || !airportId) {
             showNotification('Seleccione un aeropuerto válido', CONSTANTS.NOTIFICATION_TYPES.WARNING);
             return;
+        }
+
+        if (!userName) {
+            showNotification('Ingrese su nombre', CONSTANTS.NOTIFICATION_TYPES.WARNING);
+            return;
+        }
+
+        // Verificar si el usuario ya existe en el aeropuerto (mejor práctica)
+        try {
+            // Buscar si ya hay interacciones con este nombre de agente en el aeropuerto
+            const existingInteractions = await ApiService.getAirportInteractions(airportId);
+            const agentExists = existingInteractions.some(interaction =>
+                interaction.agente_nombre &&
+                interaction.agente_nombre.toLowerCase().trim() === userName.toLowerCase().trim()
+            );
+
+            if (agentExists) {
+                showNotification(`Bienvenido de vuelta, ${userName}!`, CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
+            } else {
+                showNotification(`Bienvenido, ${userName}! Primera vez en el sistema.`, CONSTANTS.NOTIFICATION_TYPES.INFO);
+            }
+        } catch (error) {
+            console.warn('Could not check existing agents:', error);
+            // Continuar normalmente si no se puede verificar
         }
 
         StateManager.setState({
