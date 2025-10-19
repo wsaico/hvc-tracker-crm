@@ -58,16 +58,13 @@ const render = async () => {
         // Renderizar contenido según vista
         switch (state.currentView) {
             case CONSTANTS.VIEWS.MANIFEST:
-                mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div><p class="ml-4 text-gray-600">Cargando vista de manifiesto...</p></div>';
-                // El componente completo se cargará dinámicamente
+                renderManifestView().then(html => mainContent.innerHTML = html);
                 break;
             case CONSTANTS.VIEWS.PASSENGER_SEARCH:
-                mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div><p class="ml-4 text-gray-600">Cargando búsqueda de pasajeros...</p></div>';
-                // El componente completo se cargará dinámicamente
+                renderPassengerSearchView().then(html => mainContent.innerHTML = html);
                 break;
             case CONSTANTS.VIEWS.DASHBOARD:
-                mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div><p class="ml-4 text-gray-600">Cargando dashboard...</p></div>';
-                // El componente completo se cargará dinámicamente
+                renderDashboardView().then(html => mainContent.innerHTML = html);
                 break;
         }
     }
@@ -317,4 +314,205 @@ const setupLoginHandlers = async () => {
 
         render();
     });
+};
+
+/**
+ * Renderiza la vista de manifiesto
+ * @returns {Promise<string>} HTML de la vista de manifiesto
+ * @private
+ */
+const renderManifestView = async () => {
+    const state = StateManager.getState();
+    const currentAirport = state.currentAirport;
+
+    return `
+        <div class="max-w-4xl mx-auto p-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Cargar Manifiesto de Vuelo</h2>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha del Vuelo</label>
+                            <input type="date" id="manifestDate"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Aeropuerto</label>
+                            <select id="manifestAirport"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Seleccione aeropuerto...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Manifiesto (Formato: VUELO,DESTINO,NOMBRE,CATEGORIA,ESTATUS,ASIENTO)</label>
+                        <textarea id="manifestText" rows="10" placeholder="VUELO001,LIM,Juan Perez,BLACK,CONFIRMADO,1A
+VUELO001,LIM,Maria Garcia,PLATINUM,CHECK-IN,1B
+..."
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"></textarea>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button onclick="processManifest()"
+                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                            📋 Procesar Manifiesto
+                        </button>
+                        <button onclick="clearManifest()"
+                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                            🗑️ Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="manifestResults" class="mt-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Resultados del Procesamiento</h3>
+                    <div id="manifestOutput" class="bg-gray-50 p-4 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+/**
+ * Renderiza la vista de búsqueda de pasajeros
+ * @returns {Promise<string>} HTML de la vista de búsqueda
+ * @private
+ */
+const renderPassengerSearchView = async () => {
+    return `
+        <div class="max-w-4xl mx-auto p-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Búsqueda de Pasajeros</h2>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar por DNI/Pasaporte o Nombre</label>
+                        <div class="flex space-x-4">
+                            <input type="text" id="searchQuery" placeholder="Ingrese DNI, pasaporte o nombre..."
+                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button onclick="searchPassengers()"
+                                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                                🔍 Buscar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="searchResults" class="space-y-4">
+                        <!-- Resultados de búsqueda aparecerán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+/**
+ * Renderiza la vista del dashboard
+ * @returns {string} HTML del dashboard
+ * @private
+ */
+const renderDashboardView = async () => {
+    let metrics = {
+        totalInteractions: 0,
+        totalPassengers: 0,
+        avgMedallia: 0,
+        passengersAtRisk: 0
+    };
+
+    // Intentar cargar métricas reales si la BD está disponible
+    if (window.DB_AVAILABLE) {
+        try {
+            const state = StateManager.getState();
+            const interactions = await ApiService.getAirportInteractions(state.currentAirport);
+            const passengers = await ApiService.getAllPassengers(state.currentAirport);
+            const businessMetrics = await import('./services/BusinessLogic.js').then(module =>
+                module.calculateDashboardMetrics(interactions, passengers)
+            );
+            metrics = businessMetrics;
+        } catch (error) {
+            console.warn('Could not load real metrics:', error);
+        }
+    }
+
+    const statusColor = window.DB_AVAILABLE ? 'green' : 'yellow';
+    const statusText = window.DB_AVAILABLE ? 'Sistema Conectado' : 'Modo Demo Activo';
+    const statusMessage = window.DB_AVAILABLE
+        ? 'Conectado a base de datos Supabase. Datos en tiempo real.'
+        : 'Las métricas mostradas son datos de ejemplo. Configure Supabase para datos reales.';
+
+    return `
+        <div class="max-w-7xl mx-auto p-6">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard HVC Tracker</h2>
+                <p class="text-gray-600">Métricas y estadísticas del aeropuerto</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-3 rounded-lg">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Total Pasajeros</h3>
+                            <p class="text-2xl font-bold text-blue-600">${metrics.totalPassengers || 0}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Calificación Promedio</h3>
+                            <p class="text-2xl font-bold text-green-600">${metrics.avgMedallia || 0}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="bg-yellow-100 p-3 rounded-lg">
+                            <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Pasajeros en Riesgo</h3>
+                            <p class="text-2xl font-bold text-yellow-600">${metrics.passengersAtRisk || 0}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Estado del Sistema</h3>
+                <div class="bg-${statusColor}-50 border-l-4 border-${statusColor}-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-${statusColor}-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-${statusColor}-700">
+                                <strong>${statusText}</strong>
+                            </p>
+                            <p class="text-sm text-${statusColor}-600 mt-1">
+                                ${statusMessage}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 };

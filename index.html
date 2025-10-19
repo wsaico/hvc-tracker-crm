@@ -5,1666 +5,212 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HVC Tracker CRM - Sistema de Gestión de Pasajeros de Alto Valor</title>
 
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS - CDN para desarrollo (ignorar warning de producción) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- Supabase CDN -->
+    <script>
+        // Precargar configuración antes de cargar Supabase
+        window.SUPABASE_CONFIG = {
+            url: 'https://lujzsozkykmfbqhzgkel.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1anpzb3preWttZmJxaHpna2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NjA0MjEsImV4cCI6MjA3NjQzNjQyMX0.a_-8nWKflLdFZxmC3uUcM75fcdTd3kWZaOmjB4adrko'
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    <!-- Loading indicator -->
+    <div id="loading" class="fixed inset-0 bg-blue-600 flex items-center justify-center z-50">
+        <div class="text-center text-white">
+            <div class="spinner mb-4"></div>
+            <h2 class="text-xl font-semibold">Cargando HVC Tracker...</h2>
+            <p class="text-blue-100 mt-2">Inicializando aplicación</p>
+        </div>
+    </div>
 
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Color coding por categoría LATAM */
-        .categoria-signature { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #f0f0f0; }
-        .categoria-top { background: linear-gradient(135deg, #2c003e 0%, #5a189a 100%); color: white; }
-        .categoria-black { background: linear-gradient(135deg, #000000 0%, #434343 100%); color: white; }
-        .categoria-platinum { background: linear-gradient(135deg, #4a5568 0%, #718096 100%); color: white; }
-        .categoria-gold-plus { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: white; }
-        .categoria-gold { background: linear-gradient(135deg, #ca8a04 0%, #eab308 100%); color: #1f2937; }
-
-        /* Badge categories */
-        .badge-signature { background-color: #1a1a2e; color: #f0f0f0; }
-        .badge-top { background-color: #5a189a; color: white; }
-        .badge-black { background-color: #000000; color: white; }
-        .badge-platinum { background-color: #718096; color: white; }
-        .badge-gold-plus { background-color: #f59e0b; color: white; }
-        .badge-gold { background-color: #eab308; color: #1f2937; }
-
-        /* Animations */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .pulse-alert {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        /* Print styles */
-        @media print {
-            .no-print {
-                display: none;
-            }
-        }
-
-        /* Loading spinner */
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body class="bg-gray-50">
     <!-- Main App Container -->
     <div id="app"></div>
 
-    <script type="module">
-        /*
-        ====================================================================
-        CONFIGURACIÓN DE SUPABASE - INSTRUCCIONES
-        ====================================================================
-
-        1. Crea una cuenta gratuita en https://supabase.com
-
-        2. Crea un nuevo proyecto (guarda la contraseña de la base de datos)
-
-        3. Ve a "Project Settings" > "API" y copia:
-           - Project URL (SUPABASE_URL)
-           - anon/public key (SUPABASE_ANON_KEY)
-
-        4. Pega tus credenciales abajo:
-        */
-
-        const SUPABASE_URL = 'TU_SUPABASE_URL_AQUI';
-        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY_AQUI';
-
-        /*
-        5. Ve al "SQL Editor" en Supabase y ejecuta el siguiente script:
-
-        ----------------------------------------------------------------
-        -- Crear tabla de aeropuertos
-        CREATE TABLE airports (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            nombre TEXT NOT NULL,
-            codigo TEXT NOT NULL UNIQUE,
-            activo BOOLEAN DEFAULT true,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-        );
-
-        -- Crear tabla de pasajeros
-        CREATE TABLE passengers (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            nombre TEXT NOT NULL,
-            dni_pasaporte TEXT NOT NULL,
-            fecha_nacimiento DATE,
-            categoria TEXT NOT NULL CHECK (categoria IN ('SIGNATURE', 'TOP', 'BLACK', 'PLATINUM', 'GOLD PLUS', 'GOLD')),
-            aeropuerto_id UUID REFERENCES airports(id) ON DELETE CASCADE,
-            telefono TEXT,
-            email TEXT,
-            notas_especiales TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-            UNIQUE(dni_pasaporte, aeropuerto_id)
-        );
-
-        -- Crear tabla de vuelos
-        CREATE TABLE flights (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            numero_vuelo TEXT NOT NULL,
-            destino TEXT NOT NULL,
-            fecha DATE NOT NULL,
-            hora TIME,
-            aeropuerto_id UUID REFERENCES airports(id) ON DELETE CASCADE,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-        );
-
-        -- Crear tabla de relación vuelo-pasajero
-        CREATE TABLE flight_passengers (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            vuelo_id UUID REFERENCES flights(id) ON DELETE CASCADE,
-            pasajero_id UUID REFERENCES passengers(id) ON DELETE CASCADE,
-            asiento TEXT,
-            estatus TEXT NOT NULL CHECK (estatus IN ('CONFIRMADO', 'CHECK-IN', 'ABORDADO', 'NO SHOW', 'CANCELADO')),
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-            UNIQUE(vuelo_id, pasajero_id)
-        );
-
-        -- Crear tabla de interacciones
-        CREATE TABLE interactions (
-            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-            pasajero_id UUID REFERENCES passengers(id) ON DELETE CASCADE,
-            vuelo_id UUID REFERENCES flights(id) ON DELETE SET NULL,
-            agente_nombre TEXT NOT NULL,
-            fecha TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-            motivo_viaje TEXT CHECK (motivo_viaje IN ('NEGOCIOS', 'TURISMO', 'PERSONAL', 'MEDICO', 'OTRO')),
-            feedback TEXT,
-            calificacion_medallia INTEGER CHECK (calificacion_medallia >= 1 AND calificacion_medallia <= 10),
-            servicios_utilizados TEXT[], -- Array de servicios: SALA_VIP, FAST_TRACK, ASISTENCIA_ESPECIAL, UPGRADE
-            preferencias JSONB, -- JSON con preferencias: {asiento: "ventana", comida: "vegetariana", bebida: "agua"}
-            incidentes TEXT,
-            acciones_recuperacion TEXT,
-            notas TEXT,
-            es_cumpleanos BOOLEAN DEFAULT false,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-        );
-
-        -- Crear índices para mejorar rendimiento
-        CREATE INDEX idx_passengers_aeropuerto ON passengers(aeropuerto_id);
-        CREATE INDEX idx_passengers_dni ON passengers(dni_pasaporte);
-        CREATE INDEX idx_flights_aeropuerto ON flights(aeropuerto_id);
-        CREATE INDEX idx_flights_fecha ON flights(fecha);
-        CREATE INDEX idx_interactions_pasajero ON interactions(pasajero_id);
-        CREATE INDEX idx_interactions_fecha ON interactions(fecha);
-
-        -- Habilitar Row Level Security (RLS)
-        ALTER TABLE airports ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE passengers ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE flights ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE flight_passengers ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE interactions ENABLE ROW LEVEL SECURITY;
-
-        -- Políticas RLS (permitir todo para anon key - en producción deberías usar auth)
-        CREATE POLICY "Enable all for anon" ON airports FOR ALL USING (true);
-        CREATE POLICY "Enable all for anon" ON passengers FOR ALL USING (true);
-        CREATE POLICY "Enable all for anon" ON flights FOR ALL USING (true);
-        CREATE POLICY "Enable all for anon" ON flight_passengers FOR ALL USING (true);
-        CREATE POLICY "Enable all for anon" ON interactions FOR ALL USING (true);
-
-        -- Insertar aeropuertos iniciales
-        INSERT INTO airports (nombre, codigo) VALUES
-        ('Aeropuerto Francisco Carle - Jauja', 'JAU'),
-        ('Aeropuerto Coronel FAP Carlos Ciriani Santa Rosa - Tacna', 'TCQ'),
-        ('Aeropuerto Cap. FAP Víctor Montes Arias - Talara', 'TYL');
-
-        ----------------------------------------------------------------
-
-        6. ¡Listo! La aplicación ya está configurada.
-
-        NOTA: En esta configuración básica, las políticas RLS permiten acceso
-        total. Para producción, implementa Supabase Auth y políticas más
-        restrictivas basadas en el aeropuerto del usuario.
-        ====================================================================
-        */
-
-        // ====================================================================
-        // MÓDULO: CONSTANTS - Constantes y Enumeraciones
-        // ====================================================================
-        const CONSTANTS = Object.freeze({
-            CATEGORIES: Object.freeze({
-                SIGNATURE: 'SIGNATURE',
-                TOP: 'TOP',
-                BLACK: 'BLACK',
-                PLATINUM: 'PLATINUM',
-                GOLD_PLUS: 'GOLD PLUS',
-                GOLD: 'GOLD'
-            }),
-
-            FLIGHT_STATUS: Object.freeze({
-                CONFIRMADO: 'CONFIRMADO',
-                CHECK_IN: 'CHECK-IN',
-                ABORDADO: 'ABORDADO',
-                NO_SHOW: 'NO SHOW',
-                CANCELADO: 'CANCELADO'
-            }),
-
-            TRAVEL_REASONS: Object.freeze({
-                NEGOCIOS: 'NEGOCIOS',
-                TURISMO: 'TURISMO',
-                PERSONAL: 'PERSONAL',
-                MEDICO: 'MEDICO',
-                OTRO: 'OTRO'
-            }),
-
-            SERVICES: Object.freeze({
-                SALA_VIP: 'SALA_VIP',
-                FAST_TRACK: 'FAST_TRACK',
-                ASISTENCIA_ESPECIAL: 'ASISTENCIA_ESPECIAL',
-                UPGRADE: 'UPGRADE'
-            }),
-
-            ROLES: Object.freeze({
-                SUPERVISOR: 'supervisor',
-                AGENTE: 'agente'
-            }),
-
-            VIEWS: Object.freeze({
-                LOGIN: 'login',
-                MANIFEST: 'manifest',
-                PASSENGER_SEARCH: 'passenger-search',
-                DASHBOARD: 'dashboard'
-            }),
-
-            NOTIFICATION_TYPES: Object.freeze({
-                SUCCESS: 'success',
-                ERROR: 'error',
-                WARNING: 'warning',
-                INFO: 'info'
-            }),
-
-            MEDALLIA_THRESHOLDS: Object.freeze({
-                EXCELLENT: 9,
-                GOOD: 7,
-                REGULAR: 5
-            }),
-
-            DASHBOARD_PERIODS: Object.freeze({
-                TODAY: 'today',
-                WEEK: 'week',
-                MONTH: 'month',
-                YEAR: 'year',
-                ALL: 'all'
-            })
-        });
-
-        // ====================================================================
-        // MÓDULO: CONFIG - Configuración de la aplicación
-        // ====================================================================
-        const Config = (() => {
-            let supabaseClient = null;
-
-            /**
-             * Inicializa el cliente de Supabase
-             * @returns {Object} Cliente de Supabase
-             */
-            const initSupabase = () => {
-                if (!supabaseClient) {
-                    const { createClient } = supabase;
-                    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                }
-                return supabaseClient;
-            };
-
-            /**
-             * Obtiene el cliente de Supabase
-             * @returns {Object} Cliente de Supabase
-             */
-            const getSupabaseClient = () => {
-                if (!supabaseClient) {
-                    return initSupabase();
-                }
-                return supabaseClient;
-            };
-
-            return {
-                initSupabase,
-                getSupabaseClient
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: STATE MANAGER - Gestión del estado de la aplicación
-        // ====================================================================
-        const StateManager = (() => {
-            let state = {
-                currentUser: null,
-                currentRole: null,
-                currentAirport: null,
-                currentView: CONSTANTS.VIEWS.LOGIN,
-                selectedPassenger: null,
-                flights: [],
-                passengers: [],
-                interactions: [],
-                airports: [],
-                parsedManifest: null
-            };
-
-            const listeners = [];
-
-            /**
-             * Obtiene el estado actual
-             * @returns {Object} Estado actual
-             */
-            const getState = () => ({ ...state });
-
-            /**
-             * Actualiza el estado
-             * @param {Object} updates - Actualizaciones a aplicar
-             */
-            const setState = (updates) => {
-                state = { ...state, ...updates };
-                notifyListeners();
-            };
-
-            /**
-             * Resetea el estado
-             */
-            const resetState = () => {
-                state = {
-                    currentUser: null,
-                    currentRole: null,
-                    currentAirport: null,
-                    currentView: CONSTANTS.VIEWS.LOGIN,
-                    selectedPassenger: null,
-                    flights: [],
-                    passengers: [],
-                    interactions: [],
-                    airports: [],
-                    parsedManifest: null
-                };
-                notifyListeners();
-            };
-
-            /**
-             * Agrega un listener para cambios de estado
-             * @param {Function} callback - Función a ejecutar cuando cambie el estado
-             */
-            const subscribe = (callback) => {
-                listeners.push(callback);
-            };
-
-            /**
-             * Notifica a todos los listeners sobre cambios
-             */
-            const notifyListeners = () => {
-                listeners.forEach(callback => callback(state));
-            };
-
-            return {
-                getState,
-                setState,
-                resetState,
-                subscribe
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: VALIDATORS - Validaciones de datos
-        // ====================================================================
-        const Validators = (() => {
-            /**
-             * Valida si una categoría es válida
-             * @param {string} category - Categoría a validar
-             * @returns {boolean} True si es válida
-             */
-            const isValidCategory = (category) => {
-                return Object.values(CONSTANTS.CATEGORIES).includes(category.toUpperCase());
-            };
-
-            /**
-             * Valida si un estatus de vuelo es válido
-             * @param {string} status - Estatus a validar
-             * @returns {boolean} True si es válido
-             */
-            const isValidFlightStatus = (status) => {
-                return Object.values(CONSTANTS.FLIGHT_STATUS).includes(status.toUpperCase());
-            };
-
-            /**
-             * Valida formato de línea del manifiesto
-             * @param {string} line - Línea a validar
-             * @returns {Object} { valid: boolean, error: string|null }
-             */
-            const validateManifestLine = (line) => {
-                const parts = line.split(',').map(p => p.trim());
-
-                if (parts.length !== 6) {
-                    return {
-                        valid: false,
-                        error: 'Formato incorrecto (se esperan 6 campos: VUELO, DEST, NOMBRE, CATEGORIA, ESTATUS, ASIENTO)'
-                    };
-                }
-
-                const [vuelo, destino, nombre, categoria, estatus, asiento] = parts;
-
-                if (!vuelo || !destino || !nombre || !categoria || !estatus || !asiento) {
-                    return { valid: false, error: 'Todos los campos son obligatorios' };
-                }
-
-                if (!isValidCategory(categoria)) {
-                    return {
-                        valid: false,
-                        error: `Categoría inválida "${categoria}". Válidas: ${Object.values(CONSTANTS.CATEGORIES).join(', ')}`
-                    };
-                }
-
-                if (!isValidFlightStatus(estatus)) {
-                    return {
-                        valid: false,
-                        error: `Estatus inválido "${estatus}". Válidos: ${Object.values(CONSTANTS.FLIGHT_STATUS).join(', ')}`
-                    };
-                }
-
-                return { valid: true, error: null };
-            };
-
-            /**
-             * Valida calificación Medallia
-             * @param {number} score - Calificación
-             * @returns {boolean} True si es válida
-             */
-            const isValidMedalliaScore = (score) => {
-                return Number.isInteger(score) && score >= 1 && score <= 10;
-            };
-
-            /**
-             * Sanitiza texto para prevenir XSS
-             * @param {string} text - Texto a sanitizar
-             * @returns {string} Texto sanitizado
-             */
-            const sanitizeText = (text) => {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            };
-
-            return {
-                isValidCategory,
-                isValidFlightStatus,
-                validateManifestLine,
-                isValidMedalliaScore,
-                sanitizeText
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: UTILS - Utilidades generales
-        // ====================================================================
-        const Utils = (() => {
-            /**
-             * Formatea una fecha
-             * @param {string|Date} date - Fecha a formatear
-             * @returns {string} Fecha formateada
-             */
-            const formatDate = (date) => {
-                if (!date) return '';
-                return new Date(date).toLocaleDateString('es-PE', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            };
-
-            /**
-             * Formatea una fecha con hora
-             * @param {string|Date} date - Fecha a formatear
-             * @returns {string} Fecha y hora formateadas
-             */
-            const formatDateTime = (date) => {
-                if (!date) return '';
-                return new Date(date).toLocaleString('es-PE', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            };
-
-            /**
-             * Obtiene la clase CSS para una categoría
-             * @param {string} categoria - Categoría
-             * @returns {string} Nombre de la clase CSS
-             */
-            const getCategoryClass = (categoria) => {
-                const normalizedCat = categoria.toUpperCase().replace(/\s+/g, '-');
-                return `categoria-${normalizedCat.toLowerCase()}`;
-            };
-
-            /**
-             * Obtiene la clase CSS para un badge de categoría
-             * @param {string} categoria - Categoría
-             * @returns {string} Nombre de la clase CSS
-             */
-            const getBadgeClass = (categoria) => {
-                const normalizedCat = categoria.toUpperCase().replace(/\s+/g, '-');
-                return `badge-${normalizedCat.toLowerCase()}`;
-            };
-
-            /**
-             * Obtiene el color para una calificación Medallia
-             * @param {number} score - Calificación
-             * @returns {string} Clase CSS de color
-             */
-            const getMedalliaColor = (score) => {
-                if (score >= CONSTANTS.MEDALLIA_THRESHOLDS.EXCELLENT) return 'bg-green-500';
-                if (score >= CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) return 'bg-yellow-500';
-                return 'bg-red-500';
-            };
-
-            /**
-             * Obtiene el texto descriptivo para una calificación Medallia
-             * @param {number} score - Calificación
-             * @returns {string} Descripción
-             */
-            const getMedalliaText = (score) => {
-                if (score >= CONSTANTS.MEDALLIA_THRESHOLDS.EXCELLENT) return 'Excelente';
-                if (score >= CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) return 'Bueno';
-                if (score >= CONSTANTS.MEDALLIA_THRESHOLDS.REGULAR) return 'Regular';
-                return 'Malo';
-            };
-
-            /**
-             * Verifica si hoy es el cumpleaños
-             * @param {string|Date} fechaNacimiento - Fecha de nacimiento
-             * @returns {boolean} True si es cumpleaños
-             */
-            const isBirthday = (fechaNacimiento) => {
-                if (!fechaNacimiento) return false;
-                const today = new Date();
-                const birthday = new Date(fechaNacimiento);
-                return today.getMonth() === birthday.getMonth() &&
-                       today.getDate() === birthday.getDate();
-            };
-
-            /**
-             * Calcula la edad
-             * @param {string|Date} fechaNacimiento - Fecha de nacimiento
-             * @returns {number|null} Edad o null
-             */
-            const calculateAge = (fechaNacimiento) => {
-                if (!fechaNacimiento) return null;
-                const today = new Date();
-                const birthday = new Date(fechaNacimiento);
-                let age = today.getFullYear() - birthday.getFullYear();
-                const monthDiff = today.getMonth() - birthday.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
-                    age--;
-                }
-                return age;
-            };
-
-            /**
-             * Muestra una notificación toast
-             * @param {string} message - Mensaje a mostrar
-             * @param {string} type - Tipo de notificación
-             */
-            const showNotification = (message, type = CONSTANTS.NOTIFICATION_TYPES.INFO) => {
-                const colors = {
-                    [CONSTANTS.NOTIFICATION_TYPES.SUCCESS]: 'bg-green-500',
-                    [CONSTANTS.NOTIFICATION_TYPES.ERROR]: 'bg-red-500',
-                    [CONSTANTS.NOTIFICATION_TYPES.WARNING]: 'bg-yellow-500',
-                    [CONSTANTS.NOTIFICATION_TYPES.INFO]: 'bg-blue-500'
-                };
-
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg z-50 fade-in`;
-                notification.textContent = Validators.sanitizeText(message);
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.classList.add('opacity-0');
-                    setTimeout(() => notification.remove(), 300);
-                }, 3000);
-            };
-
-            /**
-             * Calcula rango de fechas según período
-             * @param {string} period - Período
-             * @returns {Object} { startDate, endDate }
-             */
-            const calculateDateRange = (period) => {
-                const now = new Date();
-                let startDate, endDate;
-
-                endDate = now.toISOString();
-
-                switch (period) {
-                    case CONSTANTS.DASHBOARD_PERIODS.TODAY:
-                        startDate = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-                        break;
-                    case CONSTANTS.DASHBOARD_PERIODS.WEEK:
-                        startDate = new Date(now.setDate(now.getDate() - 7)).toISOString();
-                        break;
-                    case CONSTANTS.DASHBOARD_PERIODS.MONTH:
-                        startDate = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-                        break;
-                    case CONSTANTS.DASHBOARD_PERIODS.YEAR:
-                        startDate = new Date(now.setFullYear(now.getFullYear() - 1)).toISOString();
-                        break;
-                    case CONSTANTS.DASHBOARD_PERIODS.ALL:
-                        startDate = null;
-                        endDate = null;
-                        break;
-                    default:
-                        startDate = null;
-                        endDate = null;
-                }
-
-                return { startDate, endDate };
-            };
-
-            return {
-                formatDate,
-                formatDateTime,
-                getCategoryClass,
-                getBadgeClass,
-                getMedalliaColor,
-                getMedalliaText,
-                isBirthday,
-                calculateAge,
-                showNotification,
-                calculateDateRange
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: API SERVICE - Comunicación con Supabase
-        // ====================================================================
-        const ApiService = (() => {
-            const client = Config.getSupabaseClient();
-
-            /**
-             * Maneja errores de la API
-             * @param {string} operation - Nombre de la operación
-             * @param {Error} error - Error
-             */
-            const handleError = (operation, error) => {
-                console.error(`Error en ${operation}:`, error);
-                Utils.showNotification(
-                    `Error: ${operation}. ${error.message}`,
-                    CONSTANTS.NOTIFICATION_TYPES.ERROR
-                );
-                throw error;
-            };
-
-            // ============================================================
-            // AIRPORTS
-            // ============================================================
-
-            /**
-             * Obtiene todos los aeropuertos activos
-             * @returns {Promise<Array>} Lista de aeropuertos
-             */
-            const getAirports = async () => {
-                try {
-                    const { data, error } = await client
-                        .from('airports')
-                        .select('*')
-                        .eq('activo', true)
-                        .order('nombre');
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('getAirports', error);
-                    return [];
-                }
-            };
-
-            /**
-             * Crea un nuevo aeropuerto
-             * @param {string} nombre - Nombre del aeropuerto
-             * @param {string} codigo - Código del aeropuerto
-             * @returns {Promise<Object>} Aeropuerto creado
-             */
-            const createAirport = async (nombre, codigo) => {
-                try {
-                    const { data, error } = await client
-                        .from('airports')
-                        .insert([{ nombre, codigo: codigo.toUpperCase() }])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('createAirport', error);
-                }
-            };
-
-            // ============================================================
-            // PASSENGERS
-            // ============================================================
-
-            /**
-             * Obtiene un pasajero por DNI/Pasaporte
-             * @param {string} dniPasaporte - DNI o pasaporte
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @returns {Promise<Object|null>} Pasajero o null
-             */
-            const getPassenger = async (dniPasaporte, aeropuertoId) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .select('*')
-                        .eq('dni_pasaporte', dniPasaporte)
-                        .eq('aeropuerto_id', aeropuertoId)
-                        .single();
-
-                    if (error && error.code !== 'PGRST116') throw error;
-                    return data;
-                } catch (error) {
-                    if (error.code === 'PGRST116') return null;
-                    handleError('getPassenger', error);
-                    return null;
-                }
-            };
-
-            /**
-             * Obtiene un pasajero por ID
-             * @param {string} id - ID del pasajero
-             * @returns {Promise<Object|null>} Pasajero o null
-             */
-            const getPassengerById = async (id) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .select('*')
-                        .eq('id', id)
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('getPassengerById', error);
-                    return null;
-                }
-            };
-
-            /**
-             * Crea un nuevo pasajero
-             * @param {Object} passengerData - Datos del pasajero
-             * @returns {Promise<Object>} Pasajero creado
-             */
-            const createPassenger = async (passengerData) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .insert([passengerData])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('createPassenger', error);
-                }
-            };
-
-            /**
-             * Actualiza un pasajero
-             * @param {string} id - ID del pasajero
-             * @param {Object} updates - Actualizaciones
-             * @returns {Promise<Object>} Pasajero actualizado
-             */
-            const updatePassenger = async (id, updates) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .update(updates)
-                        .eq('id', id)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('updatePassenger', error);
-                }
-            };
-
-            /**
-             * Busca pasajeros
-             * @param {string} query - Texto de búsqueda
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @returns {Promise<Array>} Lista de pasajeros
-             */
-            const searchPassengers = async (query, aeropuertoId) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .select('*')
-                        .eq('aeropuerto_id', aeropuertoId)
-                        .or(`nombre.ilike.%${query}%,dni_pasaporte.ilike.%${query}%`)
-                        .order('nombre')
-                        .limit(10);
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('searchPassengers', error);
-                    return [];
-                }
-            };
-
-            /**
-             * Obtiene todos los pasajeros de un aeropuerto
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @returns {Promise<Array>} Lista de pasajeros
-             */
-            const getAllPassengers = async (aeropuertoId) => {
-                try {
-                    const { data, error } = await client
-                        .from('passengers')
-                        .select('*')
-                        .eq('aeropuerto_id', aeropuertoId)
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('getAllPassengers', error);
-                    return [];
-                }
-            };
-
-            // ============================================================
-            // FLIGHTS
-            // ============================================================
-
-            /**
-             * Crea un nuevo vuelo
-             * @param {Object} flightData - Datos del vuelo
-             * @returns {Promise<Object>} Vuelo creado
-             */
-            const createFlight = async (flightData) => {
-                try {
-                    const { data, error } = await client
-                        .from('flights')
-                        .insert([flightData])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('createFlight', error);
-                }
-            };
-
-            /**
-             * Obtiene vuelos por fecha
-             * @param {string} fecha - Fecha
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @returns {Promise<Array>} Lista de vuelos
-             */
-            const getFlightsByDate = async (fecha, aeropuertoId) => {
-                try {
-                    const { data, error } = await client
-                        .from('flights')
-                        .select('*, flight_passengers(*, passengers(*))')
-                        .eq('aeropuerto_id', aeropuertoId)
-                        .eq('fecha', fecha)
-                        .order('numero_vuelo');
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('getFlightsByDate', error);
-                    return [];
-                }
-            };
-
-            /**
-             * Agrega un pasajero a un vuelo
-             * @param {string} vueloId - ID del vuelo
-             * @param {string} pasajeroId - ID del pasajero
-             * @param {string} asiento - Asiento
-             * @param {string} estatus - Estatus
-             * @returns {Promise<Object>} Registro creado
-             */
-            const addPassengerToFlight = async (vueloId, pasajeroId, asiento, estatus) => {
-                try {
-                    const { data, error } = await client
-                        .from('flight_passengers')
-                        .insert([{
-                            vuelo_id: vueloId,
-                            pasajero_id: pasajeroId,
-                            asiento,
-                            estatus
-                        }])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('addPassengerToFlight', error);
-                }
-            };
-
-            /**
-             * Obtiene el vuelo actual de un pasajero
-             * @param {string} pasajeroId - ID del pasajero
-             * @returns {Promise<Object|null>} Vuelo o null
-             */
-            const getPassengerCurrentFlight = async (pasajeroId) => {
-                try {
-                    const today = new Date().toISOString().split('T')[0];
-                    const { data, error } = await client
-                        .from('flight_passengers')
-                        .select('*, flights(*)')
-                        .eq('pasajero_id', pasajeroId)
-                        .gte('flights.fecha', today)
-                        .order('flights.fecha', { ascending: false })
-                        .limit(1)
-                        .single();
-
-                    if (error && error.code !== 'PGRST116') throw error;
-                    return data;
-                } catch (error) {
-                    if (error.code === 'PGRST116') return null;
-                    handleError('getPassengerCurrentFlight', error);
-                    return null;
-                }
-            };
-
-            // ============================================================
-            // INTERACTIONS
-            // ============================================================
-
-            /**
-             * Crea una nueva interacción
-             * @param {Object} interactionData - Datos de la interacción
-             * @returns {Promise<Object>} Interacción creada
-             */
-            const createInteraction = async (interactionData) => {
-                try {
-                    const { data, error } = await client
-                        .from('interactions')
-                        .insert([interactionData])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
-                    return data;
-                } catch (error) {
-                    handleError('createInteraction', error);
-                }
-            };
-
-            /**
-             * Obtiene interacciones de un pasajero
-             * @param {string} pasajeroId - ID del pasajero
-             * @returns {Promise<Array>} Lista de interacciones
-             */
-            const getPassengerInteractions = async (pasajeroId) => {
-                try {
-                    const { data, error } = await client
-                        .from('interactions')
-                        .select('*, flights(*)')
-                        .eq('pasajero_id', pasajeroId)
-                        .order('fecha', { ascending: false });
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('getPassengerInteractions', error);
-                    return [];
-                }
-            };
-
-            /**
-             * Obtiene interacciones de un aeropuerto
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @param {string|null} startDate - Fecha inicio
-             * @param {string|null} endDate - Fecha fin
-             * @returns {Promise<Array>} Lista de interacciones
-             */
-            const getAirportInteractions = async (aeropuertoId, startDate, endDate) => {
-                try {
-                    let query = client
-                        .from('interactions')
-                        .select('*, passengers!inner(aeropuerto_id), flights(*)')
-                        .eq('passengers.aeropuerto_id', aeropuertoId);
-
-                    if (startDate) {
-                        query = query.gte('fecha', startDate);
-                    }
-                    if (endDate) {
-                        query = query.lte('fecha', endDate);
-                    }
-
-                    const { data, error } = await query.order('fecha', { ascending: false });
-
-                    if (error) throw error;
-                    return data || [];
-                } catch (error) {
-                    handleError('getAirportInteractions', error);
-                    return [];
-                }
-            };
-
-            return {
-                // Airports
-                getAirports,
-                createAirport,
-                // Passengers
-                getPassenger,
-                getPassengerById,
-                createPassenger,
-                updatePassenger,
-                searchPassengers,
-                getAllPassengers,
-                // Flights
-                createFlight,
-                getFlightsByDate,
-                addPassengerToFlight,
-                getPassengerCurrentFlight,
-                // Interactions
-                createInteraction,
-                getPassengerInteractions,
-                getAirportInteractions
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: BUSINESS LOGIC - Lógica de negocio
-        // ====================================================================
-        const BusinessLogic = (() => {
-            /**
-             * Genera recomendaciones inteligentes para un pasajero
-             * @param {Object} passenger - Pasajero
-             * @param {Array} interactions - Interacciones
-             * @returns {Array} Lista de recomendaciones
-             */
-            const generateRecommendations = (passenger, interactions) => {
-                const recommendations = [];
-                const lastInteraction = interactions[0];
-
-                // Pasajero en riesgo
-                if (lastInteraction?.calificacion_medallia &&
-                    lastInteraction.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
-                    recommendations.push({
-                        type: 'danger',
-                        icon: '⚠️',
-                        title: 'Pasajero en Riesgo',
-                        message: `Última calificación: ${lastInteraction.calificacion_medallia}/10. Se recomienda: Ofrecer upgrade de cortesía, acceso a sala VIP, o atención personalizada del supervisor.`
-                    });
-                }
-
-                // Cumpleaños
-                if (Utils.isBirthday(passenger.fecha_nacimiento)) {
-                    recommendations.push({
-                        type: 'success',
-                        icon: '🎂',
-                        title: '¡Cumpleaños!',
-                        message: 'Ofrecer felicitación especial, postre de cortesía, o pequeño detalle. Registrar el momento en el sistema.'
-                    });
-                }
-
-                // Viajero frecuente sin incidentes
-                if (interactions.length >= 5 &&
-                    interactions.slice(0, 5).every(i => !i.incidentes || i.incidentes.trim() === '')) {
-                    const recentWithScores = interactions.filter(i => i.calificacion_medallia).slice(0, 5);
-                    if (recentWithScores.length > 0) {
-                        const avgScore = recentWithScores.reduce((sum, i) => sum + i.calificacion_medallia, 0) / recentWithScores.length;
-                        if (avgScore >= CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
-                            recommendations.push({
-                                type: 'info',
-                                icon: '⭐',
-                                title: 'Cliente Leal',
-                                message: `${interactions.length} viajes con excelente experiencia. Considera reconocimiento especial o programa de fidelización.`
-                            });
-                        }
-                    }
-                }
-
-                // Preferencias conocidas
-                const preferencesFound = interactions.filter(i => i.preferencias && Object.keys(i.preferencias).length > 0);
-                if (preferencesFound.length > 0) {
-                    const lastPref = preferencesFound[0].preferencias;
-                    const prefText = Object.entries(lastPref).map(([k, v]) => `${k}: ${v}`).join(', ');
-                    recommendations.push({
-                        type: 'info',
-                        icon: '📋',
-                        title: 'Preferencias Conocidas',
-                        message: `Últimas preferencias registradas: ${prefText}`
-                    });
-                }
-
-                return recommendations;
-            };
-
-            /**
-             * Parsea el manifiesto de vuelo
-             * @param {string} manifestText - Texto del manifiesto
-             * @returns {Object} { success: boolean, data: Array, errors: Array }
-             */
-            const parseManifest = (manifestText) => {
-                const lines = manifestText.split('\n').filter(l => l.trim());
-                const parsed = [];
-                const errors = [];
-
-                lines.forEach((line, index) => {
-                    const validation = Validators.validateManifestLine(line);
-
-                    if (!validation.valid) {
-                        errors.push(`Línea ${index + 1}: ${validation.error}`);
-                        return;
-                    }
-
-                    const parts = line.split(',').map(p => p.trim());
-                    const [vuelo, destino, nombre, categoria, estatus, asiento] = parts;
-
-                    parsed.push({
-                        vuelo,
-                        destino,
-                        nombre,
-                        categoria: categoria.toUpperCase(),
-                        estatus: estatus.toUpperCase(),
-                        asiento
-                    });
-                });
-
-                return {
-                    success: errors.length === 0,
-                    data: parsed,
-                    errors
-                };
-            };
-
-            /**
-             * Procesa y guarda el manifiesto
-             * @param {Array} manifestData - Datos del manifiesto
-             * @param {string} flightDate - Fecha del vuelo
-             * @param {string} aeropuertoId - ID del aeropuerto
-             * @returns {Promise<Object>} Resultado del procesamiento
-             */
-            const processManifest = async (manifestData, flightDate, aeropuertoId) => {
-                let processed = 0;
-                const flightGroups = {};
-
-                // Agrupar por vuelo
-                manifestData.forEach(p => {
-                    const key = `${p.vuelo}-${p.destino}`;
-                    if (!flightGroups[key]) {
-                        flightGroups[key] = {
-                            vuelo: p.vuelo,
-                            destino: p.destino,
-                            passengers: []
-                        };
-                    }
-                    flightGroups[key].passengers.push(p);
-                });
-
-                // Procesar cada grupo de vuelo
-                for (const [key, group] of Object.entries(flightGroups)) {
-                    // Crear vuelo
-                    const flight = await ApiService.createFlight({
-                        numero_vuelo: group.vuelo,
-                        destino: group.destino,
-                        fecha: flightDate,
-                        aeropuerto_id: aeropuertoId
-                    });
-
-                    // Procesar pasajeros
-                    for (const p of group.passengers) {
-                        // Generar DNI único (temporal - en producción debe venir del manifiesto)
-                        const dniPasaporte = `${p.nombre.replace(/\s+/g, '')}${Math.random().toString(36).substring(7)}`;
-
-                        let passenger = await ApiService.getPassenger(dniPasaporte, aeropuertoId);
-
-                        if (!passenger) {
-                            passenger = await ApiService.createPassenger({
-                                nombre: p.nombre,
-                                dni_pasaporte: dniPasaporte,
-                                categoria: p.categoria,
-                                aeropuerto_id: aeropuertoId
-                            });
-                        }
-
-                        // Agregar al vuelo
-                        await ApiService.addPassengerToFlight(flight.id, passenger.id, p.asiento, p.estatus);
-                        processed++;
-                    }
-                }
-
-                return { processed };
-            };
-
-            /**
-             * Calcula métricas del dashboard
-             * @param {Array} interactions - Interacciones
-             * @param {Array} passengers - Pasajeros
-             * @returns {Object} Métricas calculadas
-             */
-            const calculateDashboardMetrics = (interactions, passengers) => {
-                const totalInteractions = interactions.length;
-                const withMedallia = interactions.filter(i => i.calificacion_medallia);
-
-                const avgMedallia = withMedallia.length > 0
-                    ? (withMedallia.reduce((sum, i) => sum + i.calificacion_medallia, 0) / withMedallia.length).toFixed(1)
-                    : 0;
-
-                const passengersAtRisk = withMedallia.filter(i => i.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD).length;
-                const recoveryActions = interactions.filter(i => i.acciones_recuperacion?.trim()).length;
-                const recoveryRate = passengersAtRisk > 0
-                    ? ((recoveryActions / passengersAtRisk) * 100).toFixed(1)
-                    : 0;
-
-                // Distribución por categoría
-                const categoryCount = {};
-                passengers.forEach(p => {
-                    categoryCount[p.categoria] = (categoryCount[p.categoria] || 0) + 1;
-                });
-
-                // Motivos de viaje
-                const motivoCount = {};
-                interactions.forEach(i => {
-                    if (i.motivo_viaje) {
-                        motivoCount[i.motivo_viaje] = (motivoCount[i.motivo_viaje] || 0) + 1;
-                    }
-                });
-
-                // Servicios utilizados
-                const serviciosCount = {};
-                interactions.forEach(i => {
-                    if (i.servicios_utilizados) {
-                        i.servicios_utilizados.forEach(s => {
-                            serviciosCount[s] = (serviciosCount[s] || 0) + 1;
-                        });
-                    }
-                });
-
-                // Tendencia últimos 30 días
-                const last30Days = {};
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                interactions
-                    .filter(i => i.calificacion_medallia && new Date(i.fecha) >= thirtyDaysAgo)
-                    .forEach(i => {
-                        const date = new Date(i.fecha).toISOString().split('T')[0];
-                        if (!last30Days[date]) {
-                            last30Days[date] = { sum: 0, count: 0 };
-                        }
-                        last30Days[date].sum += i.calificacion_medallia;
-                        last30Days[date].count++;
-                    });
-
-                const trendData = Object.entries(last30Days)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([date, data]) => ({
-                        date,
-                        avg: (data.sum / data.count).toFixed(1)
-                    }));
-
-                return {
-                    totalInteractions,
-                    totalPassengers: passengers.length,
-                    avgMedallia,
-                    passengersAtRisk,
-                    recoveryRate,
-                    categoryCount,
-                    motivoCount,
-                    serviciosCount,
-                    trendData
-                };
-            };
-
-            return {
-                generateRecommendations,
-                parseManifest,
-                processManifest,
-                calculateDashboardMetrics
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: UI COMPONENTS - Componentes de interfaz
-        // ====================================================================
-        const UIComponents = (() => {
-            /**
-             * Componente de Login
-             * @returns {string} HTML del login
-             */
-            const renderLogin = () => {
-                return `
-                    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-                        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
-                            <div class="text-center mb-8">
-                                <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                                    </svg>
-                                </div>
-                                <h1 class="text-3xl font-bold text-gray-800">HVC Tracker</h1>
-                                <p class="text-gray-600 mt-2">Sistema de Gestión de Pasajeros de Alto Valor</p>
+    <!-- Módulos ES6 -->
+    <script>
+        // Función de respaldo inmediata - mostrar algo básico
+        function showBasicContent() {
+            console.log('🚀 Emergency mode activated');
+            document.getElementById('app').innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+                        <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                        </div>
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">HVC Tracker</h1>
+                        <p class="text-gray-600 mb-6">Sistema de Gestión de Pasajeros de Alto Valor</p>
+
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                            <p class="text-sm text-yellow-700">
+                                <strong>Estado:</strong> Aplicación básica cargada
+                            </p>
+                            <p class="text-sm text-yellow-600 mt-1">
+                                Hay problemas técnicos. Contacta al administrador.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="text-sm text-gray-500">
+                                <strong>Debug Info:</strong><br>
+                                URL: ${window.location.href}<br>
+                                UserAgent: ${navigator.userAgent.substring(0, 50)}...<br>
+                                Timestamp: ${new Date().toISOString()}
                             </div>
 
-                            <form id="loginForm" class="space-y-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Aeropuerto</label>
-                                    <select id="airportSelect" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option value="">Seleccione un aeropuerto...</option>
-                                    </select>
-                                </div>
-
-                                <div id="newAirportSection" class="hidden space-y-3">
-                                    <input type="text" id="newAirportName" placeholder="Nombre del aeropuerto"
-                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                    <input type="text" id="newAirportCode" placeholder="Código (ej: LIM)" maxlength="3"
-                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                    <button type="button" id="createAirportBtn"
-                                            class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
-                                        Crear Aeropuerto
-                                    </button>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="role" value="${CONSTANTS.ROLES.SUPERVISOR}" required class="peer hidden">
-                                            <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-blue-400 transition">
-                                                <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                </svg>
-                                                <span class="font-medium">Supervisor</span>
-                                            </div>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="role" value="${CONSTANTS.ROLES.AGENTE}" required class="peer hidden">
-                                            <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-blue-400 transition">
-                                                <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                                </svg>
-                                                <span class="font-medium">Agente</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                                    <input type="text" id="userName" required placeholder="Ingrese su nombre"
-                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-
-                                <button type="submit"
-                                        class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg">
-                                    Ingresar al Sistema
-                                </button>
-                            </form>
+                            <button onclick="window.location.reload()"
+                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                                🔄 Recargar Página
+                            </button>
                         </div>
                     </div>
-                `;
-            };
+                </div>
+            `;
+        }
 
-            /**
-             * Componente de Navbar
-             * @returns {string} HTML del navbar
-             */
-            const renderNavbar = () => {
-                const state = StateManager.getState();
-                const airport = state.airports.find(a => a.id === state.currentAirport);
-                const airportName = airport ? airport.nombre : '';
+        // Intentar inicialización completa
+        async function initializeApp() {
+            console.log('🚀 Starting HVC Tracker initialization...');
 
-                const supervisorLinks = state.currentRole === CONSTANTS.ROLES.SUPERVISOR ? `
-                    <button onclick="App.changeView('${CONSTANTS.VIEWS.DASHBOARD}')"
-                            class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.DASHBOARD ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
-                        Dashboard
-                    </button>
-                    <button onclick="App.changeView('${CONSTANTS.VIEWS.MANIFEST}')"
-                            class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.MANIFEST ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
-                        Cargar Manifiesto
-                    </button>
-                ` : `
-                    <button onclick="App.changeView('${CONSTANTS.VIEWS.PASSENGER_SEARCH}')"
-                            class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
-                        Atención al Pasajero
-                    </button>
-                    <button onclick="App.changeView('${CONSTANTS.VIEWS.DASHBOARD}')"
-                            class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.DASHBOARD ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
-                        Dashboard
-                    </button>
-                `;
+            try {
+                // Verificar dependencias críticas
+                console.log('📦 Checking dependencies...');
 
-                return `
-                    <nav class="bg-white shadow-lg no-print">
-                        <div class="max-w-7xl mx-auto px-4">
-                            <div class="flex justify-between items-center py-4">
-                                <div class="flex items-center space-x-4">
-                                    <div class="bg-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h1 class="text-xl font-bold text-gray-800">HVC Tracker</h1>
-                                        <p class="text-xs text-gray-600">${airportName}</p>
-                                    </div>
-                                </div>
+                // Timeout de seguridad - si no carga en 10 segundos, mostrar básico
+                const timeout = setTimeout(() => {
+                    console.warn('⏰ Initialization timeout - showing basic content');
+                    showBasicContent();
+                }, 10000);
 
-                                <div class="flex items-center space-x-6">
-                                    ${supervisorLinks}
-
-                                    <div class="flex items-center space-x-3 border-l pl-6">
-                                        <div class="text-right">
-                                            <p class="text-sm font-medium text-gray-800">${state.currentUser}</p>
-                                            <p class="text-xs text-gray-600 capitalize">${state.currentRole}</p>
-                                        </div>
-                                        <button onclick="App.logout()"
-                                                class="text-red-600 hover:text-red-700">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </nav>
-                `;
-            };
-
-            return {
-                renderLogin,
-                renderNavbar
-            };
-        })();
-
-        // ====================================================================
-        // MÓDULO: APP - Controlador principal de la aplicación
-        // ====================================================================
-        const App = (() => {
-            /**
-             * Inicializa la aplicación
-             */
-            const init = async () => {
-                Config.initSupabase();
-                render();
-            };
-
-            /**
-             * Cambia la vista actual
-             * @param {string} view - Vista a mostrar
-             */
-            const changeView = (view) => {
-                StateManager.setState({ currentView: view });
-                render();
-            };
-
-            /**
-             * Cierra sesión
-             */
-            const logout = () => {
-                StateManager.resetState();
-                render();
-            };
-
-            /**
-             * Renderiza la aplicación
-             */
-            const render = async () => {
-                const app = document.getElementById('app');
-                const state = StateManager.getState();
-
-                if (state.currentView === CONSTANTS.VIEWS.LOGIN) {
-                    app.innerHTML = UIComponents.renderLogin();
-                    await setupLoginHandlers();
-                } else {
-                    app.innerHTML = `
-                        ${UIComponents.renderNavbar()}
-                        <div id="mainContent" class="min-h-screen"></div>
-                    `;
-
-                    const mainContent = document.getElementById('mainContent');
-
-                    // Renderizar contenido según vista
-                    if (state.currentView === CONSTANTS.VIEWS.MANIFEST) {
-                        mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div></div>';
-                        // Aquí iría el código completo del manifiesto
-                        // Por limitaciones de espacio, se implementaría igual que en la versión anterior
-                    } else if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
-                        mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div></div>';
-                        // Aquí iría el código completo de búsqueda de pasajeros
-                    } else if (state.currentView === CONSTANTS.VIEWS.DASHBOARD) {
-                        mainContent.innerHTML = '<div class="flex justify-center items-center h-64"><div class="spinner"></div></div>';
-                        // Aquí iría el código completo del dashboard
-                    }
-                }
-            };
-
-            /**
-             * Configura los handlers del login
-             */
-            const setupLoginHandlers = async () => {
-                // Cargar aeropuertos
-                const airports = await ApiService.getAirports();
-                StateManager.setState({ airports });
-
-                const airportSelect = document.getElementById('airportSelect');
-                airports.forEach(airport => {
-                    const option = document.createElement('option');
-                    option.value = airport.id;
-                    option.textContent = airport.nombre;
-                    airportSelect.appendChild(option);
-                });
-
-                const newOption = document.createElement('option');
-                newOption.value = 'new';
-                newOption.textContent = '+ Crear nuevo aeropuerto';
-                airportSelect.appendChild(newOption);
-
-                // Handle airport selection
-                airportSelect.addEventListener('change', (e) => {
-                    const newAirportSection = document.getElementById('newAirportSection');
-                    if (e.target.value === 'new') {
-                        newAirportSection.classList.remove('hidden');
-                    } else {
-                        newAirportSection.classList.add('hidden');
-                    }
-                });
-
-                // Handle create airport
-                document.getElementById('createAirportBtn')?.addEventListener('click', async () => {
-                    const name = document.getElementById('newAirportName').value.trim();
-                    const code = document.getElementById('newAirportCode').value.trim().toUpperCase();
-
-                    if (!name || !code) {
-                        Utils.showNotification('Complete todos los campos', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-                        return;
-                    }
-
-                    if (code.length !== 3) {
-                        Utils.showNotification('El código debe tener 3 caracteres', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-                        return;
-                    }
-
-                    try {
-                        const airport = await ApiService.createAirport(name, code);
-                        Utils.showNotification('Aeropuerto creado exitosamente', CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
-
-                        const updatedAirports = await ApiService.getAirports();
-                        StateManager.setState({ airports: updatedAirports });
-
-                        airportSelect.value = airport.id;
-                        document.getElementById('newAirportSection').classList.add('hidden');
-
-                        airportSelect.innerHTML = '<option value="">Seleccione un aeropuerto...</option>';
-                        updatedAirports.forEach(a => {
-                            const option = document.createElement('option');
-                            option.value = a.id;
-                            option.textContent = a.nombre;
-                            if (a.id === airport.id) option.selected = true;
-                            airportSelect.appendChild(option);
-                        });
-                        const newOpt = document.createElement('option');
-                        newOpt.value = 'new';
-                        newOpt.textContent = '+ Crear nuevo aeropuerto';
-                        airportSelect.appendChild(newOpt);
-                    } catch (error) {
-                        Utils.showNotification('Error al crear aeropuerto', CONSTANTS.NOTIFICATION_TYPES.ERROR);
-                    }
-                });
-
-                // Handle login form
-                document.getElementById('loginForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-
-                    const airportId = document.getElementById('airportSelect').value;
-                    const role = document.querySelector('input[name="role"]:checked').value;
-                    const userName = document.getElementById('userName').value;
-
-                    if (airportId === 'new' || !airportId) {
-                        Utils.showNotification('Seleccione un aeropuerto válido', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-                        return;
-                    }
-
-                    StateManager.setState({
-                        currentUser: userName,
-                        currentRole: role,
-                        currentAirport: airportId,
-                        currentView: role === CONSTANTS.ROLES.SUPERVISOR ? CONSTANTS.VIEWS.DASHBOARD : CONSTANTS.VIEWS.PASSENGER_SEARCH
+                if (typeof window.supabase === 'undefined') {
+                    console.warn('⚠️ Supabase library not loaded, waiting...');
+                    await new Promise(resolve => {
+                        const checkSupabase = () => {
+                            if (typeof window.supabase !== 'undefined') {
+                                resolve();
+                            } else {
+                                setTimeout(checkSupabase, 100);
+                            }
+                        };
+                        checkSupabase();
                     });
+                }
+                console.log('✅ Supabase library loaded');
 
-                    render();
-                });
-            };
+                if (!window.SUPABASE_CONFIG) {
+                    throw new Error('Supabase configuration not found.');
+                }
+                console.log('✅ Supabase config available');
 
-            // Exponer métodos públicos
-            return {
-                init,
-                changeView,
-                logout
-            };
-        })();
+                // Limpiar timeout ya que tenemos dependencias
+                clearTimeout(timeout);
 
-        // ====================================================================
-        // INICIALIZACIÓN
-        // ====================================================================
-        document.addEventListener('DOMContentLoaded', () => {
-            App.init();
+                // Intentar importar módulos con timeout
+                console.log('📂 Loading application modules...');
+                const modulePromise = import('./src/app.js');
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Module load timeout')), 5000)
+                );
+
+                const App = await Promise.race([modulePromise, timeoutPromise]);
+                console.log('✅ Modules loaded successfully');
+
+                // Exponer App globalmente
+                window.App = App;
+
+                // Probar conexión a base de datos antes de inicializar
+                console.log('🔌 Testing database connection...');
+                const { createClient } = window.supabase;
+                const testClient = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+
+                try {
+                    const { data, error } = await testClient
+                        .from('airports')
+                        .select('*')
+                        .limit(1);
+
+                    if (error) {
+                        console.warn('⚠️ Database not available:', error.message);
+                        window.DB_AVAILABLE = false;
+                    } else {
+                        console.log('✅ Database available with data');
+                        window.DB_AVAILABLE = true;
+                    }
+                } catch (dbError) {
+                    console.warn('⚠️ Database connection failed:', dbError.message);
+                    window.DB_AVAILABLE = false;
+                }
+
+                // Inicializar aplicación
+                console.log('⚙️ Initializing application...');
+                await App.init();
+                console.log('✅ App initialized successfully');
+
+                // Ocultar loading con animación
+                setTimeout(() => {
+                    const loading = document.getElementById('loading');
+                    if (loading) {
+                        loading.style.opacity = '0';
+                        setTimeout(() => {
+                            loading.style.display = 'none';
+                            console.log('🎉 Application ready!');
+                        }, 300);
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error('💥 Critical error during initialization:', error);
+
+                // Ocultar loading
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+
+                // Mostrar contenido básico de respaldo
+                showBasicContent();
+            }
+        }
+
+        // Inicializar cuando DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('📄 DOM Content Loaded');
+                initializeApp();
+            });
+        } else {
+            console.log('📄 DOM Already Loaded');
+            initializeApp();
+        }
+
+        // Verificación adicional cuando window esté completamente cargado
+        window.addEventListener('load', () => {
+            console.log('🌐 Window fully loaded');
+            console.log('🔧 Supabase available:', typeof window.supabase !== 'undefined');
+            console.log('🎨 Tailwind available:', typeof window.tailwind !== 'undefined');
+            console.log('⚙️ Config available:', !!window.SUPABASE_CONFIG);
         });
 
-        // Exponer App globalmente para onclick handlers
-        window.App = App;
+        // Último respaldo - si después de 15 segundos aún no hay contenido, mostrar básico
+        setTimeout(() => {
+            const app = document.getElementById('app');
+            if (app && !app.innerHTML.trim()) {
+                console.warn('🚨 Emergency fallback activated');
+                showBasicContent();
+            }
+        }, 15000);
     </script>
 </body>
 </html>
