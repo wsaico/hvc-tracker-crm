@@ -671,7 +671,7 @@ const renderPassengerInteractionView = () => {
                     </div>
 
                     <div class="flex space-x-4">
-                        <button type="submit"
+                        <button type="button" onclick="saveInteraction(event)"
                                 class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -726,75 +726,70 @@ window.cancelInteraction = function() {
     render();
 };
 
-// Función para configurar handlers del formulario de interacción
-const setupInteractionFormHandlers = () => {
-    const form = document.getElementById('interactionForm');
-    if (!form) {
-        console.error('Interaction form not found');
+// Función para guardar interacción (llamada desde el botón)
+window.saveInteraction = async function(event) {
+    event.preventDefault();
+    console.log('Save interaction triggered');
+
+    const state = StateManager.getState();
+    const passenger = state.selectedPassenger;
+
+    console.log('Current state:', state);
+    console.log('Selected passenger:', passenger);
+
+    if (!passenger) {
+        showNotification('No se ha seleccionado un pasajero', 'error');
         return;
     }
 
-    console.log('Setting up interaction form handlers');
+    if (!state.currentUser) {
+        showNotification('Sesión expirada. Vuelva a iniciar sesión.', 'error');
+        logout();
+        return;
+    }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        console.log('Form submit triggered');
+    // Recopilar datos del formulario
+    const serviciosUtilizados = Array.from(document.querySelectorAll('.servicio-checkbox:checked'))
+        .map(cb => cb.value);
 
-        const state = StateManager.getState();
-        const passenger = state.selectedPassenger;
+    const interactionData = {
+        pasajero_id: passenger.id,
+        agente_nombre: state.currentUser,
+        fecha: new Date().toISOString(),
+        motivo_viaje: document.getElementById('motivoViaje').value || null,
+        feedback: document.getElementById('feedback').value.trim() || null,
+        calificacion_medallia: parseInt(document.getElementById('calificacionMedallia').value) || null,
+        servicios_utilizados: serviciosUtilizados.length > 0 ? serviciosUtilizados : null,
+        preferencias: document.getElementById('preferencias').value.trim() || null,
+        incidentes: document.getElementById('incidentes').value.trim() || null,
+        acciones_recuperacion: document.getElementById('accionesRecuperacion').value.trim() || null,
+        notas: document.getElementById('notas').value.trim() || null,
+        es_cumpleanos: Utils.isBirthday(passenger.fecha_nacimiento)
+    };
 
-        console.log('Current state:', state);
-        console.log('Selected passenger:', passenger);
+    console.log('Interaction data to save:', interactionData);
 
-        if (!passenger) {
-            showNotification('No se ha seleccionado un pasajero', 'error');
-            return;
-        }
+    try {
+        console.log('Calling ApiService.createInteraction...');
+        const result = await ApiService.createInteraction(interactionData);
+        console.log('Interaction saved successfully:', result);
 
-        if (!state.currentUser) {
-            showNotification('Sesión expirada. Vuelva a iniciar sesión.', 'error');
-            logout();
-            return;
-        }
+        showNotification(`Interacción guardada exitosamente para ${passenger.nombre}`, 'success');
 
-        // Recopilar datos del formulario
-        const serviciosUtilizados = Array.from(document.querySelectorAll('.servicio-checkbox:checked'))
-            .map(cb => cb.value);
+        // Limpiar formulario y volver a búsqueda
+        console.log('Clearing state and changing view...');
+        StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
+        changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
 
-        const interactionData = {
-            pasajero_id: passenger.id,
-            agente_nombre: state.currentUser,
-            fecha: new Date().toISOString(),
-            motivo_viaje: document.getElementById('motivoViaje').value || null,
-            feedback: document.getElementById('feedback').value.trim() || null,
-            calificacion_medallia: parseInt(document.getElementById('calificacionMedallia').value) || null,
-            servicios_utilizados: serviciosUtilizados.length > 0 ? serviciosUtilizados : null,
-            preferencias: document.getElementById('preferencias').value.trim() || null,
-            incidentes: document.getElementById('incidentes').value.trim() || null,
-            acciones_recuperacion: document.getElementById('accionesRecuperacion').value.trim() || null,
-            notas: document.getElementById('notas').value.trim() || null,
-            es_cumpleanos: Utils.isBirthday(passenger.fecha_nacimiento)
-        };
+    } catch (error) {
+        console.error('Error saving interaction:', error);
+        showNotification('Error al guardar la interacción', 'error');
+    }
+};
 
-        console.log('Interaction data to save:', interactionData);
-
-        try {
-            console.log('Calling ApiService.createInteraction...');
-            const result = await ApiService.createInteraction(interactionData);
-            console.log('Interaction saved successfully:', result);
-
-            showNotification(`Interacción guardada exitosamente para ${passenger.nombre}`, 'success');
-
-            // Limpiar formulario y volver a búsqueda
-            console.log('Clearing state and changing view...');
-            StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
-            changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
-
-        } catch (error) {
-            console.error('Error saving interaction:', error);
-            showNotification('Error al guardar la interacción', 'error');
-        }
-    });
+// Función para configurar handlers del formulario de interacción (ya no usada)
+const setupInteractionFormHandlers = () => {
+    console.log('Setup interaction form handlers - using button click instead');
 };
 
 /**
