@@ -29,20 +29,18 @@ let supabaseClient = null;
  */
 export const initSupabase = () => {
     if (!supabaseClient) {
-        try {
-            const { createClient } = window.supabase;
-            supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-        } catch (error) {
-            console.warn('Supabase no configurado correctamente. Usando configuración de desarrollo.');
-            // Crear un cliente mock para desarrollo
-            supabaseClient = {
-                from: () => ({
-                    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-                    insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-                    update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }) }),
-                    delete: () => ({ eq: () => Promise.resolve({ data: null, error: null }) })
-                })
-            };
+        if (typeof window !== 'undefined' && window.supabase) {
+            try {
+                const { createClient } = window.supabase;
+                supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                console.log('Supabase client initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Supabase client:', error);
+                throw error;
+            }
+        } else {
+            console.error('Supabase library not loaded');
+            throw new Error('Supabase library not available');
         }
     }
     return supabaseClient;
