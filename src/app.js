@@ -715,6 +715,13 @@ const renderPassengerInteractionView = () => {
 
 // Función para cancelar interacción
 window.cancelInteraction = function() {
+    console.log('Cancel interaction called');
+    StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
+    changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
+};
+
+// Función para cancelar interacción
+window.cancelInteraction = function() {
     StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
     render();
 };
