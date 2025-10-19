@@ -14,8 +14,8 @@
  */
 
 export const SUPABASE_CONFIG = {
-    url: 'https://demo.supabase.co', // URL de ejemplo para desarrollo
-    anonKey: 'demo-anon-key' // Key de ejemplo para desarrollo
+    url: 'https://placeholder.supabase.co', // Reemplaza con tu URL real de Supabase
+    anonKey: 'placeholder-anon-key' // Reemplaza con tu anon key real
 };
 
 /**
