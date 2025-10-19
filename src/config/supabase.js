@@ -14,8 +14,8 @@
  */
 
 export const SUPABASE_CONFIG = {
-    url: 'https://placeholder.supabase.co', // Reemplaza con tu URL real de Supabase
-    anonKey: 'placeholder-anon-key' // Reemplaza con tu anon key real
+    url: 'https://lujzsozkykmfbqhzgkel.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1anpzb3preWttZmJxaHpna2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NjA0MjEsImV4cCI6MjA3NjQzNjQyMX0.a_-8nWKflLdFZxmC3uUcM75fcdTd3kWZaOmjB4adrko'
 };
 
 /**
