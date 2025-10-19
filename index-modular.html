@@ -32,55 +32,99 @@
 
     <!-- Módulos ES6 -->
     <script type="module">
-        // Importar controlador principal de la aplicación
-        import * as App from './src/app.js';
+        // Función de inicialización principal
+        async function initializeApp() {
+            console.log('Starting app initialization...');
 
-        // Exponer App globalmente para onclick handlers en el HTML
-        window.App = App;
-
-        // Inicializar aplicación cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, initializing app...');
             try {
-                App.init();
+                // Verificar dependencias críticas
+                if (typeof window.supabase === 'undefined') {
+                    throw new Error('Supabase library not loaded. Check your internet connection.');
+                }
+
+                // Importar módulos dinámicamente
+                console.log('Loading modules...');
+                const App = await import('./src/app.js');
+                console.log('Modules loaded successfully');
+
+                // Exponer App globalmente
+                window.App = App;
+
+                // Inicializar aplicación
+                console.log('Initializing app...');
+                await App.init();
                 console.log('App initialized successfully');
-                // Ocultar loading después de inicialización
+
+                // Ocultar loading
                 setTimeout(() => {
                     const loading = document.getElementById('loading');
                     if (loading) {
-                        loading.style.display = 'none';
+                        loading.style.opacity = '0';
+                        setTimeout(() => loading.style.display = 'none', 300);
                     }
-                }, 1000);
+                }, 500);
+
             } catch (error) {
-                console.error('Error initializing app:', error);
-                // Ocultar loading y mostrar error
+                console.error('Critical error during initialization:', error);
+
+                // Ocultar loading
                 const loading = document.getElementById('loading');
                 if (loading) {
                     loading.style.display = 'none';
                 }
+
+                // Mostrar error crítico
                 document.getElementById('app').innerHTML = `
-                    <div class="min-h-screen flex items-center justify-center bg-red-50">
-                        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md">
-                            <h2 class="text-2xl font-bold text-red-600 mb-4">Error de Inicialización</h2>
-                            <p class="text-gray-600 mb-4">Hubo un problema al cargar la aplicación.</p>
-                            <details class="text-sm text-gray-500">
-                                <summary>Detalles técnicos</summary>
-                                <pre class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">${error.message}</pre>
-                            </details>
+                    <div class="min-h-screen flex items-center justify-center bg-red-50 p-4">
+                        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+                            <div class="text-center mb-6">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                </div>
+                                <h2 class="text-2xl font-bold text-red-600 mb-2">Error Crítico</h2>
+                                <p class="text-gray-600">No se pudo inicializar la aplicación</p>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-red-50 p-4 rounded-lg">
+                                    <p class="text-sm text-red-700 font-medium">Posibles causas:</p>
+                                    <ul class="text-sm text-red-600 mt-2 space-y-1">
+                                        <li>• Problemas de conexión a internet</li>
+                                        <li>• Librerías no cargadas correctamente</li>
+                                        <li>• Configuración de Supabase inválida</li>
+                                        <li>• Archivos JavaScript corruptos</li>
+                                    </ul>
+                                </div>
+                                <details class="text-sm">
+                                    <summary class="cursor-pointer text-gray-500 hover:text-gray-700">
+                                        Detalles técnicos (click para expandir)
+                                    </summary>
+                                    <pre class="mt-2 p-3 bg-gray-100 rounded text-xs overflow-auto max-h-32">${error.stack || error.message}</pre>
+                                </details>
+                                <button onclick="window.location.reload()"
+                                        class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition">
+                                    Reintentar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }
-        });
+        }
 
-        // Verificar que Supabase esté cargado
+        // Inicializar cuando DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Verificación adicional cuando window esté completamente cargado
         window.addEventListener('load', () => {
-            console.log('Window loaded');
-            if (typeof window.supabase === 'undefined') {
-                console.error('Supabase library not loaded');
-            } else {
-                console.log('Supabase library loaded successfully');
-            }
+            console.log('Window fully loaded');
+            console.log('Supabase available:', typeof window.supabase !== 'undefined');
+            console.log('Tailwind available:', typeof window.tailwind !== 'undefined');
         });
     </script>
 </body>
