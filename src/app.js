@@ -304,7 +304,6 @@ window.searchPassengers = async function() {
 
     try {
         const results = await ApiService.searchPassengers(query, state.currentAirport);
-
         const resultsContainer = document.getElementById('searchResults');
 
         if (results.length === 0) {
@@ -314,31 +313,76 @@ window.searchPassengers = async function() {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                     <p>No se encontraron pasajeros con ese criterio</p>
+                    <button onclick="createNewPassenger('${query}')"
+                            class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center mx-auto">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Crear Nuevo Pasajero: "${query}"
+                    </button>
                 </div>
             `;
             return;
         }
 
-        resultsContainer.innerHTML = results.map(passenger => `
-            <div class="bg-gray-50 rounded-lg p-4 border-l-4 ${Utils.getCategoryClass(passenger.categoria)}">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-semibold text-gray-800">${passenger.nombre}</h3>
-                        <p class="text-sm text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
-                        <p class="text-sm text-gray-600">Categoría: ${passenger.categoria}</p>
-                        ${passenger.fecha_nacimiento ? `<p class="text-sm text-gray-600">Edad: ${Utils.calculateAge(passenger.fecha_nacimiento)} años</p>` : ''}
-                    </div>
-                    <button onclick="viewPassengerDetails('${passenger.id}')"
-                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        Ver Detalles
-                    </button>
+        // Obtener vuelos de hoy para sugerencias
+        const today = new Date().toISOString().split('T')[0];
+        let todayFlights = [];
+        try {
+            todayFlights = await ApiService.getFlightsByDate(today, state.currentAirport);
+        } catch (error) {
+            console.warn('Could not load today flights:', error);
+        }
+
+        resultsContainer.innerHTML = results.map(passenger => {
+            // Verificar si el pasajero ya está en algún vuelo hoy
+            const inFlightToday = todayFlights.some(flight =>
+                flight.flight_passengers?.some(fp => fp.pasajero_id === passenger.id)
+            );
+
+            const flightInfo = inFlightToday ? `
+                <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                    <p class="text-blue-800 font-medium">✈️ Ya registrado en vuelo de hoy</p>
+                    <p class="text-blue-600">Puede proceder con atención al pasajero</p>
                 </div>
-            </div>
-        `).join('');
+            ` : `
+                <div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <p class="text-yellow-800 font-medium">📋 No registrado en vuelos de hoy</p>
+                    <p class="text-yellow-600">Considere agregar al manifiesto si viaja hoy</p>
+                </div>
+            `;
+
+            return `
+                <div class="bg-gray-50 rounded-lg p-4 border-l-4 ${Utils.getCategoryClass(passenger.categoria)}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800">${passenger.nombre}</h3>
+                            <p class="text-sm text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
+                            <p class="text-sm text-gray-600">Categoría: ${passenger.categoria}</p>
+                            ${passenger.fecha_nacimiento ? `<p class="text-sm text-gray-600">Edad: ${Utils.calculateAge(passenger.fecha_nacimiento)} años</p>` : ''}
+                            ${flightInfo}
+                        </div>
+                        <div class="flex space-x-2 ml-4">
+                            <button onclick="viewPassengerDetails('${passenger.id}')"
+                                    class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                Ver Detalles
+                            </button>
+                            <button onclick="startPassengerInteraction('${passenger.id}')"
+                                    class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition text-sm flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                </svg>
+                                Atención
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
 
         showNotification(`Encontrados ${results.length} pasajeros`, 'success');
 
@@ -348,23 +392,147 @@ window.searchPassengers = async function() {
     }
 };
 
+// Función para crear nuevo pasajero
+window.createNewPassenger = async function(name) {
+    const state = StateManager.getState();
+
+    try {
+        // Crear pasajero con DNI generado
+        const dniPasaporte = `${name.replace(/\s+/g, '').toUpperCase()}${Date.now().toString().slice(-4)}`;
+
+        const passenger = await ApiService.createPassenger({
+            nombre: name,
+            dni_pasaporte: dniPasaporte,
+            categoria: CONSTANTS.CATEGORIES.GOLD, // Default category
+            aeropuerto_id: state.currentAirport
+        });
+
+        showNotification(`Pasajero "${name}" creado exitosamente`, 'success');
+
+        // Recargar búsqueda para mostrar el nuevo pasajero
+        window.searchPassengers();
+
+    } catch (error) {
+        console.error('Error creating passenger:', error);
+        showNotification('Error al crear pasajero', 'error');
+    }
+};
+
 // Función para ver detalles del pasajero
 window.viewPassengerDetails = async function(passengerId) {
     try {
         const passenger = await ApiService.getPassengerById(passengerId);
         const interactions = await ApiService.getPassengerInteractions(passengerId);
 
-        // Aquí podrías abrir un modal o navegar a una vista de detalles
-        console.log('Passenger details:', passenger);
-        console.log('Interactions:', interactions);
-
-        showNotification('Funcionalidad de detalles próximamente', 'info');
+        // Mostrar modal con detalles
+        showPassengerModal(passenger, interactions);
 
     } catch (error) {
         console.error('Error loading passenger details:', error);
         showNotification('Error al cargar detalles del pasajero', 'error');
     }
 };
+
+// Función para iniciar atención al pasajero
+window.startPassengerInteraction = async function(passengerId) {
+    try {
+        const passenger = await ApiService.getPassengerById(passengerId);
+
+        // Cambiar a vista de atención al pasajero con el pasajero preseleccionado
+        StateManager.setState({ selectedPassenger: passenger });
+        changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
+
+        showNotification(`Iniciando atención para ${passenger.nombre}`, 'info');
+
+    } catch (error) {
+        console.error('Error starting passenger interaction:', error);
+        showNotification('Error al iniciar atención', 'error');
+    }
+};
+
+// Función para mostrar modal de detalles del pasajero
+function showPassengerModal(passenger, interactions) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">${passenger.nombre}</h2>
+                        <p class="text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
+                        <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${Utils.getBadgeClass(passenger.categoria)}">
+                            ${passenger.categoria}
+                        </span>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()"
+                            class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Información Personal</h3>
+                        <div class="space-y-2">
+                            <p><strong>Nombre:</strong> ${passenger.nombre}</p>
+                            <p><strong>DNI/Pasaporte:</strong> ${passenger.dni_pasaporte}</p>
+                            <p><strong>Categoría:</strong> ${passenger.categoria}</p>
+                            ${passenger.fecha_nacimiento ? `<p><strong>Fecha Nacimiento:</strong> ${Utils.formatDate(passenger.fecha_nacimiento)}</p>` : ''}
+                            ${passenger.fecha_nacimiento ? `<p><strong>Edad:</strong> ${Utils.calculateAge(passenger.fecha_nacimiento)} años</p>` : ''}
+                            ${passenger.telefono ? `<p><strong>Teléfono:</strong> ${passenger.telefono}</p>` : ''}
+                            ${passenger.email ? `<p><strong>Email:</strong> ${passenger.email}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Estadísticas</h3>
+                        <div class="space-y-2">
+                            <p><strong>Total Interacciones:</strong> ${interactions.length}</p>
+                            ${interactions.length > 0 ? `
+                                <p><strong>Última Interacción:</strong> ${Utils.formatDateTime(interactions[0].fecha)}</p>
+                                <p><strong>Calificación Promedio:</strong> ${interactions.length > 0 ? (interactions.reduce((sum, i) => sum + (i.calificacion_medallia || 0), 0) / interactions.length).toFixed(1) : 'N/A'}</p>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                ${interactions.length > 0 ? `
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Últimas Interacciones</h3>
+                        <div class="space-y-3 max-h-60 overflow-y-auto">
+                            ${interactions.slice(0, 5).map(interaction => `
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-medium">${Utils.formatDateTime(interaction.fecha)}</p>
+                                            <p class="text-sm text-gray-600">Agente: ${interaction.agente_nombre}</p>
+                                            ${interaction.motivo_viaje ? `<p class="text-sm text-gray-600">Motivo: ${interaction.motivo_viaje}</p>` : ''}
+                                        </div>
+                                        ${interaction.calificacion_medallia ? `
+                                            <span class="px-2 py-1 rounded text-sm ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
+                                                ${interaction.calificacion_medallia}/10
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    ${interaction.feedback ? `<p class="text-sm mt-2 text-gray-700">${interaction.feedback}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : `
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No hay interacciones registradas para este pasajero</p>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
 
 /**
  * Configura los manejadores de eventos para el login
