@@ -260,7 +260,15 @@ window.processManifest = async function() {
         document.getElementById('manifestOutput').innerHTML = `
             <div class="text-green-600">
                 <h4 class="font-semibold mb-2">✅ Manifiesto procesado exitosamente</h4>
-                <p>Se procesaron ${processResult.processed} pasajeros</p>
+                <p>${processResult.message}</p>
+                <div class="mt-3 text-sm text-gray-600">
+                    <p><strong>📊 Resumen:</strong></p>
+                    <ul class="list-disc list-inside mt-1">
+                        <li>Pasajeros procesados: ${processResult.processed}</li>
+                        <li>Pasajeros nuevos creados: ${processResult.created}</li>
+                        <li>Pasajeros existentes encontrados: ${processResult.found}</li>
+                    </ul>
+                </div>
             </div>
         `;
         document.getElementById('manifestResults').classList.remove('hidden');

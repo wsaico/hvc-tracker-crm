@@ -119,6 +119,8 @@ export const parseManifest = (manifestText) => {
  */
 export const processManifest = async (manifestData, flightDate, aeropuertoId) => {
     let processed = 0;
+    let created = 0;
+    let found = 0;
     const flightGroups = {};
 
     // Agrupar por vuelo
@@ -136,37 +138,72 @@ export const processManifest = async (manifestData, flightDate, aeropuertoId) =>
 
     // Procesar cada grupo de vuelo
     for (const [key, group] of Object.entries(flightGroups)) {
-        // Crear vuelo
-        const flight = await ApiService.createFlight({
-            numero_vuelo: group.vuelo,
-            destino: group.destino,
-            fecha: flightDate,
-            aeropuerto_id: aeropuertoId
-        });
+        // Verificar si el vuelo ya existe
+        let flight = null;
+        try {
+            // Buscar vuelo existente por número, fecha y aeropuerto
+            const existingFlights = await ApiService.getFlightsByDate(flightDate, aeropuertoId);
+            flight = existingFlights.find(f => f.numero_vuelo === group.vuelo && f.destino === group.destino);
+        } catch (error) {
+            console.warn('Error checking existing flights:', error);
+        }
+
+        // Crear vuelo si no existe
+        if (!flight) {
+            flight = await ApiService.createFlight({
+                numero_vuelo: group.vuelo,
+                destino: group.destino,
+                fecha: flightDate,
+                aeropuerto_id: aeropuertoId
+            });
+        }
 
         // Procesar pasajeros
         for (const p of group.passengers) {
-            // Generar DNI único (temporal - en producción debe venir del manifiesto)
-            const dniPasaporte = `${p.nombre.replace(/\s+/g, '')}${Math.random().toString(36).substring(7)}`;
+            let passenger = null;
 
-            let passenger = await ApiService.getPassenger(dniPasaporte, aeropuertoId);
+            // Intentar encontrar pasajero existente por nombre (búsqueda flexible)
+            try {
+                const searchResults = await ApiService.searchPassengers(p.nombre, aeropuertoId);
+                // Buscar coincidencia exacta o muy similar
+                passenger = searchResults.find(existing =>
+                    existing.nombre.toLowerCase().trim() === p.nombre.toLowerCase().trim()
+                );
+            } catch (error) {
+                console.warn('Error searching for existing passenger:', error);
+            }
 
             if (!passenger) {
+                // Crear nuevo pasajero con DNI generado (temporal)
+                const dniPasaporte = `${p.nombre.replace(/\s+/g, '').toUpperCase()}${Date.now().toString().slice(-4)}`;
                 passenger = await ApiService.createPassenger({
                     nombre: p.nombre,
                     dni_pasaporte: dniPasaporte,
                     categoria: p.categoria,
                     aeropuerto_id: aeropuertoId
                 });
+                created++;
+            } else {
+                found++;
             }
 
-            // Agregar al vuelo
-            await ApiService.addPassengerToFlight(flight.id, passenger.id, p.asiento, p.estatus);
-            processed++;
+            // Verificar si el pasajero ya está en este vuelo
+            const alreadyInFlight = flight.flight_passengers?.some(fp => fp.pasajero_id === passenger.id);
+
+            if (!alreadyInFlight) {
+                // Agregar al vuelo
+                await ApiService.addPassengerToFlight(flight.id, passenger.id, p.asiento, p.estatus);
+                processed++;
+            }
         }
     }
 
-    return { processed };
+    return {
+        processed,
+        created,
+        found,
+        message: `Procesados: ${processed} | Creados: ${created} | Encontrados: ${found}`
+    };
 };
 
 /**
