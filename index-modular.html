@@ -14,6 +14,15 @@
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- Loading indicator -->
+    <div id="loading" class="fixed inset-0 bg-blue-600 flex items-center justify-center z-50">
+        <div class="text-center text-white">
+            <div class="spinner mb-4"></div>
+            <h2 class="text-xl font-semibold">Cargando HVC Tracker...</h2>
+            <p class="text-blue-100 mt-2">Inicializando aplicación</p>
+        </div>
+    </div>
+
     <!-- Estilos CSS -->
     <link rel="stylesheet" href="./styles/main.css">
 </head>
@@ -31,7 +40,47 @@
 
         // Inicializar aplicación cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', () => {
-            App.init();
+            console.log('DOM loaded, initializing app...');
+            try {
+                App.init();
+                console.log('App initialized successfully');
+                // Ocultar loading después de inicialización
+                setTimeout(() => {
+                    const loading = document.getElementById('loading');
+                    if (loading) {
+                        loading.style.display = 'none';
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                // Ocultar loading y mostrar error
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                document.getElementById('app').innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center bg-red-50">
+                        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md">
+                            <h2 class="text-2xl font-bold text-red-600 mb-4">Error de Inicialización</h2>
+                            <p class="text-gray-600 mb-4">Hubo un problema al cargar la aplicación.</p>
+                            <details class="text-sm text-gray-500">
+                                <summary>Detalles técnicos</summary>
+                                <pre class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">${error.message}</pre>
+                            </details>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        // Verificar que Supabase esté cargado
+        window.addEventListener('load', () => {
+            console.log('Window loaded');
+            if (typeof window.supabase === 'undefined') {
+                console.error('Supabase library not loaded');
+            } else {
+                console.log('Supabase library loaded successfully');
+            }
         });
     </script>
 </body>
