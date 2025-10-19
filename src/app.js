@@ -79,6 +79,9 @@ const render = async () => {
             case CONSTANTS.VIEWS.DASHBOARD:
                 renderDashboardView().then(html => mainContent.innerHTML = html);
                 break;
+            case 'passenger-tracking':
+                renderPassengerTrackingView().then(html => mainContent.innerHTML = html);
+                break;
         }
     }
 };
@@ -185,6 +188,10 @@ const renderNavbar = () => {
         <button onclick="App.changeView('${CONSTANTS.VIEWS.PASSENGER_SEARCH}')"
                 class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
             Atención al Pasajero
+        </button>
+        <button onclick="App.changeView('passenger-tracking')"
+                class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === 'passenger-tracking' ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
+            Tracking de Pasajeros
         </button>
         <button onclick="App.changeView('${CONSTANTS.VIEWS.DASHBOARD}')"
                 class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.DASHBOARD ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
@@ -1018,6 +1025,292 @@ const renderPassengerSearchView = async () => {
             </div>
         </div>
     `;
+};
+
+/**
+ * Renderiza la vista de tracking de pasajeros
+ * @returns {Promise<string>} HTML de la vista de tracking
+ * @private
+ */
+const renderPassengerTrackingView = async () => {
+    const state = StateManager.getState();
+
+    try {
+        // Obtener todas las interacciones del aeropuerto
+        const interactions = await ApiService.getAirportInteractions(state.currentAirport);
+        const passengers = await ApiService.getAllPassengers(state.currentAirport);
+
+        // Crear mapa de pasajeros para lookup rápido
+        const passengerMap = {};
+        passengers.forEach(p => passengerMap[p.id] = p);
+
+        // Calcular métricas inteligentes
+        const passengersAtRisk = [];
+        const recentInteractions = [];
+        const birthdayPassengers = [];
+
+        interactions.forEach(interaction => {
+            const passenger = passengerMap[interaction.pasajero_id];
+            if (!passenger) return;
+
+            // Pasajeros en riesgo (última calificación baja)
+            if (interaction.calificacion_medallia && interaction.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
+                const existing = passengersAtRisk.find(p => p.id === passenger.id);
+                if (!existing) {
+                    passengersAtRisk.push({
+                        ...passenger,
+                        lastRating: interaction.calificacion_medallia,
+                        lastInteraction: interaction.fecha
+                    });
+                }
+            }
+
+            // Interacciones recientes (últimas 24 horas)
+            const interactionDate = new Date(interaction.fecha);
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+            if (interactionDate >= oneDayAgo) {
+                recentInteractions.push({
+                    ...interaction,
+                    passenger: passenger
+                });
+            }
+
+            // Cumpleaños próximos
+            if (Utils.isBirthday(passenger.fecha_nacimiento)) {
+                const existing = birthdayPassengers.find(p => p.id === passenger.id);
+                if (!existing) {
+                    birthdayPassengers.push(passenger);
+                }
+            }
+        });
+
+        return `
+            <div class="max-w-7xl mx-auto p-6">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Tracking de Pasajeros HVC</h2>
+                    <p class="text-gray-600">Monitoreo inteligente y sugerencias automáticas</p>
+                </div>
+
+                <!-- Métricas rápidas -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-red-800">En Riesgo</h3>
+                                <p class="text-2xl font-bold text-red-600">${passengersAtRisk.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-yellow-800">Hoy</h3>
+                                <p class="text-2xl font-bold text-yellow-600">${recentInteractions.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-green-800">Cumpleaños</h3>
+                                <p class="text-2xl font-bold text-green-600">${birthdayPassengers.length}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-blue-800">Total</h3>
+                                <p class="text-2xl font-bold text-blue-600">${interactions.length}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pasajeros que requieren atención inmediata -->
+                ${passengersAtRisk.length > 0 ? `
+                    <div class="bg-white rounded-lg shadow mb-8">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                                <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                                Pasajeros en Riesgo (Requieren Atención Inmediata)
+                            </h3>
+                            <p class="text-gray-600 mt-1">Última calificación baja - necesitan acciones de recuperación</p>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                ${passengersAtRisk.map(passenger => `
+                                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <div class="flex items-center space-x-3 mb-2">
+                                                    <div class="w-10 h-10 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
+                                                        <span class="text-white font-bold">${passenger.nombre.charAt(0)}</span>
+                                                    </div>
+                                                    <div>
+                                                        <h4 class="font-semibold text-gray-800">${passenger.nombre}</h4>
+                                                        <p class="text-sm text-gray-600">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-4 text-sm">
+                                                    <span class="text-red-600 font-medium">Última calificación: ${passenger.lastRating}/10</span>
+                                                    <span class="text-gray-500">${Utils.formatDateTime(passenger.lastInteraction)}</span>
+                                                </div>
+                                            </div>
+                                            <button onclick="startPassengerInteraction('${passenger.id}')"
+                                                    class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                                </svg>
+                                                Atender Ahora
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Cumpleaños del día -->
+                ${birthdayPassengers.length > 0 ? `
+                    <div class="bg-white rounded-lg shadow mb-8">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                                <svg class="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
+                                </svg>
+                                ¡Cumpleaños del Día!
+                            </h3>
+                            <p class="text-gray-600 mt-1">Felicita a estos pasajeros especiales</p>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                ${birthdayPassengers.map(passenger => `
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                        <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
+                                        </div>
+                                        <h4 class="font-semibold text-gray-800">${passenger.nombre}</h4>
+                                        <p class="text-sm text-gray-600">${passenger.categoria}</p>
+                                        <button onclick="startPassengerInteraction('${passenger.id}')"
+                                                class="mt-3 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">
+                                            Felicitar
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Interacciones recientes -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Interacciones Recientes (Últimas 24 horas)
+                        </h3>
+                        <p class="text-gray-600 mt-1">Historial de atención al pasajero</p>
+                    </div>
+                    <div class="p-6">
+                        ${recentInteractions.length > 0 ? `
+                            <div class="space-y-4">
+                                ${recentInteractions.slice(0, 10).map(interaction => `
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-8 h-8 ${Utils.getCategoryClass(interaction.passenger.categoria)} rounded-full flex items-center justify-center">
+                                                    <span class="text-white font-bold text-sm">${interaction.passenger.nombre.charAt(0)}</span>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-semibold text-gray-800">${interaction.passenger.nombre}</h4>
+                                                    <p class="text-sm text-gray-600">Agente: ${interaction.agente_nombre}</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="flex items-center space-x-2">
+                                                    ${interaction.calificacion_medallia ? `
+                                                        <span class="px-2 py-1 rounded text-sm ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
+                                                            ${interaction.calificacion_medallia}/10
+                                                        </span>
+                                                    ` : ''}
+                                                    <span class="text-sm text-gray-500">${Utils.formatDateTime(interaction.fecha)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        ${interaction.feedback ? `
+                                            <div class="bg-white p-3 rounded border-l-4 border-blue-400">
+                                                <p class="text-sm text-gray-700 italic">"${interaction.feedback}"</p>
+                                            </div>
+                                        ` : ''}
+                                        ${interaction.servicios_utilizados && interaction.servicios_utilizados.length > 0 ? `
+                                            <div class="mt-2 flex flex-wrap gap-1">
+                                                ${interaction.servicios_utilizados.map(servicio => `
+                                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                        ${servicio}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p>No hay interacciones recientes</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading passenger tracking:', error);
+        return `
+            <div class="max-w-4xl mx-auto p-6">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-red-800 mb-2">Error al cargar tracking</h3>
+                    <p class="text-red-600">${error.message}</p>
+                </div>
+            </div>
+        `;
+    }
 };
 
 /**
