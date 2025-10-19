@@ -302,18 +302,26 @@ window.searchPassengers = async function() {
         return;
     }
 
+    if (!state.currentAirport) {
+        showNotification('No se ha seleccionado un aeropuerto', 'error');
+        return;
+    }
+
     try {
+        console.log('Searching passengers with query:', query, 'airport:', state.currentAirport);
         const results = await ApiService.searchPassengers(query, state.currentAirport);
+        console.log('Search results:', results);
+
         const resultsContainer = document.getElementById('searchResults');
 
-        if (results.length === 0) {
+        if (!results || results.length === 0) {
             resultsContainer.innerHTML = `
                 <div class="text-center py-8 text-gray-500">
                     <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                     <p>No se encontraron pasajeros con ese criterio</p>
-                    <button onclick="createNewPassenger('${query}')"
+                    <button onclick="createNewPassenger('${query.replace(/'/g, "\\'")}')"
                             class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center mx-auto">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -330,8 +338,11 @@ window.searchPassengers = async function() {
         let todayFlights = [];
         try {
             todayFlights = await ApiService.getFlightsByDate(today, state.currentAirport);
+            console.log('Today flights:', todayFlights);
         } catch (error) {
             console.warn('Could not load today flights:', error);
+            // Si no hay vuelos, mostrar mensaje alternativo
+            showNotification('No se pudieron cargar los vuelos de hoy, pero la búsqueda funciona', 'warning');
         }
 
         resultsContainer.innerHTML = results.map(passenger => {
