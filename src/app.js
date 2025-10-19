@@ -62,7 +62,14 @@ const render = async () => {
                 renderManifestView().then(html => mainContent.innerHTML = html);
                 break;
             case CONSTANTS.VIEWS.PASSENGER_SEARCH:
-                renderPassengerSearchView().then(html => mainContent.innerHTML = html);
+                if (state.selectedPassenger) {
+                    // Si hay un pasajero seleccionado, mostrar vista de atención
+                    mainContent.innerHTML = renderPassengerInteractionView();
+                    setupInteractionFormHandlers();
+                } else {
+                    // Vista normal de búsqueda
+                    renderPassengerSearchView().then(html => mainContent.innerHTML = html);
+                }
                 break;
             case CONSTANTS.VIEWS.DASHBOARD:
                 renderDashboardView().then(html => mainContent.innerHTML = html);
@@ -449,10 +456,17 @@ window.viewPassengerDetails = async function(passengerId) {
 window.startPassengerInteraction = async function(passengerId) {
     try {
         const passenger = await ApiService.getPassengerById(passengerId);
+        const interactions = await ApiService.getPassengerInteractions(passengerId);
 
         // Cambiar a vista de atención al pasajero con el pasajero preseleccionado
-        StateManager.setState({ selectedPassenger: passenger });
-        changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
+        StateManager.setState({
+            selectedPassenger: passenger,
+            passengerInteractions: interactions
+        });
+
+        // Renderizar vista de atención
+        const mainContent = document.getElementById('mainContent');
+        mainContent.innerHTML = renderPassengerInteractionView();
 
         showNotification(`Iniciando atención para ${passenger.nombre}`, 'info');
 
@@ -545,6 +559,211 @@ function showPassengerModal(passenger, interactions) {
 
     document.body.appendChild(modal);
 }
+
+/**
+ * Renderiza la vista de atención al pasajero
+ * @returns {string} HTML de la vista de atención
+ * @private
+ */
+const renderPassengerInteractionView = () => {
+    const state = StateManager.getState();
+    const passenger = state.selectedPassenger;
+    const interactions = state.passengerInteractions || [];
+
+    if (!passenger) {
+        return '<div class="text-center py-8 text-gray-500">No se ha seleccionado un pasajero</div>';
+    }
+
+    return `
+        <div class="max-w-4xl mx-auto p-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Atención al Pasajero</h2>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-12 h-12 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-lg">${passenger.nombre.charAt(0)}</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">${passenger.nombre}</h3>
+                                <p class="text-gray-600">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="interactionForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Motivo de Viaje</label>
+                            <select id="motivoViaje" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Seleccione motivo...</option>
+                                <option value="${CONSTANTS.TRAVEL_REASONS.NEGOCIOS}">Negocios</option>
+                                <option value="${CONSTANTS.TRAVEL_REASONS.TURISMO}">Turismo</option>
+                                <option value="${CONSTANTS.TRAVEL_REASONS.PERSONAL}">Personal</option>
+                                <option value="${CONSTANTS.TRAVEL_REASONS.MEDICO}">Médico</option>
+                                <option value="${CONSTANTS.TRAVEL_REASONS.OTRO}">Otro</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Calificación Medallia (1-10)</label>
+                            <input type="number" id="calificacionMedallia" min="1" max="10"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Feedback del Pasajero</label>
+                        <textarea id="feedback" rows="3" placeholder="Comentarios del pasajero sobre su experiencia..."
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Servicios Utilizados</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="${CONSTANTS.SERVICES.SALA_VIP}" class="servicio-checkbox rounded">
+                                <span class="text-sm">Sala VIP</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="${CONSTANTS.SERVICES.FAST_TRACK}" class="servicio-checkbox rounded">
+                                <span class="text-sm">Fast Track</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="${CONSTANTS.SERVICES.ASISTENCIA_ESPECIAL}" class="servicio-checkbox rounded">
+                                <span class="text-sm">Asistencia Especial</span>
+                            </label>
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" value="${CONSTANTS.SERVICES.UPGRADE}" class="servicio-checkbox rounded">
+                                <span class="text-sm">Upgrade</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferencias del Pasajero</label>
+                        <textarea id="preferencias" rows="2" placeholder="Asiento ventana, comida vegetariana, bebida agua, etc..."
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Incidentes</label>
+                        <textarea id="incidentes" rows="2" placeholder="Problemas reportados, quejas, etc..."
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Acciones de Recuperación</label>
+                        <textarea id="accionesRecuperacion" rows="2" placeholder="Medidas tomadas para resolver problemas..."
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales</label>
+                        <textarea id="notas" rows="2" placeholder="Observaciones adicionales del agente..."
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button type="submit"
+                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Guardar Interacción
+                        </button>
+                        <button type="button" onclick="cancelInteraction()"
+                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+
+                ${interactions.length > 0 ? `
+                    <div class="mt-8 border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Interacciones Anteriores</h3>
+                        <div class="space-y-3 max-h-60 overflow-y-auto">
+                            ${interactions.slice(0, 3).map(interaction => `
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p class="font-medium">${Utils.formatDateTime(interaction.fecha)}</p>
+                                            <p class="text-sm text-gray-600">Agente: ${interaction.agente_nombre}</p>
+                                        </div>
+                                        ${interaction.calificacion_medallia ? `
+                                            <span class="px-2 py-1 rounded text-sm ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
+                                                ${interaction.calificacion_medallia}/10
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    ${interaction.feedback ? `<p class="text-sm text-gray-700">${interaction.feedback}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+};
+
+// Función para cancelar interacción
+window.cancelInteraction = function() {
+    StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
+    render();
+};
+
+// Función para configurar handlers del formulario de interacción
+const setupInteractionFormHandlers = () => {
+    const form = document.getElementById('interactionForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const state = StateManager.getState();
+        const passenger = state.selectedPassenger;
+
+        if (!passenger) {
+            showNotification('No se ha seleccionado un pasajero', 'error');
+            return;
+        }
+
+        // Recopilar datos del formulario
+        const serviciosUtilizados = Array.from(document.querySelectorAll('.servicio-checkbox:checked'))
+            .map(cb => cb.value);
+
+        const interactionData = {
+            pasajero_id: passenger.id,
+            agente_nombre: state.currentUser,
+            fecha: new Date().toISOString(),
+            motivo_viaje: document.getElementById('motivoViaje').value || null,
+            feedback: document.getElementById('feedback').value.trim() || null,
+            calificacion_medallia: parseInt(document.getElementById('calificacionMedallia').value) || null,
+            servicios_utilizados: serviciosUtilizados.length > 0 ? serviciosUtilizados : null,
+            preferencias: document.getElementById('preferencias').value.trim() || null,
+            incidentes: document.getElementById('incidentes').value.trim() || null,
+            acciones_recuperacion: document.getElementById('accionesRecuperacion').value.trim() || null,
+            notas: document.getElementById('notas').value.trim() || null,
+            es_cumpleanos: Utils.isBirthday(passenger.fecha_nacimiento)
+        };
+
+        try {
+            await ApiService.createInteraction(interactionData);
+
+            showNotification(`Interacción guardada exitosamente para ${passenger.nombre}`, 'success');
+
+            // Limpiar formulario y volver a búsqueda
+            StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
+            render();
+
+        } catch (error) {
+            console.error('Error saving interaction:', error);
+            showNotification('Error al guardar la interacción', 'error');
+        }
+    });
+};
 
 /**
  * Configura los manejadores de eventos para el login
