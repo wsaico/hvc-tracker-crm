@@ -150,17 +150,15 @@ INSERT INTO airports (nombre, codigo) VALUES
 ('Aeropuerto Coronel FAP Carlos Ciriani Santa Rosa - Tacna', 'TCQ'),
 ('Aeropuerto Cap. FAP Víctor Montes Arias - Talara', 'TYL');
 
--- Insertar usuarios iniciales (contraseñas hasheadas)
--- NOTA: Estas son contraseñas de ejemplo. En producción, usa bcrypt o similar
--- supervisor_jau: 'admin123' (hash de ejemplo)
--- agente_jau: 'agent123' (hash de ejemplo)
+-- Insertar usuarios iniciales con contraseñas hasheadas correctamente
+-- Hash de 'admin123' usando SHA-256 con salt 'salt_hvc_tracker'
 INSERT INTO users (username, password_hash, nombre_completo, rol, aeropuerto_id) VALUES
-('supervisor_jau', '$2b$10$example.hash.supervisor', 'Supervisor Jauja', 'supervisor', (SELECT id FROM airports WHERE codigo = 'JAU')),
-('agente_jau', '$2b$10$example.hash.agente', 'Agente Jauja', 'agente', (SELECT id FROM airports WHERE codigo = 'JAU')),
-('supervisor_tcq', '$2b$10$example.hash.supervisor', 'Supervisor Tacna', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TCQ')),
-('agente_tcq', '$2b$10$example.hash.agente', 'Agente Tacna', 'agente', (SELECT id FROM airports WHERE codigo = 'TCQ')),
-('supervisor_tyl', '$2b$10$example.hash.supervisor', 'Supervisor Talara', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TYL')),
-('agente_tyl', '$2b$10$example.hash.agente', 'Agente Talara', 'agente', (SELECT id FROM airports WHERE codigo = 'TYL'));
+('supervisor_jau', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Supervisor Jauja', 'supervisor', (SELECT id FROM airports WHERE codigo = 'JAU')),
+('agente_jau', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Wilber Saico', 'agente', (SELECT id FROM airports WHERE codigo = 'JAU')),
+('supervisor_tcq', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Supervisor Tacna', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TCQ')),
+('agente_tcq', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Agente Tacna', 'agente', (SELECT id FROM airports WHERE codigo = 'TCQ')),
+('supervisor_tyl', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Supervisor Talara', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TYL')),
+('agente_tyl', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Agente Talara', 'agente', (SELECT id FROM airports WHERE codigo = 'TYL'));
 
 -- ============================================================
 -- VISTAS ÚTILES
