@@ -107,59 +107,36 @@ const renderLoginView = () => {
 
                 <form id="loginForm" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Aeropuerto</label>
-                        <select id="airportSelect" required
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">Seleccione un aeropuerto...</option>
-                        </select>
-                    </div>
-
-                    <div id="newAirportSection" class="hidden space-y-3">
-                        <input type="text" id="newAirportName" placeholder="Nombre del aeropuerto"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="newAirportCode" placeholder="Código (ej: LIM)" maxlength="3"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <button type="button" id="createAirportBtn"
-                                class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
-                            Crear Aeropuerto
-                        </button>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                        <input type="text" id="username" required placeholder="Ingrese su usuario"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <label class="cursor-pointer">
-                                <input type="radio" name="role" value="${CONSTANTS.ROLES.SUPERVISOR}" required class="peer hidden">
-                                <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-blue-400 transition">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    <span class="font-medium">Supervisor</span>
-                                </div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="role" value="${CONSTANTS.ROLES.AGENTE}" required class="peer hidden">
-                                <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-blue-400 transition">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                    </svg>
-                                    <span class="font-medium">Agente</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                        <input type="text" id="userName" required placeholder="Ingrese su nombre"
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                        <input type="password" id="password" required placeholder="Ingrese su contraseña"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
 
                     <button type="submit"
-                            class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg">
-                        Ingresar al Sistema
+                            class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Iniciar Sesión
                     </button>
                 </form>
+
+                <!-- Información de usuarios de prueba -->
+                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">👥 Usuarios de Prueba</h4>
+                    <div class="text-xs text-gray-600 space-y-1">
+                        <div><strong>Jauja (JAU):</strong> supervisor_jau / agente_jau</div>
+                        <div><strong>Tacna (TCQ):</strong> supervisor_tcq / agente_tcq</div>
+                        <div><strong>Talara (TYL):</strong> supervisor_tyl / agente_tyl</div>
+                        <div class="mt-2 text-yellow-600"><em>Contraseña: admin123 (todos)</em></div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -761,6 +738,7 @@ window.saveInteraction = async function(event) {
 
     const interactionData = {
         pasajero_id: passenger.id,
+        usuario_id: state.currentUserId, // Nuevo: ID del usuario autenticado
         agente_nombre: state.currentUser,
         fecha: new Date().toISOString(),
         motivo_viaje: document.getElementById('motivoViaje').value || null,
@@ -804,121 +782,47 @@ const setupInteractionFormHandlers = () => {
  * @private
  */
 const setupLoginHandlers = async () => {
-    // Cargar aeropuertos
-    const airports = await ApiService.getAirports();
-    StateManager.setState({ airports });
-
-    const airportSelect = document.getElementById('airportSelect');
-    airports.forEach(airport => {
-        const option = document.createElement('option');
-        option.value = airport.id;
-        option.textContent = airport.nombre;
-        airportSelect.appendChild(option);
-    });
-
-    const newOption = document.createElement('option');
-    newOption.value = 'new';
-    newOption.textContent = '+ Crear nuevo aeropuerto';
-    airportSelect.appendChild(newOption);
-
-    // Manejar selección de aeropuerto
-    airportSelect.addEventListener('change', (e) => {
-        const newAirportSection = document.getElementById('newAirportSection');
-        if (e.target.value === 'new') {
-            newAirportSection.classList.remove('hidden');
-        } else {
-            newAirportSection.classList.add('hidden');
-        }
-    });
-
-    // Manejar creación de aeropuerto
-    document.getElementById('createAirportBtn')?.addEventListener('click', async () => {
-        const name = document.getElementById('newAirportName').value.trim();
-        const code = document.getElementById('newAirportCode').value.trim().toUpperCase();
-
-        if (!name || !code) {
-            showNotification('Complete todos los campos', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-            return;
-        }
-
-        if (code.length !== 3) {
-            showNotification('El código debe tener 3 caracteres', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-            return;
-        }
-
-        try {
-            const airport = await ApiService.createAirport(name, code);
-            showNotification('Aeropuerto creado exitosamente', CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
-
-            const updatedAirports = await ApiService.getAirports();
-            StateManager.setState({ airports: updatedAirports });
-
-            airportSelect.value = airport.id;
-            document.getElementById('newAirportSection').classList.add('hidden');
-
-            // Re-renderizar select
-            airportSelect.innerHTML = '<option value="">Seleccione un aeropuerto...</option>';
-            updatedAirports.forEach(a => {
-                const option = document.createElement('option');
-                option.value = a.id;
-                option.textContent = a.nombre;
-                if (a.id === airport.id) option.selected = true;
-                airportSelect.appendChild(option);
-            });
-            const newOpt = document.createElement('option');
-            newOpt.value = 'new';
-            newOpt.textContent = '+ Crear nuevo aeropuerto';
-            airportSelect.appendChild(newOpt);
-        } catch (error) {
-            showNotification('Error al crear aeropuerto', CONSTANTS.NOTIFICATION_TYPES.ERROR);
-        }
-    });
+    // No necesitamos cargar aeropuertos para login - los usuarios están asociados a aeropuertos
 
     // Manejar envío del formulario de login
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const airportId = document.getElementById('airportSelect').value;
-        const role = document.querySelector('input[name="role"]:checked').value;
-        const userName = document.getElementById('userName').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
 
-        if (airportId === 'new' || !airportId) {
-            showNotification('Seleccione un aeropuerto válido', CONSTANTS.NOTIFICATION_TYPES.WARNING);
+        if (!username || !password) {
+            showNotification('Complete todos los campos', CONSTANTS.NOTIFICATION_TYPES.WARNING);
             return;
         }
 
-        if (!userName) {
-            showNotification('Ingrese su nombre', CONSTANTS.NOTIFICATION_TYPES.WARNING);
-            return;
-        }
-
-        // Verificar si el usuario ya existe en el aeropuerto (mejor práctica)
         try {
-            // Buscar si ya hay interacciones con este nombre de agente en el aeropuerto
-            const existingInteractions = await ApiService.getAirportInteractions(airportId);
-            const agentExists = existingInteractions.some(interaction =>
-                interaction.agente_nombre &&
-                interaction.agente_nombre.toLowerCase().trim() === userName.toLowerCase().trim()
-            );
+            // Autenticar usuario
+            const user = await ApiService.authenticateUser(username, password);
 
-            if (agentExists) {
-                showNotification(`Bienvenido de vuelta, ${userName}!`, CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
-            } else {
-                showNotification(`Bienvenido, ${userName}! Primera vez en el sistema.`, CONSTANTS.NOTIFICATION_TYPES.INFO);
+            if (!user) {
+                showNotification('Usuario o contraseña incorrectos', CONSTANTS.NOTIFICATION_TYPES.ERROR);
+                return;
             }
+
+            // Login exitoso
+            showNotification(`Bienvenido, ${user.nombreCompleto}!`, CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
+
+            StateManager.setState({
+                currentUser: user.nombreCompleto,
+                currentUserId: user.id,
+                currentRole: user.rol,
+                currentAirport: user.aeropuerto.id,
+                currentAirportData: user.aeropuerto,
+                currentView: user.rol === CONSTANTS.ROLES.SUPERVISOR ? CONSTANTS.VIEWS.DASHBOARD : CONSTANTS.VIEWS.PASSENGER_SEARCH
+            });
+
+            render();
+
         } catch (error) {
-            console.warn('Could not check existing agents:', error);
-            // Continuar normalmente si no se puede verificar
+            console.error('Login error:', error);
+            showNotification('Error al iniciar sesión', CONSTANTS.NOTIFICATION_TYPES.ERROR);
         }
-
-        StateManager.setState({
-            currentUser: userName,
-            currentRole: role,
-            currentAirport: airportId,
-            currentView: role === CONSTANTS.ROLES.SUPERVISOR ? CONSTANTS.VIEWS.DASHBOARD : CONSTANTS.VIEWS.PASSENGER_SEARCH
-        });
-
-        render();
     });
 };
 

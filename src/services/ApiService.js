@@ -9,6 +9,21 @@ import { showNotification } from '../utils/helpers.js';
 
 const client = getSupabaseClient();
 
+// Función para hashear contraseñas (simple hash para demo - en producción usa bcrypt)
+const hashPassword = async (password) => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + 'salt_hvc_tracker');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// Función para verificar contraseñas
+const verifyPassword = async (password, hash) => {
+    const hashedPassword = await hashPassword(password);
+    return hashedPassword === hash;
+};
+
 /**
  * Maneja errores de la API
  * @param {string} operation - Nombre de la operación
@@ -379,5 +394,140 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
     } catch (error) {
         handleError('getAirportInteractions', error);
         return [];
+    }
+};
+
+// ============================================================
+// USERS - Sistema de Autenticación
+// ============================================================
+
+/**
+ * Autentica un usuario
+ * @param {string} username - Nombre de usuario
+ * @param {string} password - Contraseña
+ * @returns {Promise<Object|null>} Usuario autenticado o null
+ */
+export const authenticateUser = async (username, password) => {
+    try {
+        const { data, error } = await client
+            .from('users')
+            .select(`
+                id,
+                username,
+                nombre_completo,
+                rol,
+                aeropuerto_id,
+                activo,
+                ultimo_login,
+                airports (
+                    id,
+                    nombre,
+                    codigo
+                )
+            `)
+            .eq('username', username)
+            .eq('activo', true)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (!data) return null;
+
+        // Verificar contraseña
+        const isValidPassword = await verifyPassword(password, data.password_hash);
+        if (!isValidPassword) return null;
+
+        // Actualizar último login
+        await client
+            .from('users')
+            .update({ ultimo_login: new Date().toISOString() })
+            .eq('id', data.id);
+
+        return {
+            id: data.id,
+            username: data.username,
+            nombreCompleto: data.nombre_completo,
+            rol: data.rol,
+            aeropuerto: data.airports,
+            ultimoLogin: data.ultimo_login
+        };
+    } catch (error) {
+        console.error('Authentication error:', error);
+        return null;
+    }
+};
+
+/**
+ * Obtiene todos los usuarios de un aeropuerto
+ * @param {string} aeropuertoId - ID del aeropuerto
+ * @returns {Promise<Array>} Lista de usuarios
+ */
+export const getUsersByAirport = async (aeropuertoId) => {
+    try {
+        const { data, error } = await client
+            .from('users')
+            .select('*')
+            .eq('aeropuerto_id', aeropuertoId)
+            .order('nombre_completo');
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        handleError('getUsersByAirport', error);
+        return [];
+    }
+};
+
+/**
+ * Crea un nuevo usuario
+ * @param {Object} userData - Datos del usuario
+ * @returns {Promise<Object>} Usuario creado
+ */
+export const createUser = async (userData) => {
+    try {
+        const hashedPassword = await hashPassword(userData.password);
+
+        const { data, error } = await client
+            .from('users')
+            .insert([{
+                username: userData.username,
+                password_hash: hashedPassword,
+                nombre_completo: userData.nombreCompleto,
+                rol: userData.rol,
+                aeropuerto_id: userData.aeropuertoId
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        handleError('createUser', error);
+    }
+};
+
+/**
+ * Actualiza un usuario
+ * @param {string} userId - ID del usuario
+ * @param {Object} updates - Actualizaciones
+ * @returns {Promise<Object>} Usuario actualizado
+ */
+export const updateUser = async (userId, updates) => {
+    try {
+        if (updates.password) {
+            updates.password_hash = await hashPassword(updates.password);
+            delete updates.password;
+        }
+
+        const { data, error } = await client
+            .from('users')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        handleError('updateUser', error);
     }
 };

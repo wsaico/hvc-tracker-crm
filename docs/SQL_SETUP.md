@@ -55,12 +55,28 @@ CREATE TABLE flight_passengers (
     UNIQUE(vuelo_id, pasajero_id)
 );
 
+-- Tabla de usuarios
+CREATE TABLE users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    nombre_completo TEXT NOT NULL,
+    rol TEXT NOT NULL CHECK (rol IN ('supervisor', 'agente')),
+    aeropuerto_id UUID REFERENCES airports(id) ON DELETE CASCADE,
+    activo BOOLEAN DEFAULT true,
+    ultimo_login TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(username, aeropuerto_id)
+);
+
 -- Tabla de interacciones
 CREATE TABLE interactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     pasajero_id UUID REFERENCES passengers(id) ON DELETE CASCADE,
     vuelo_id UUID REFERENCES flights(id) ON DELETE SET NULL,
-    agente_nombre TEXT NOT NULL,
+    usuario_id UUID REFERENCES users(id) ON DELETE CASCADE, -- Nuevo: referencia al usuario
+    agente_nombre TEXT NOT NULL, -- Mantener para compatibilidad
     fecha TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     motivo_viaje TEXT CHECK (motivo_viaje IN ('NEGOCIOS', 'TURISMO', 'PERSONAL', 'MEDICO', 'OTRO')),
     feedback TEXT,
@@ -89,8 +105,13 @@ CREATE INDEX idx_flights_numero ON flights(numero_vuelo);
 CREATE INDEX idx_flight_passengers_vuelo ON flight_passengers(vuelo_id);
 CREATE INDEX idx_flight_passengers_pasajero ON flight_passengers(pasajero_id);
 
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_aeropuerto ON users(aeropuerto_id);
+CREATE INDEX idx_users_activo ON users(activo);
+
 CREATE INDEX idx_interactions_pasajero ON interactions(pasajero_id);
 CREATE INDEX idx_interactions_vuelo ON interactions(vuelo_id);
+CREATE INDEX idx_interactions_usuario ON interactions(usuario_id);
 CREATE INDEX idx_interactions_fecha ON interactions(fecha);
 CREATE INDEX idx_interactions_calificacion ON interactions(calificacion_medallia);
 
@@ -103,6 +124,7 @@ ALTER TABLE passengers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flight_passengers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- POLÍTICAS RLS (BÁSICAS)
@@ -116,15 +138,29 @@ CREATE POLICY "Enable all for anon" ON passengers FOR ALL USING (true);
 CREATE POLICY "Enable all for anon" ON flights FOR ALL USING (true);
 CREATE POLICY "Enable all for anon" ON flight_passengers FOR ALL USING (true);
 CREATE POLICY "Enable all for anon" ON interactions FOR ALL USING (true);
+CREATE POLICY "Enable all for anon" ON users FOR ALL USING (true);
 
 -- ============================================================
 -- DATOS INICIALES
 -- ============================================================
 
+-- Insertar aeropuertos iniciales
 INSERT INTO airports (nombre, codigo) VALUES
 ('Aeropuerto Francisco Carle - Jauja', 'JAU'),
 ('Aeropuerto Coronel FAP Carlos Ciriani Santa Rosa - Tacna', 'TCQ'),
 ('Aeropuerto Cap. FAP Víctor Montes Arias - Talara', 'TYL');
+
+-- Insertar usuarios iniciales (contraseñas hasheadas)
+-- NOTA: Estas son contraseñas de ejemplo. En producción, usa bcrypt o similar
+-- supervisor_jau: 'admin123' (hash de ejemplo)
+-- agente_jau: 'agent123' (hash de ejemplo)
+INSERT INTO users (username, password_hash, nombre_completo, rol, aeropuerto_id) VALUES
+('supervisor_jau', '$2b$10$example.hash.supervisor', 'Supervisor Jauja', 'supervisor', (SELECT id FROM airports WHERE codigo = 'JAU')),
+('agente_jau', '$2b$10$example.hash.agente', 'Agente Jauja', 'agente', (SELECT id FROM airports WHERE codigo = 'JAU')),
+('supervisor_tcq', '$2b$10$example.hash.supervisor', 'Supervisor Tacna', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TCQ')),
+('agente_tcq', '$2b$10$example.hash.agente', 'Agente Tacna', 'agente', (SELECT id FROM airports WHERE codigo = 'TCQ')),
+('supervisor_tyl', '$2b$10$example.hash.supervisor', 'Supervisor Talara', 'supervisor', (SELECT id FROM airports WHERE codigo = 'TYL')),
+('agente_tyl', '$2b$10$example.hash.agente', 'Agente Talara', 'agente', (SELECT id FROM airports WHERE codigo = 'TYL'));
 
 -- ============================================================
 -- VISTAS ÚTILES
@@ -205,6 +241,7 @@ COMMENT ON TABLE passengers IS 'Pasajeros HVC registrados por aeropuerto';
 COMMENT ON TABLE flights IS 'Vuelos programados';
 COMMENT ON TABLE flight_passengers IS 'Relación many-to-many entre vuelos y pasajeros';
 COMMENT ON TABLE interactions IS 'Historial de interacciones con pasajeros';
+COMMENT ON TABLE users IS 'Usuarios del sistema con roles y aeropuertos asignados';
 
 -- ============================================================
 -- VERIFICACIÓN
@@ -217,7 +254,7 @@ SELECT
     tableowner
 FROM pg_tables
 WHERE schemaname = 'public'
-  AND tablename IN ('airports', 'passengers', 'flights', 'flight_passengers', 'interactions')
+  AND tablename IN ('airports', 'passengers', 'flights', 'flight_passengers', 'interactions', 'users')
 ORDER BY tablename;
 ```
 
@@ -236,6 +273,7 @@ Deberías ver:
 - ✅ flights
 - ✅ flight_passengers
 - ✅ interactions
+- ✅ users
 
 ### 2. Datos Iniciales
 ```sql
@@ -249,7 +287,7 @@ Deberías ver 3 aeropuertos: JAU, TCQ, TYL
 SELECT tablename, rowsecurity
 FROM pg_tables
 WHERE schemaname = 'public'
-  AND tablename IN ('airports', 'passengers', 'flights', 'flight_passengers', 'interactions');
+  AND tablename IN ('airports', 'passengers', 'flights', 'flight_passengers', 'interactions', 'users');
 ```
 
 Todos deben tener `rowsecurity = true`
@@ -272,13 +310,30 @@ CREATE POLICY "Only supervisors insert flights" ON flights
 
 ## 🎯 Próximos Pasos
 
-1. ✅ Ejecuta el script SQL completo
-2. ✅ Verifica que las tablas se crearon
+1. ✅ Ejecuta el script SQL completo (incluye tabla users)
+2. ✅ Verifica que las tablas se crearon (6 tablas)
 3. ✅ Copia las credenciales de Supabase
 4. ✅ Actualiza `src/config/supabase.js`
-5. ✅ Inicia el servidor local
-6. ✅ Abre `index-modular.html`
-7. ✅ ¡Disfruta de tu app modular!
+5. ✅ Configura contraseñas reales para usuarios
+6. ✅ Inicia el servidor local
+7. ✅ Abre `index-modular.html`
+8. ✅ ¡Disfruta de tu sistema seguro con autenticación!
+
+## 🔐 Usuarios Iniciales
+
+Después de ejecutar el script, configura las contraseñas reales:
+
+```sql
+-- Actualizar contraseñas con hash real (usa bcrypt)
+UPDATE users SET password_hash = '$2b$10$TU_HASH_REAL_AQUI' WHERE username = 'supervisor_jau';
+UPDATE users SET password_hash = '$2b$10$TU_HASH_REAL_AQUI' WHERE username = 'agente_jau';
+-- Repite para todos los usuarios
+```
+
+**Usuarios disponibles:**
+- **JAU (Jauja)**: supervisor_jau / agente_jau
+- **TCQ (Tacna)**: supervisor_tcq / agente_tcq
+- **TYL (Talara)**: supervisor_tyl / agente_tyl
 
 ## 📚 Documentación Supabase
 
