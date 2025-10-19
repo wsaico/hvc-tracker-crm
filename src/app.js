@@ -217,6 +217,147 @@ const renderNavbar = () => {
     `;
 };
 
+// Funciones para manejar manifiestos
+window.processManifest = async function() {
+    const date = document.getElementById('manifestDate').value;
+    const state = StateManager.getState();
+    const airportId = state.currentAirport; // Usar aeropuerto del login
+    const text = document.getElementById('manifestText').value.trim();
+
+    if (!date || !text) {
+        showNotification('Complete la fecha y el manifiesto', 'warning');
+        return;
+    }
+
+    if (!airportId) {
+        showNotification('No se pudo determinar el aeropuerto', 'error');
+        return;
+    }
+
+    try {
+        // Importar BusinessLogic dinámicamente
+        const { parseManifest, processManifest } = await import('./services/BusinessLogic.js');
+
+        // Parsear manifiesto
+        const parseResult = parseManifest(text);
+
+        if (!parseResult.success) {
+            document.getElementById('manifestOutput').innerHTML = `
+                <div class="text-red-600">
+                    <h4 class="font-semibold mb-2">Errores encontrados:</h4>
+                    <ul class="list-disc list-inside">
+                        ${parseResult.errors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('manifestResults').classList.remove('hidden');
+            return;
+        }
+
+        // Procesar manifiesto
+        const processResult = await processManifest(parseResult.data, date, airportId);
+
+        document.getElementById('manifestOutput').innerHTML = `
+            <div class="text-green-600">
+                <h4 class="font-semibold mb-2">✅ Manifiesto procesado exitosamente</h4>
+                <p>Se procesaron ${processResult.processed} pasajeros</p>
+            </div>
+        `;
+        document.getElementById('manifestResults').classList.remove('hidden');
+        showNotification('Manifiesto procesado exitosamente', 'success');
+
+    } catch (error) {
+        console.error('Error processing manifest:', error);
+        document.getElementById('manifestOutput').innerHTML = `
+            <div class="text-red-600">
+                <h4 class="font-semibold mb-2">Error al procesar manifiesto</h4>
+                <p>${error.message}</p>
+            </div>
+        `;
+        document.getElementById('manifestResults').classList.remove('hidden');
+        showNotification('Error al procesar manifiesto', 'error');
+    }
+};
+
+window.clearManifest = function() {
+    document.getElementById('manifestText').value = '';
+    document.getElementById('manifestResults').classList.add('hidden');
+};
+
+// Función para buscar pasajeros
+window.searchPassengers = async function() {
+    const query = document.getElementById('searchQuery').value.trim();
+    const state = StateManager.getState();
+
+    if (!query) {
+        showNotification('Ingrese un término de búsqueda', 'warning');
+        return;
+    }
+
+    try {
+        const results = await ApiService.searchPassengers(query, state.currentAirport);
+
+        const resultsContainer = document.getElementById('searchResults');
+
+        if (results.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <p>No se encontraron pasajeros con ese criterio</p>
+                </div>
+            `;
+            return;
+        }
+
+        resultsContainer.innerHTML = results.map(passenger => `
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 ${Utils.getCategoryClass(passenger.categoria)}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">${passenger.nombre}</h3>
+                        <p class="text-sm text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
+                        <p class="text-sm text-gray-600">Categoría: ${passenger.categoria}</p>
+                        ${passenger.fecha_nacimiento ? `<p class="text-sm text-gray-600">Edad: ${Utils.calculateAge(passenger.fecha_nacimiento)} años</p>` : ''}
+                    </div>
+                    <button onclick="viewPassengerDetails('${passenger.id}')"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Ver Detalles
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        showNotification(`Encontrados ${results.length} pasajeros`, 'success');
+
+    } catch (error) {
+        console.error('Error searching passengers:', error);
+        showNotification('Error al buscar pasajeros', 'error');
+    }
+};
+
+// Función para ver detalles del pasajero
+window.viewPassengerDetails = async function(passengerId) {
+    try {
+        const passenger = await ApiService.getPassengerById(passengerId);
+        const interactions = await ApiService.getPassengerInteractions(passengerId);
+
+        // Aquí podrías abrir un modal o navegar a una vista de detalles
+        console.log('Passenger details:', passenger);
+        console.log('Interactions:', interactions);
+
+        showNotification('Funcionalidad de detalles próximamente', 'info');
+
+    } catch (error) {
+        console.error('Error loading passenger details:', error);
+        showNotification('Error al cargar detalles del pasajero', 'error');
+    }
+};
+
 /**
  * Configura los manejadores de eventos para el login
  * @private
