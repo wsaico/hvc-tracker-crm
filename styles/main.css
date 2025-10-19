@@ -1,0 +1,173 @@
+/**
+ * Estilos principales de HVC Tracker CRM
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+/* ============================================================
+   COLOR CODING POR CATEGORÍA LATAM
+   ============================================================ */
+
+.categoria-signature {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #f0f0f0;
+}
+
+.categoria-top {
+    background: linear-gradient(135deg, #2c003e 0%, #5a189a 100%);
+    color: white;
+}
+
+.categoria-black {
+    background: linear-gradient(135deg, #000000 0%, #434343 100%);
+    color: white;
+}
+
+.categoria-platinum {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    color: white;
+}
+
+.categoria-gold-plus {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: white;
+}
+
+.categoria-gold {
+    background: linear-gradient(135deg, #ca8a04 0%, #eab308 100%);
+    color: #1f2937;
+}
+
+/* Badge categories */
+.badge-signature {
+    background-color: #1a1a2e;
+    color: #f0f0f0;
+}
+
+.badge-top {
+    background-color: #5a189a;
+    color: white;
+}
+
+.badge-black {
+    background-color: #000000;
+    color: white;
+}
+
+.badge-platinum {
+    background-color: #718096;
+    color: white;
+}
+
+.badge-gold-plus {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.badge-gold {
+    background-color: #eab308;
+    color: #1f2937;
+}
+
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pulse-alert {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+/* ============================================================
+   SCROLLBAR PERSONALIZADO
+   ============================================================ */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ============================================================
+   ESTILOS DE IMPRESIÓN
+   ============================================================ */
+
+@media print {
+    .no-print {
+        display: none;
+    }
+}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+
+.spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================
+   UTILIDADES ADICIONALES
+   ============================================================ */
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e5e7eb;
+}
