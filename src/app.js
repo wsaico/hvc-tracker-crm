@@ -64,10 +64,15 @@ const render = async () => {
             case CONSTANTS.VIEWS.PASSENGER_SEARCH:
                 if (state.selectedPassenger) {
                     // Si hay un pasajero seleccionado, mostrar vista de atención
+                    console.log('Rendering passenger interaction view for:', state.selectedPassenger.nombre);
                     mainContent.innerHTML = renderPassengerInteractionView();
-                    setupInteractionFormHandlers();
+                    // Pequeño delay para asegurar que el DOM esté listo
+                    setTimeout(() => {
+                        setupInteractionFormHandlers();
+                    }, 100);
                 } else {
                     // Vista normal de búsqueda
+                    console.log('Rendering passenger search view');
                     renderPassengerSearchView().then(html => mainContent.innerHTML = html);
                 }
                 break;
@@ -717,16 +722,31 @@ window.cancelInteraction = function() {
 // Función para configurar handlers del formulario de interacción
 const setupInteractionFormHandlers = () => {
     const form = document.getElementById('interactionForm');
-    if (!form) return;
+    if (!form) {
+        console.error('Interaction form not found');
+        return;
+    }
+
+    console.log('Setting up interaction form handlers');
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Form submit triggered');
 
         const state = StateManager.getState();
         const passenger = state.selectedPassenger;
 
+        console.log('Current state:', state);
+        console.log('Selected passenger:', passenger);
+
         if (!passenger) {
             showNotification('No se ha seleccionado un pasajero', 'error');
+            return;
+        }
+
+        if (!state.currentUser) {
+            showNotification('Sesión expirada. Vuelva a iniciar sesión.', 'error');
+            logout();
             return;
         }
 
@@ -749,12 +769,17 @@ const setupInteractionFormHandlers = () => {
             es_cumpleanos: Utils.isBirthday(passenger.fecha_nacimiento)
         };
 
+        console.log('Interaction data to save:', interactionData);
+
         try {
-            await ApiService.createInteraction(interactionData);
+            console.log('Calling ApiService.createInteraction...');
+            const result = await ApiService.createInteraction(interactionData);
+            console.log('Interaction saved successfully:', result);
 
             showNotification(`Interacción guardada exitosamente para ${passenger.nombre}`, 'success');
 
             // Limpiar formulario y volver a búsqueda
+            console.log('Clearing state and changing view...');
             StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
             changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
 
