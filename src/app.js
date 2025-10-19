@@ -7,6 +7,7 @@ import { CONSTANTS } from './config/constants.js';
 import { initSupabase } from './config/supabase.js';
 import * as StateManager from './modules/StateManager.js';
 import { showNotification } from './utils/helpers.js';
+import * as Utils from './utils/helpers.js';
 import * as ApiService from './services/ApiService.js';
 
 /**
