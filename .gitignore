@@ -67,3 +67,5 @@ coverage/
 # Local development files
 local-dev.js
 dev-config.js
+# Local Netlify folder
+.netlify
