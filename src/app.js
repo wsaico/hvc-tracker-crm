@@ -3771,7 +3771,7 @@ const renderDashboardView = async () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                                     </svg>
                                 </div>
-                                <span class="text-4xl font-black text-blue-600">${(recoveryMetrics.successfulRecoveryRate || 0).toFixed(0)}%</span>
+                                <span class="text-4xl font-black text-blue-600">${parseFloat(recoveryMetrics.successfulRecoveryRate || 0).toFixed(0)}%</span>
                             </div>
                             <p class="text-sm font-bold text-blue-800 uppercase">Efectividad</p>
                             <p class="text-xs text-blue-600 mt-1">${recoveryMetrics.successfulRecoveries || 0} recuperados</p>
