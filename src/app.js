@@ -807,23 +807,26 @@ window.filterTracking = function() {
         if (recentSection) recentSection.style.display = statusFilter === 'recent' ? 'block' : 'none';
     }
 
-    // Filtrar tarjetas individuales por búsqueda y categoría
-    const allCards = document.querySelectorAll('[data-section] > div > div > div');
+    // Filtrar tarjetas individuales por búsqueda y categoría con selector más específico
+    const allCards = document.querySelectorAll('[data-passenger-card]');
+    let visibleCount = 0;
+
     allCards.forEach(card => {
         const cardText = card.textContent.toLowerCase();
+        const cardCategory = card.getAttribute('data-category') || '';
+
         const matchesSearch = searchTerm === '' || cardText.includes(searchTerm);
-        const matchesCategory = categoryFilter === 'all' || cardText.includes(categoryFilter);
+        const matchesCategory = categoryFilter === 'all' || cardCategory === categoryFilter;
 
         if (matchesSearch && matchesCategory) {
             card.style.display = '';
+            visibleCount++;
         } else {
             card.style.display = 'none';
         }
     });
 
-    // Contar resultados visibles
-    const visibleCards = Array.from(allCards).filter(card => card.style.display !== 'none');
-    console.log(`Mostrando ${visibleCards.length} resultados`);
+    console.log(`Mostrando ${visibleCount} de ${allCards.length} pasajeros`);
 };
 
 // Funciones para el Dashboard
@@ -3772,7 +3775,7 @@ const renderPassengerTrackingView = async () => {
                         <div class="p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${passengersRecovered.map(passenger => `
-                                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 hover:shadow-xl hover:scale-102 transition-all duration-300">
+                                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 hover:shadow-xl hover:scale-102 transition-all duration-300" data-passenger-card data-category="${passenger.categoria}">
                                         <div class="flex items-start gap-4">
                                             <div class="relative">
                                                 <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-lg">
@@ -3825,7 +3828,7 @@ const renderPassengerTrackingView = async () => {
                         <div class="p-6">
                             <div class="space-y-4">
                                 ${passengersAtRisk.map(passenger => `
-                                    <div class="bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 rounded-xl p-5 hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                                    <div class="bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 rounded-xl p-5 hover:shadow-xl hover:scale-[1.02] transition-all duration-300" data-passenger-card data-category="${passenger.categoria}">
                                         <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
                                             <div class="flex items-start gap-4 flex-1">
                                                 <div class="relative">
@@ -3902,7 +3905,7 @@ const renderPassengerTrackingView = async () => {
                         <div class="p-6">
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 ${birthdayPassengers.map(passenger => `
-                                    <div class="bg-gradient-to-br from-pink-50 via-rose-50 to-red-50 border-2 border-pink-200 rounded-xl p-5 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                                    <div class="bg-gradient-to-br from-pink-50 via-rose-50 to-red-50 border-2 border-pink-200 rounded-xl p-5 text-center hover:shadow-xl hover:scale-105 transition-all duration-300" data-passenger-card data-category="${passenger.categoria}">
                                         <div class="relative inline-block mb-4">
                                             <div class="w-20 h-20 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-xl">
                                                 <span class="text-white font-bold text-2xl">${passenger.nombre.charAt(0)}</span>
@@ -3943,7 +3946,7 @@ const renderPassengerTrackingView = async () => {
                         ${recentInteractions.length > 0 ? `
                             <div class="space-y-4">
                                 ${recentInteractions.slice(0, 15).map((interaction, index) => `
-                                    <div class="relative bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 hover:shadow-lg hover:scale-[1.01] transition-all duration-300">
+                                    <div class="relative bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 hover:shadow-lg hover:scale-[1.01] transition-all duration-300" data-passenger-card data-category="${interaction.passenger.categoria}">
                                         <!-- Timeline connector -->
                                         ${index < recentInteractions.slice(0, 15).length - 1 ? `
                                             <div class="absolute left-8 top-full w-0.5 h-4 bg-blue-200"></div>
