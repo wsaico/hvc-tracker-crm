@@ -3982,123 +3982,129 @@ const renderDashboardView = async () => {
                     Acciones Prioritarias
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Detractores sin acciones -->
                     <div class="bg-gradient-to-br from-red-50 to-rose-100 border-2 border-red-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('EQUIPAJE_PERDIDO')">
+                         onclick="filterByNPS('detractors')">
                         <div class="flex items-start justify-between mb-3">
                             <div class="bg-red-500 p-3 rounded-xl">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
                             </div>
-                            <span class="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
+                            <span class="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded-full">URGENTE</span>
                         </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Equipaje Perdido</h3>
-                        <p class="text-sm text-gray-600 mb-3">Protocolo de atención inmediata según categoría del pasajero</p>
-                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Atender Detractores</h3>
+                        <p class="text-sm text-gray-600 mb-3">Aplicar acciones de recuperación inmediatas a pasajeros insatisfechos</p>
+                        <div class="flex items-center gap-2 text-red-600 text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                             </svg>
-                            Ver Manual Sección 4.1
+                            Ver Pasajeros en Riesgo
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('RETRASO_VUELO')">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="bg-orange-500 p-3 rounded-xl">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <span class="text-xs font-bold bg-orange-600 text-white px-2 py-1 rounded-full">ALTO</span>
-                        </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Retraso de Vuelo</h3>
-                        <p class="text-sm text-gray-600 mb-3">Compensaciones y atenciones según tiempo de retraso</p>
-                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                            Ver Manual Sección 3.2
-                        </div>
-                    </div>
-
+                    <!-- Comunicación proactiva -->
                     <div class="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('SERVICIO_DEFICIENTE')">
+                         onclick="showManualSection('COMUNICACION_PROACTIVA')">
                         <div class="flex items-start justify-between mb-3">
                             <div class="bg-blue-500 p-3 rounded-xl">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                                 </svg>
                             </div>
                             <span class="text-xs font-bold bg-blue-600 text-white px-2 py-1 rounded-full">ALTO</span>
                         </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Servicio Deficiente</h3>
-                        <p class="text-sm text-gray-600 mb-3">Estrategias de recuperación y compensación</p>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Comunicación Proactiva</h3>
+                        <p class="text-sm text-gray-600 mb-3">Informar cambios antes de que el pasajero pregunte</p>
                         <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Ver Manual Sección 5.3
+                            Mejora Percepción +40%
                         </div>
                     </div>
 
+                    <!-- Personalización del servicio -->
                     <div class="bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('CUMPLEANOS')">
+                         onclick="showManualSection('PERSONALIZACION')">
                         <div class="flex items-start justify-between mb-3">
                             <div class="bg-purple-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">ESTRATÉGICO</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Personalizar Experiencia</h3>
+                        <p class="text-sm text-gray-600 mb-3">Usar preferencias y gustos para sorprender positivamente</p>
+                        <div class="flex items-center gap-2 text-purple-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Mejora Lealtad +60%
+                        </div>
+                    </div>
+
+                    <!-- Empatía y escucha activa -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('EMPATIA')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-green-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-green-600 text-white px-2 py-1 rounded-full">ESENCIAL</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Empatía y Escucha</h3>
+                        <p class="text-sm text-gray-600 mb-3">Validar emociones del pasajero antes de solucionar</p>
+                        <div class="flex items-center gap-2 text-green-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Reduce Escalamiento -70%
+                        </div>
+                    </div>
+
+                    <!-- Cumpleaños y momentos especiales -->
+                    <div class="bg-gradient-to-br from-pink-50 to-rose-100 border-2 border-pink-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('CUMPLEANOS')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-pink-500 p-3 rounded-xl">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
                                 </svg>
                             </div>
-                            <span class="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">ESPECIAL</span>
+                            <span class="text-xs font-bold bg-pink-600 text-white px-2 py-1 rounded-full">ESPECIAL</span>
                         </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Cumpleaños</h3>
-                        <p class="text-sm text-gray-600 mb-3">Protocolo de celebración y atenciones especiales</p>
-                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Momentos Memorables</h3>
+                        <p class="text-sm text-gray-600 mb-3">Crear experiencias únicas en cumpleaños y ocasiones especiales</p>
+                        <div class="flex items-center gap-2 text-pink-600 text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Ver Protocolos Especiales
+                            Viralidad en Redes +300%
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('CANCELACION_VUELO')">
+                    <!-- Seguimiento post-servicio -->
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('SEGUIMIENTO')">
                         <div class="flex items-start justify-between mb-3">
-                            <div class="bg-green-500 p-3 rounded-xl">
+                            <div class="bg-orange-500 p-3 rounded-xl">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                 </svg>
                             </div>
-                            <span class="text-xs font-bold bg-green-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
+                            <span class="text-xs font-bold bg-orange-600 text-white px-2 py-1 rounded-full">IMPORTANTE</span>
                         </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Cancelación</h3>
-                        <p class="text-sm text-gray-600 mb-3">Reprogramación y compensaciones integrales</p>
-                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Seguimiento 48h</h3>
+                        <p class="text-sm text-gray-600 mb-3">Contactar pasajeros post-vuelo para verificar satisfacción</p>
+                        <div class="flex items-center gap-2 text-orange-600 text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Ver Manual Sección 3.1
-                        </div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-yellow-50 to-orange-100 border-2 border-yellow-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
-                         onclick="showManualSection('OVERBOOKING')">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="bg-yellow-500 p-3 rounded-xl">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                </svg>
-                            </div>
-                            <span class="text-xs font-bold bg-yellow-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
-                        </div>
-                        <h3 class="font-bold text-gray-900 text-lg mb-2">Overbooking</h3>
-                        <p class="text-sm text-gray-600 mb-3">Gestión de sobreventa y compensaciones</p>
-                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                            Ver Manual Sección 6.2
+                            Recuperación NPS +25%
                         </div>
                     </div>
                 </div>
