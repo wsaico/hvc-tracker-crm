@@ -748,6 +748,84 @@ window.startPassengerInteraction = async function(passengerId) {
     }
 };
 
+// Función para ver timeline completo de un pasajero
+window.viewPassengerTimeline = async function(passengerId) {
+    try {
+        const passenger = await ApiService.getPassengerById(passengerId);
+        const interactions = await ApiService.getPassengerInteractions(passengerId);
+
+        // Cambiar a vista de búsqueda para mostrar el timeline
+        StateManager.setState({
+            selectedPassenger: passenger,
+            passengerInteractions: interactions
+        });
+
+        // Re-renderizar la vista de passenger search que ahora tiene el modal de timeline
+        changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
+
+        // Esperar un poco para que el DOM se actualice
+        setTimeout(() => {
+            showPassengerModal(passenger.id);
+        }, 200);
+
+        showNotification(`Cargando historial de ${passenger.nombre}`, 'info');
+
+    } catch (error) {
+        console.error('Error loading passenger timeline:', error);
+        showNotification('Error al cargar historial', 'error');
+    }
+};
+
+// Función para filtrar tracking de pasajeros
+window.filterTracking = function() {
+    const searchInput = document.getElementById('trackingSearchInput');
+    const filterStatus = document.getElementById('trackingFilterStatus');
+    const filterCategory = document.getElementById('trackingFilterCategory');
+
+    if (!searchInput || !filterStatus || !filterCategory) return;
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const statusFilter = filterStatus.value;
+    const categoryFilter = filterCategory.value;
+
+    // Obtener todas las secciones
+    const riskSection = document.querySelector('[data-section="risk"]');
+    const recoveredSection = document.querySelector('[data-section="recovered"]');
+    const birthdaySection = document.querySelector('[data-section="birthday"]');
+    const recentSection = document.querySelector('[data-section="recent"]');
+
+    // Mostrar/ocultar secciones según filtro de estado
+    if (statusFilter === 'all') {
+        if (riskSection) riskSection.style.display = 'block';
+        if (recoveredSection) recoveredSection.style.display = 'block';
+        if (birthdaySection) birthdaySection.style.display = 'block';
+        if (recentSection) recentSection.style.display = 'block';
+    } else {
+        if (riskSection) riskSection.style.display = statusFilter === 'risk' ? 'block' : 'none';
+        if (recoveredSection) recoveredSection.style.display = statusFilter === 'recovered' ? 'block' : 'none';
+        if (birthdaySection) birthdaySection.style.display = statusFilter === 'birthday' ? 'block' : 'none';
+        if (recentSection) recentSection.style.display = statusFilter === 'recent' ? 'block' : 'none';
+    }
+
+    // Filtrar tarjetas individuales por búsqueda y categoría
+    const allCards = document.querySelectorAll('[data-section] > div > div > div');
+    allCards.forEach(card => {
+        const cardText = card.textContent.toLowerCase();
+        const matchesSearch = searchTerm === '' || cardText.includes(searchTerm);
+        const matchesCategory = categoryFilter === 'all' || cardText.includes(categoryFilter);
+
+        if (matchesSearch && matchesCategory) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Contar resultados visibles
+    const visibleCards = Array.from(allCards).filter(card => card.style.display !== 'none');
+    console.log(`Mostrando ${visibleCards.length} resultados`);
+};
+
 // Función para editar pasajero
 window.editPassenger = async function(passengerId) {
     try {
@@ -2555,153 +2633,352 @@ const renderPassengerTrackingView = async () => {
         const passengerMap = {};
         passengers.forEach(p => passengerMap[p.id] = p);
 
+        // Agrupar interacciones por pasajero para timeline
+        const passengerInteractions = {};
+        interactions.forEach(interaction => {
+            const passengerId = interaction.pasajero_id;
+            if (!passengerInteractions[passengerId]) {
+                passengerInteractions[passengerId] = [];
+            }
+            passengerInteractions[passengerId].push(interaction);
+        });
+
+        // Ordenar interacciones de cada pasajero por fecha (más reciente primero)
+        Object.keys(passengerInteractions).forEach(passengerId => {
+            passengerInteractions[passengerId].sort((a, b) =>
+                new Date(b.fecha) - new Date(a.fecha)
+            );
+        });
+
         // Calcular métricas inteligentes
         const passengersAtRisk = [];
+        const passengersRecovered = [];
         const recentInteractions = [];
         const birthdayPassengers = [];
 
-        interactions.forEach(interaction => {
-            const passenger = passengerMap[interaction.pasajero_id];
+        Object.keys(passengerInteractions).forEach(passengerId => {
+            const passenger = passengerMap[passengerId];
             if (!passenger) return;
 
+            const interactions = passengerInteractions[passengerId];
+            const latestInteraction = interactions[0];
+
             // Pasajeros en riesgo (última calificación baja)
-            if (interaction.calificacion_medallia && interaction.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
-                const existing = passengersAtRisk.find(p => p.id === passenger.id);
-                if (!existing) {
-                    passengersAtRisk.push({
+            if (latestInteraction.calificacion_medallia &&
+                latestInteraction.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR) {
+                passengersAtRisk.push({
+                    ...passenger,
+                    lastRating: latestInteraction.calificacion_medallia,
+                    lastInteraction: latestInteraction.fecha,
+                    interactionCount: interactions.length,
+                    hasRecoveryActions: latestInteraction.acciones_recuperacion ? true : false
+                });
+            }
+
+            // Pasajeros recuperados (pasaron de detractor a promotor)
+            if (interactions.length >= 2) {
+                const latest = interactions[0];
+                const previous = interactions[1];
+
+                if (previous.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR &&
+                    latest.calificacion_medallia >= CONSTANTS.MEDALLIA_THRESHOLDS.PROMOTER) {
+                    passengersRecovered.push({
                         ...passenger,
-                        lastRating: interaction.calificacion_medallia,
-                        lastInteraction: interaction.fecha
+                        previousRating: previous.calificacion_medallia,
+                        currentRating: latest.calificacion_medallia,
+                        recoveryDate: latest.fecha,
+                        interactionCount: interactions.length
                     });
                 }
             }
 
-            // Interacciones recientes (últimas 24 horas)
-            const interactionDate = new Date(interaction.fecha);
-            const oneDayAgo = new Date();
-            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-            if (interactionDate >= oneDayAgo) {
-                recentInteractions.push({
-                    ...interaction,
-                    passenger: passenger
-                });
-            }
-
             // Cumpleaños próximos
             if (Utils.isBirthday(passenger.fecha_nacimiento)) {
-                const existing = birthdayPassengers.find(p => p.id === passenger.id);
-                if (!existing) {
-                    birthdayPassengers.push(passenger);
-                }
+                birthdayPassengers.push(passenger);
             }
         });
 
-        return `
-            <div class="max-w-7xl mx-auto p-6">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Tracking de Pasajeros HVC</h2>
-                    <p class="text-gray-600">Monitoreo inteligente y sugerencias automáticas</p>
-                </div>
+        // Interacciones recientes (últimas 24 horas)
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-                <!-- Métricas rápidas -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="bg-red-100 p-3 rounded-lg">
-                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        interactions.forEach(interaction => {
+            const interactionDate = new Date(interaction.fecha);
+            if (interactionDate >= oneDayAgo) {
+                recentInteractions.push({
+                    ...interaction,
+                    passenger: passengerMap[interaction.pasajero_id]
+                });
+            }
+        });
+
+        // Ordenar por fecha (más reciente primero)
+        recentInteractions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        return `
+            <div class="max-w-7xl mx-auto p-4 sm:p-6">
+                <!-- Header con gradiente mejorado -->
+                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 sm:p-8 mb-8 text-white">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-3xl sm:text-4xl font-bold mb-2 flex items-center gap-3">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                 </svg>
+                                Tracking de Pasajeros HVC
+                            </h2>
+                            <p class="text-white/90 text-base sm:text-lg">Monitoreo en tiempo real con insights inteligentes</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <p class="text-xs text-white/80">Total Pasajeros</p>
+                                <p class="text-2xl font-bold">${passengers.length}</p>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-semibold text-red-800">En Riesgo</h3>
-                                <p class="text-2xl font-bold text-red-600">${passengersAtRisk.length}</p>
+                            <div class="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                <p class="text-xs text-white/80">Interacciones</p>
+                                <p class="text-2xl font-bold">${interactions.length}</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="bg-yellow-100 p-3 rounded-lg">
-                                <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Buscador y filtros interactivos -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-gray-100">
+                    <div class="flex flex-col lg:flex-row gap-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">🔍 Buscar Pasajero</label>
+                            <input type="text" id="trackingSearchInput"
+                                   placeholder="Buscar por nombre, DNI o categoría..."
+                                   onkeyup="filterTracking()"
+                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        </div>
+                        <div class="lg:w-64">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">🎯 Filtro Estado</label>
+                            <select id="trackingFilterStatus" onchange="filterTracking()"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                                <option value="all">Todos los estados</option>
+                                <option value="risk">En Riesgo</option>
+                                <option value="recovered">Recuperados</option>
+                                <option value="birthday">Cumpleaños</option>
+                                <option value="recent">Atendidos Hoy</option>
+                            </select>
+                        </div>
+                        <div class="lg:w-64">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">⭐ Categoría</label>
+                            <select id="trackingFilterCategory" onchange="filterTracking()"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                                <option value="all">Todas</option>
+                                <option value="SIGNATURE">SIGNATURE</option>
+                                <option value="TOP">TOP</option>
+                                <option value="BLACK">BLACK</option>
+                                <option value="PLATINUM">PLATINUM</option>
+                                <option value="GOLD PLUS">GOLD PLUS</option>
+                                <option value="GOLD">GOLD</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas rápidas mejoradas con animaciones -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="bg-red-500 p-3 rounded-xl shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <span class="text-4xl font-black text-red-600">${passengersAtRisk.length}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-red-800 uppercase tracking-wide">😞 En Riesgo</h3>
+                        <div class="mt-2 w-full bg-red-200 rounded-full h-2">
+                            <div class="bg-red-600 h-2 rounded-full" style="width: ${passengers.length > 0 ? (passengersAtRisk.length / passengers.length * 100) : 0}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="bg-green-500 p-3 rounded-xl shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-4xl font-black text-green-600">${passengersRecovered.length}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-green-800 uppercase tracking-wide">🎉 Recuperados</h3>
+                        <div class="mt-2 w-full bg-green-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" style="width: ${passengersAtRisk.length > 0 ? (passengersRecovered.length / passengersAtRisk.length * 100) : 0}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-yellow-50 to-amber-100 border-2 border-yellow-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="bg-yellow-500 p-3 rounded-xl shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-semibold text-yellow-800">Hoy</h3>
-                                <p class="text-2xl font-bold text-yellow-600">${recentInteractions.length}</p>
-                            </div>
+                            <span class="text-4xl font-black text-yellow-600">${recentInteractions.length}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-yellow-800 uppercase tracking-wide">⚡ Hoy</h3>
+                        <div class="mt-2 w-full bg-yellow-200 rounded-full h-2">
+                            <div class="bg-yellow-600 h-2 rounded-full" style="width: ${interactions.length > 0 ? (recentInteractions.length / interactions.length * 100) : 0}%"></div>
                         </div>
                     </div>
 
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="bg-green-100 p-3 rounded-lg">
-                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-gradient-to-br from-pink-50 to-rose-100 border-2 border-pink-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="bg-pink-500 p-3 rounded-xl shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
                                 </svg>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-semibold text-green-800">Cumpleaños</h3>
-                                <p class="text-2xl font-bold text-green-600">${birthdayPassengers.length}</p>
-                            </div>
+                            <span class="text-4xl font-black text-pink-600">${birthdayPassengers.length}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-pink-800 uppercase tracking-wide">🎂 Cumpleaños</h3>
+                        <div class="mt-2 w-full bg-pink-200 rounded-full h-2">
+                            <div class="bg-pink-600 h-2 rounded-full" style="width: ${passengers.length > 0 ? (birthdayPassengers.length / passengers.length * 100) : 0}%"></div>
                         </div>
                     </div>
 
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="bg-blue-100 p-3 rounded-lg">
-                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="bg-blue-500 p-3 rounded-xl shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                 </svg>
                             </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-semibold text-blue-800">Total</h3>
-                                <p class="text-2xl font-bold text-blue-600">${interactions.length}</p>
-                            </div>
+                            <span class="text-4xl font-black text-blue-600">${interactions.length}</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-blue-800 uppercase tracking-wide">📊 Total</h3>
+                        <div class="mt-2 w-full bg-blue-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 100%"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Pasajeros que requieren atención inmediata -->
-                ${passengersAtRisk.length > 0 ? `
-                    <div class="bg-white rounded-lg shadow mb-8">
-                        <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-xl font-semibold text-gray-800 flex items-center">
-                                <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                <!-- Pasajeros Recuperados (Éxitos) -->
+                ${passengersRecovered.length > 0 ? `
+                    <div class="bg-white rounded-2xl shadow-xl mb-8 border-2 border-green-200 overflow-hidden" data-section="recovered">
+                        <div class="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
+                            <h3 class="text-2xl font-bold flex items-center gap-3">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                Pasajeros en Riesgo (Requieren Atención Inmediata)
+                                🎉 ¡Recuperaciones Exitosas!
                             </h3>
-                            <p class="text-gray-600 mt-1">Última calificación baja - necesitan acciones de recuperación</p>
+                            <p class="text-white/90 mt-2">Pasajeros que mejoraron significativamente su experiencia</p>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${passengersRecovered.map(passenger => `
+                                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 hover:shadow-xl hover:scale-102 transition-all duration-300">
+                                        <div class="flex items-start gap-4">
+                                            <div class="relative">
+                                                <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-lg">
+                                                    <span class="text-white font-bold text-2xl">${passenger.nombre.charAt(0)}</span>
+                                                </div>
+                                                <div class="absolute -top-1 -right-1 bg-green-500 rounded-full p-1 shadow-lg">
+                                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="flex-1">
+                                                <h4 class="font-bold text-gray-900 text-lg">${passenger.nombre}</h4>
+                                                <p class="text-sm text-gray-600 mb-3">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
+                                                <div class="flex items-center gap-3 mb-3">
+                                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium">${passenger.previousRating}/10 😞</span>
+                                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                                    </svg>
+                                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">${passenger.currentRating}/10 😊</span>
+                                                </div>
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-xs text-gray-500">${Utils.formatDateTime(passenger.recoveryDate)}</span>
+                                                    <button onclick="viewPassengerTimeline('${passenger.id}')"
+                                                            class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium">
+                                                        Ver Timeline
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Pasajeros en Riesgo (Requieren Atención) -->
+                ${passengersAtRisk.length > 0 ? `
+                    <div class="bg-white rounded-2xl shadow-xl mb-8 border-2 border-red-200 overflow-hidden" data-section="risk">
+                        <div class="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white">
+                            <h3 class="text-2xl font-bold flex items-center gap-3">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                ⚠️ Pasajeros en Riesgo - Atención Inmediata
+                            </h3>
+                            <p class="text-white/90 mt-2">Última calificación baja - necesitan acciones de recuperación urgentes</p>
                         </div>
                         <div class="p-6">
                             <div class="space-y-4">
                                 ${passengersAtRisk.map(passenger => `
-                                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <div class="flex justify-between items-start">
-                                            <div class="flex-1">
-                                                <div class="flex items-center space-x-3 mb-2">
-                                                    <div class="w-10 h-10 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
-                                                        <span class="text-white font-bold">${passenger.nombre.charAt(0)}</span>
+                                    <div class="bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 rounded-xl p-5 hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                            <div class="flex items-start gap-4 flex-1">
+                                                <div class="relative">
+                                                    <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-lg">
+                                                        <span class="text-white font-bold text-2xl">${passenger.nombre.charAt(0)}</span>
                                                     </div>
-                                                    <div>
-                                                        <h4 class="font-semibold text-gray-800">${passenger.nombre}</h4>
-                                                        <p class="text-sm text-gray-600">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
-                                                    </div>
+                                                    ${!passenger.hasRecoveryActions ? `
+                                                        <div class="absolute -top-1 -right-1 bg-red-500 rounded-full p-1 shadow-lg animate-pulse">
+                                                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                            </svg>
+                                                        </div>
+                                                    ` : ''}
                                                 </div>
-                                                <div class="flex items-center space-x-4 text-sm">
-                                                    <span class="text-red-600 font-medium">Última calificación: ${passenger.lastRating}/10</span>
-                                                    <span class="text-gray-500">${Utils.formatDateTime(passenger.lastInteraction)}</span>
+                                                <div class="flex-1">
+                                                    <h4 class="font-bold text-gray-900 text-lg mb-1">${passenger.nombre}</h4>
+                                                    <p class="text-sm text-gray-600 mb-3">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
+                                                    <div class="flex flex-wrap items-center gap-3 mb-3">
+                                                        <span class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-bold border-2 border-red-300">
+                                                            😞 ${passenger.lastRating}/10 Detractor
+                                                        </span>
+                                                        <span class="text-xs text-gray-500">${Utils.formatDateTime(passenger.lastInteraction)}</span>
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                                                            ${passenger.interactionCount} interacción${passenger.interactionCount > 1 ? 'es' : ''}
+                                                        </span>
+                                                    </div>
+                                                    ${!passenger.hasRecoveryActions ? `
+                                                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                                                            <p class="text-xs text-yellow-800 font-medium">⚠️ Sin acciones de recuperación registradas</p>
+                                                        </div>
+                                                    ` : `
+                                                        <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                                            <p class="text-xs text-blue-800 font-medium">✓ Acciones de recuperación aplicadas</p>
+                                                        </div>
+                                                    `}
                                                 </div>
                                             </div>
-                                            <button onclick="startPassengerInteraction('${passenger.id}')"
-                                                    class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm flex items-center">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                                </svg>
-                                                Atender Ahora
-                                            </button>
+                                            <div class="flex flex-col gap-2 sm:min-w-[140px]">
+                                                <button onclick="startPassengerInteraction('${passenger.id}')"
+                                                        class="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-3 rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl text-sm font-bold flex items-center justify-center gap-2">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                                    </svg>
+                                                    Atender
+                                                </button>
+                                                <button onclick="viewPassengerTimeline('${passenger.id}')"
+                                                        class="bg-white border-2 border-gray-300 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all text-sm font-medium flex items-center justify-center gap-2">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                    Timeline
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -2712,27 +2989,36 @@ const renderPassengerTrackingView = async () => {
 
                 <!-- Cumpleaños del día -->
                 ${birthdayPassengers.length > 0 ? `
-                    <div class="bg-white rounded-lg shadow mb-8">
-                        <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-xl font-semibold text-gray-800 flex items-center">
-                                <svg class="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-white rounded-2xl shadow-xl mb-8 border-2 border-pink-200 overflow-hidden" data-section="birthday">
+                        <div class="bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 p-6 text-white">
+                            <h3 class="text-2xl font-bold flex items-center gap-3">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
                                 </svg>
-                                ¡Cumpleaños del Día!
+                                🎂 ¡Cumpleaños del Día!
                             </h3>
-                            <p class="text-gray-600 mt-1">Felicita a estos pasajeros especiales</p>
+                            <p class="text-white/90 mt-2">Celebra a estos pasajeros especiales y crea momentos memorables</p>
                         </div>
                         <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 ${birthdayPassengers.map(passenger => `
-                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                                        <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
+                                    <div class="bg-gradient-to-br from-pink-50 via-rose-50 to-red-50 border-2 border-pink-200 rounded-xl p-5 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                                        <div class="relative inline-block mb-4">
+                                            <div class="w-20 h-20 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-xl">
+                                                <span class="text-white font-bold text-2xl">${passenger.nombre.charAt(0)}</span>
+                                            </div>
+                                            <div class="absolute -top-2 -right-2 text-4xl animate-bounce">🎉</div>
                                         </div>
-                                        <h4 class="font-semibold text-gray-800">${passenger.nombre}</h4>
-                                        <p class="text-sm text-gray-600">${passenger.categoria}</p>
+                                        <h4 class="font-bold text-gray-900 text-lg mb-1">${passenger.nombre}</h4>
+                                        <p class="text-sm text-gray-600 mb-1">${passenger.dni_pasaporte}</p>
+                                        <span class="inline-block px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 rounded-full text-xs font-bold mb-4">
+                                            ${passenger.categoria}
+                                        </span>
                                         <button onclick="startPassengerInteraction('${passenger.id}')"
-                                                class="mt-3 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">
+                                                class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl font-bold flex items-center justify-center gap-2">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                                            </svg>
                                             Felicitar
                                         </button>
                                     </div>
@@ -2743,65 +3029,119 @@ const renderPassengerTrackingView = async () => {
                 ` : ''}
 
                 <!-- Interacciones recientes -->
-                <div class="bg-white rounded-lg shadow">
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-xl font-semibold text-gray-800 flex items-center">
-                            <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-white rounded-2xl shadow-xl border-2 border-blue-200 overflow-hidden" data-section="recent">
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                        <h3 class="text-2xl font-bold flex items-center gap-3">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Interacciones Recientes (Últimas 24 horas)
+                            ⚡ Actividad Reciente (Últimas 24h)
                         </h3>
-                        <p class="text-gray-600 mt-1">Historial de atención al pasajero</p>
+                        <p class="text-white/90 mt-2">Timeline de interacciones y atenciones del día</p>
                     </div>
                     <div class="p-6">
                         ${recentInteractions.length > 0 ? `
                             <div class="space-y-4">
-                                ${recentInteractions.slice(0, 10).map(interaction => `
-                                    <div class="bg-gray-50 rounded-lg p-4">
-                                        <div class="flex justify-between items-start mb-3">
-                                            <div class="flex items-center space-x-3">
-                                                <div class="w-8 h-8 ${Utils.getCategoryClass(interaction.passenger.categoria)} rounded-full flex items-center justify-center">
-                                                    <span class="text-white font-bold text-sm">${interaction.passenger.nombre.charAt(0)}</span>
+                                ${recentInteractions.slice(0, 15).map((interaction, index) => `
+                                    <div class="relative bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 hover:shadow-lg hover:scale-[1.01] transition-all duration-300">
+                                        <!-- Timeline connector -->
+                                        ${index < recentInteractions.slice(0, 15).length - 1 ? `
+                                            <div class="absolute left-8 top-full w-0.5 h-4 bg-blue-200"></div>
+                                        ` : ''}
+
+                                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                            <div class="flex items-start gap-4 flex-1">
+                                                <div class="relative flex-shrink-0">
+                                                    <div class="w-14 h-14 ${Utils.getCategoryClass(interaction.passenger.categoria)} rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                                                        <span class="text-white font-bold text-lg">${interaction.passenger.nombre.charAt(0)}</span>
+                                                    </div>
+                                                    <!-- Badge de tiempo relativo -->
+                                                    <div class="absolute -bottom-2 -right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow">
+                                                        ${new Date(interaction.fecha).getHours()}:${String(new Date(interaction.fecha).getMinutes()).padStart(2, '0')}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 class="font-semibold text-gray-800">${interaction.passenger.nombre}</h4>
-                                                    <p class="text-sm text-gray-600">Agente: ${interaction.agente_nombre}</p>
+
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <h4 class="font-bold text-gray-900 text-lg">${interaction.passenger.nombre}</h4>
+                                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                                                            ${interaction.passenger.categoria}
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                                                        <span class="text-xs text-gray-600 flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                                            </svg>
+                                                            ${interaction.agente_nombre}
+                                                        </span>
+                                                        <span class="text-xs text-gray-400">•</span>
+                                                        <span class="text-xs text-gray-600">${Utils.formatDateTime(interaction.fecha)}</span>
+                                                        ${interaction.calificacion_medallia ? `
+                                                            <span class="text-xs text-gray-400">•</span>
+                                                            <span class="px-3 py-1 rounded-lg text-sm font-bold ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
+                                                                ${interaction.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR ? '😞' :
+                                                                  interaction.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.PASSIVE ? '😐' : '😊'}
+                                                                ${interaction.calificacion_medallia}/10
+                                                            </span>
+                                                        ` : ''}
+                                                    </div>
+
+                                                    ${interaction.feedback ? `
+                                                        <div class="bg-white p-3 rounded-lg border-l-4 border-indigo-400 shadow-sm mb-3">
+                                                            <p class="text-sm text-gray-700 italic">"${interaction.feedback}"</p>
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${interaction.servicios_utilizados && interaction.servicios_utilizados.length > 0 ? `
+                                                        <div class="flex flex-wrap gap-2 mb-3">
+                                                            <span class="text-xs text-gray-600 font-medium">Servicios:</span>
+                                                            ${interaction.servicios_utilizados.map(servicio => `
+                                                                <span class="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full font-medium">
+                                                                    ${servicio}
+                                                                </span>
+                                                            `).join('')}
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${interaction.incidentes ? `
+                                                        <div class="bg-red-50 border-l-4 border-red-400 p-3 rounded-lg mb-2">
+                                                            <p class="text-xs text-red-800"><strong>Incidente:</strong> ${interaction.incidentes}</p>
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${interaction.acciones_recuperacion ? `
+                                                        <div class="bg-green-50 border-l-4 border-green-400 p-3 rounded-lg">
+                                                            <p class="text-xs text-green-800"><strong>Recuperación:</strong> ${interaction.acciones_recuperacion}</p>
+                                                        </div>
+                                                    ` : ''}
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <div class="flex items-center space-x-2">
-                                                    ${interaction.calificacion_medallia ? `
-                                                        <span class="px-2 py-1 rounded text-sm ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
-                                                            ${interaction.calificacion_medallia}/10
-                                                        </span>
-                                                    ` : ''}
-                                                    <span class="text-sm text-gray-500">${Utils.formatDateTime(interaction.fecha)}</span>
-                                                </div>
+
+                                            <div class="flex flex-col gap-2 sm:min-w-[120px]">
+                                                <button onclick="viewPassengerTimeline('${interaction.passenger.id}')"
+                                                        class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all text-xs font-bold shadow-lg hover:shadow-xl flex items-center justify-center gap-1">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                    </svg>
+                                                    Ver más
+                                                </button>
                                             </div>
                                         </div>
-                                        ${interaction.feedback ? `
-                                            <div class="bg-white p-3 rounded border-l-4 border-blue-400">
-                                                <p class="text-sm text-gray-700 italic">"${interaction.feedback}"</p>
-                                            </div>
-                                        ` : ''}
-                                        ${interaction.servicios_utilizados && interaction.servicios_utilizados.length > 0 ? `
-                                            <div class="mt-2 flex flex-wrap gap-1">
-                                                ${interaction.servicios_utilizados.map(servicio => `
-                                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                        ${servicio}
-                                                    </span>
-                                                `).join('')}
-                                            </div>
-                                        ` : ''}
                                     </div>
                                 `).join('')}
                             </div>
                         ` : `
-                            <div class="text-center py-8 text-gray-500">
-                                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <p>No hay interacciones recientes</p>
+                            <div class="text-center py-16">
+                                <div class="inline-block p-6 bg-gray-100 rounded-full mb-4">
+                                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <p class="text-lg text-gray-600 font-medium">No hay interacciones en las últimas 24 horas</p>
+                                <p class="text-sm text-gray-500 mt-2">Las nuevas interacciones aparecerán aquí</p>
                             </div>
                         `}
                     </div>
