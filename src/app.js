@@ -2539,12 +2539,129 @@ const renderDashboardView = async () => {
         return insights.slice(0, 4); // Máximo 4 insights
     }
 
+    // Calcular NPS
+    const npsScore = recoveryMetrics ?
+        ((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100).toFixed(0) : 0;
+
     return `
-        <div class="max-w-7xl mx-auto p-6">
-            <div class="mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard HVC Tracker</h2>
-                <p class="text-gray-600">Métricas inteligentes y análisis de rendimiento</p>
+        <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <!-- Header con Resumen Ejecutivo -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-6 sm:p-8 mb-6 text-white">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold mb-2 flex items-center">
+                            <svg class="w-8 h-8 sm:w-10 sm:h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Dashboard HVC
+                        </h1>
+                        <p class="text-blue-100 text-base sm:text-lg">Monitoreo en tiempo real de pasajeros de alto valor</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        ${window.DB_AVAILABLE ? `
+                            <div class="bg-green-500/20 backdrop-blur-sm border border-green-300 rounded-lg px-4 py-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                                    <span class="text-sm font-medium">Sistema Activo</span>
+                                </div>
+                                <p class="text-xs text-green-200 mt-1">Datos en tiempo real</p>
+                            </div>
+                        ` : `
+                            <div class="bg-yellow-500/20 backdrop-blur-sm border border-yellow-300 rounded-lg px-4 py-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 bg-yellow-300 rounded-full"></div>
+                                    <span class="text-sm font-medium">Modo Demo</span>
+                                </div>
+                                <p class="text-xs text-yellow-200 mt-1">Datos de ejemplo</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Resumen rápido en header -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <p class="text-blue-100 text-xs sm:text-sm mb-1">Pasajeros HVC</p>
+                        <p class="text-2xl sm:text-3xl font-bold">${metrics.totalPassengers || 0}</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <p class="text-blue-100 text-xs sm:text-sm mb-1">Satisfacción</p>
+                        <p class="text-2xl sm:text-3xl font-bold">${metrics.avgMedallia || 0}<span class="text-lg">/10</span></p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <p class="text-blue-100 text-xs sm:text-sm mb-1">NPS Score</p>
+                        <p class="text-2xl sm:text-3xl font-bold">${npsScore}</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <p class="text-blue-100 text-xs sm:text-sm mb-1">En Riesgo</p>
+                        <p class="text-2xl sm:text-3xl font-bold ${metrics.passengersAtRisk > 0 ? 'text-yellow-300' : 'text-green-300'}">${metrics.passengersAtRisk || 0}</p>
+                    </div>
+                </div>
             </div>
+
+            <!-- Insights Prioritarios (Combinados) -->
+            ${(dashboardInsights && dashboardInsights.length > 0) || (performanceInsights && performanceInsights.length > 0) ? `
+                <div class="mb-6">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Alertas e Insights Prioritarios
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${dashboardInsights && dashboardInsights.length > 0 ? dashboardInsights.map(insight => {
+                            const priorityColors = {
+                                'critical': { bg: 'bg-red-50', border: 'border-red-400', icon: 'text-red-600', title: 'text-red-800', badge: 'bg-red-600' },
+                                'high': { bg: 'bg-orange-50', border: 'border-orange-400', icon: 'text-orange-600', title: 'text-orange-800', badge: 'bg-orange-600' },
+                                'medium': { bg: 'bg-yellow-50', border: 'border-yellow-400', icon: 'text-yellow-600', title: 'text-yellow-800', badge: 'bg-yellow-600' },
+                                'low': { bg: 'bg-blue-50', border: 'border-blue-400', icon: 'text-blue-600', title: 'text-blue-800', badge: 'bg-blue-600' }
+                            };
+                            const colors = priorityColors[insight.priority] || priorityColors.low;
+
+                            return `
+                                <div class="${colors.bg} ${colors.border} border-l-4 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-2xl">${insight.icon}</span>
+                                            <h3 class="font-bold ${colors.title} text-sm sm:text-base">${insight.title}</h3>
+                                        </div>
+                                        <span class="text-xs font-bold text-white ${colors.badge} px-2 py-1 rounded-full uppercase whitespace-nowrap">
+                                            ${insight.priority === 'critical' ? 'Crítico' :
+                                              insight.priority === 'high' ? 'Alto' :
+                                              insight.priority === 'medium' ? 'Medio' : 'Bajo'}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-700 mb-2">${insight.message}</p>
+                                    ${insight.action ? `
+                                        <div class="mt-3 pt-3 border-t ${colors.border}">
+                                            <p class="text-xs sm:text-sm font-semibold ${colors.icon}">
+                                                💡 ${insight.action}
+                                            </p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('') : ''}
+
+                        ${performanceInsights && performanceInsights.length > 0 ? performanceInsights.map(insight => `
+                            <div class="p-4 rounded-xl shadow-md hover:shadow-lg transition-all ${
+                                insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
+                                insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
+                                insight.type === 'danger' ? 'bg-red-50 border-l-4 border-red-400' :
+                                'bg-blue-50 border-l-4 border-blue-400'}">
+                                <div class="flex items-start gap-3">
+                                    <div class="text-2xl flex-shrink-0">${insight.icon}</div>
+                                    <div class="flex-1">
+                                        <h3 class="font-bold text-gray-800 text-sm sm:text-base mb-1">${insight.title}</h3>
+                                        <p class="text-sm text-gray-600 mb-2">${insight.message}</p>
+                                        ${insight.action ? `<p class="text-xs sm:text-sm font-medium text-blue-600 mt-2">→ ${insight.action}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                </div>
+            ` : ''}
 
             <!-- KPIs Principales -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -2609,239 +2726,193 @@ const renderDashboardView = async () => {
                 </div>
             </div>
 
-            <!-- Métricas de Recuperación NPS -->
+            <!-- Sistema de Recuperación NPS -->
             ${recoveryMetrics && window.DB_AVAILABLE ? `
-                <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-6 mb-8 border-2 border-indigo-200">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                        <svg class="w-7 h-7 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="mb-6">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                         Sistema de Recuperación de Pasajeros
-                    </h3>
+                    </h2>
 
-                    <!-- NPS Score Card -->
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-indigo-500">
+                    <!-- Grid combinado de NPS y Recuperación -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                        <!-- NPS Score (destacado) -->
+                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg text-white xl:col-span-1">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-medium text-gray-600">NPS Score</span>
-                                <svg class="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                                <span class="text-xs font-medium opacity-90">NPS Score</span>
+                                <svg class="w-4 h-4 opacity-90" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                 </svg>
                             </div>
-                            <p class="text-3xl font-bold text-indigo-600">
-                                ${((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100).toFixed(0)}
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                ${((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100) >= 50 ? 'Excelente' :
-                                  ((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100) >= 0 ? 'Bueno' : 'Requiere Atención'}
+                            <p class="text-4xl font-bold mb-1">${npsScore}</p>
+                            <p class="text-xs opacity-80">
+                                ${parseFloat(npsScore) >= 50 ? '🎉 Excelente' :
+                                  parseFloat(npsScore) >= 0 ? '👍 Bueno' : '⚠️ Crítico'}
                             </p>
                         </div>
 
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-red-500">
+                        <!-- Detractores -->
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-red-500 hover:shadow-lg transition-shadow">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-medium text-gray-600">Detractores</span>
-                                <span class="text-2xl">😞</span>
+                                <span class="text-xs font-medium text-gray-600">Detractores</span>
+                                <span class="text-xl">😞</span>
                             </div>
-                            <p class="text-3xl font-bold text-red-600">${recoveryMetrics.detractors}</p>
-                            <p class="text-xs text-gray-500 mt-1">Calificación ≤ 6</p>
+                            <p class="text-3xl font-bold text-red-600 mb-1">${recoveryMetrics.detractors}</p>
+                            <p class="text-xs text-gray-500">Cal. ≤ 6</p>
                         </div>
 
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-yellow-500">
+                        <!-- Pasivos -->
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-medium text-gray-600">Pasivos</span>
-                                <span class="text-2xl">😐</span>
+                                <span class="text-xs font-medium text-gray-600">Pasivos</span>
+                                <span class="text-xl">😐</span>
                             </div>
-                            <p class="text-3xl font-bold text-yellow-600">${recoveryMetrics.passives}</p>
-                            <p class="text-xs text-gray-500 mt-1">Calificación 7-8</p>
+                            <p class="text-3xl font-bold text-yellow-600 mb-1">${recoveryMetrics.passives}</p>
+                            <p class="text-xs text-gray-500">Cal. 7-8</p>
                         </div>
 
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-green-500">
+                        <!-- Promotores -->
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-green-500 hover:shadow-lg transition-shadow">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm font-medium text-gray-600">Promotores</span>
-                                <span class="text-2xl">😊</span>
+                                <span class="text-xs font-medium text-gray-600">Promotores</span>
+                                <span class="text-xl">😊</span>
                             </div>
-                            <p class="text-3xl font-bold text-green-600">${recoveryMetrics.promoters}</p>
-                            <p class="text-xs text-gray-500 mt-1">Calificación ≥ 9</p>
-                        </div>
-                    </div>
-
-                    <!-- Recovery Effectiveness -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <div class="bg-white rounded-xl p-5 shadow-md">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Acciones de Recuperación</p>
-                                    <p class="text-2xl font-bold text-blue-600">${recoveryMetrics.recoveryActions}</p>
-                                </div>
-                            </div>
-                            <p class="text-xs text-gray-500">Total de intentos realizados</p>
+                            <p class="text-3xl font-bold text-green-600 mb-1">${recoveryMetrics.promoters}</p>
+                            <p class="text-xs text-gray-500">Cal. ≥ 9</p>
                         </div>
 
-                        <div class="bg-white rounded-xl p-5 shadow-md">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-green-100 p-2 rounded-lg mr-3">
-                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Recuperaciones Exitosas</p>
-                                    <p class="text-2xl font-bold text-green-600">${recoveryMetrics.successfulRecoveries}</p>
-                                </div>
+                        <!-- Acciones de Recuperación -->
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-gray-600">Acciones</span>
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                             </div>
-                            <p class="text-xs text-gray-500">Detractores que se convirtieron en promotores</p>
+                            <p class="text-3xl font-bold text-blue-600 mb-1">${recoveryMetrics.recoveryActions}</p>
+                            <p class="text-xs text-gray-500">Intentos</p>
                         </div>
 
-                        <div class="bg-white rounded-xl p-5 shadow-md">
-                            <div class="flex items-center mb-3">
-                                <div class="bg-purple-100 p-2 rounded-lg mr-3">
-                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Tasa de Efectividad</p>
-                                    <p class="text-2xl font-bold ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'text-green-600' : parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'text-yellow-600' : 'text-red-600'}">
-                                        ${recoveryMetrics.successfulRecoveryRate}%
-                                    </p>
-                                </div>
+                        <!-- Recuperaciones Exitosas -->
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium text-gray-600">Exitosas</span>
+                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
                             </div>
-                            <p class="text-xs text-gray-500">
-                                ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'Excelente desempeño' :
-                                  parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'Puede mejorar' : 'Requiere atención'}
+                            <p class="text-3xl font-bold text-emerald-600 mb-1">${recoveryMetrics.successfulRecoveries}</p>
+                            <p class="text-xs text-gray-500">Logradas</p>
+                        </div>
+
+                        <!-- Tasa de Efectividad -->
+                        <div class="bg-gradient-to-br ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'from-green-500 to-emerald-600' : parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'from-yellow-500 to-orange-500' : 'from-red-500 to-pink-600'} rounded-xl p-5 shadow-lg text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-medium opacity-90">Efectividad</span>
+                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                            <p class="text-4xl font-bold mb-1">${recoveryMetrics.successfulRecoveryRate}%</p>
+                            <p class="text-xs opacity-80">
+                                ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? '🎯 Excelente' :
+                                  parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? '📊 Mejorable' : '⚠️ Revisar'}
                             </p>
                         </div>
                     </div>
                 </div>
             ` : ''}
 
-            <!-- Insights Inteligentes de Recuperación -->
-            ${dashboardInsights && dashboardInsights.length > 0 ? `
-                <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-blue-100">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                        <svg class="w-7 h-7 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                        Insights Inteligentes
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${dashboardInsights.map(insight => {
-                            const priorityColors = {
-                                'critical': { bg: 'bg-red-50', border: 'border-red-500', icon: 'text-red-600', title: 'text-red-800' },
-                                'high': { bg: 'bg-orange-50', border: 'border-orange-500', icon: 'text-orange-600', title: 'text-orange-800' },
-                                'medium': { bg: 'bg-yellow-50', border: 'border-yellow-500', icon: 'text-yellow-600', title: 'text-yellow-800' },
-                                'low': { bg: 'bg-blue-50', border: 'border-blue-500', icon: 'text-blue-600', title: 'text-blue-800' }
-                            };
-                            const colors = priorityColors[insight.priority] || priorityColors.low;
+            <!-- Análisis de Datos -->
+            <div class="mb-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Análisis de Datos
+                </h2>
 
-                            return `
-                                <div class="${colors.bg} ${colors.border} border-l-4 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
-                                    <div class="flex items-start">
-                                        <div class="flex-shrink-0 text-3xl mr-3">
-                                            ${insight.icon}
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <h4 class="text-base font-bold ${colors.title}">${insight.title}</h4>
-                                                <span class="text-xs font-semibold ${colors.icon} uppercase px-2 py-1 rounded-full ${colors.bg}">
-                                                    ${insight.priority === 'critical' ? 'Crítico' :
-                                                      insight.priority === 'high' ? 'Alto' :
-                                                      insight.priority === 'medium' ? 'Medio' : 'Bajo'}
-                                                </span>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- Distribución por Categoría HVC -->
+                    <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                            Categorías HVC
+                        </h3>
+                        <div class="space-y-3">
+                            ${Object.entries(metrics.categoryCount || {}).length > 0 ?
+                                Object.entries(metrics.categoryCount).sort((a, b) => b[1] - a[1]).map(([categoria, count]) => {
+                                    const categoryColors = {
+                                        'SIGNATURE': 'bg-gradient-to-r from-purple-500 to-pink-500',
+                                        'TOP': 'bg-gradient-to-r from-amber-500 to-orange-500',
+                                        'BLACK': 'bg-gradient-to-r from-gray-700 to-gray-900',
+                                        'PLATINUM': 'bg-gradient-to-r from-cyan-500 to-blue-500',
+                                        'GOLD PLUS': 'bg-gradient-to-r from-orange-400 to-yellow-400',
+                                        'GOLD': 'bg-gradient-to-r from-yellow-500 to-amber-500'
+                                    };
+                                    const percentage = ((count / metrics.totalPassengers) * 100).toFixed(1);
+                                    return `
+                                        <div class="group">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-sm font-medium text-gray-700">${categoria}</span>
+                                                <span class="text-sm font-bold text-gray-900">${count} <span class="text-xs text-gray-500">(${percentage}%)</span></span>
                                             </div>
-                                            <p class="text-sm text-gray-700 mb-2">${insight.message}</p>
-                                            ${insight.action ? `
-                                                <div class="mt-3 pt-3 border-t ${colors.border}">
-                                                    <p class="text-sm font-semibold ${colors.icon}">
-                                                        💡 Acción Sugerida: ${insight.action}
-                                                    </p>
-                                                </div>
-                                            ` : ''}
+                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                                <div class="${categoryColors[categoria] || 'bg-blue-600'} h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
+                                                     style="width: ${percentage}%"></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                                    `;
+                                }).join('') :
+                                '<div class="text-center py-8 text-gray-400"><svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg><p class="text-sm">No hay datos de categorías disponibles</p></div>'
+                            }
+                        </div>
                     </div>
-                </div>
-            ` : ''}
 
-            <!-- Insights de Rendimiento -->
-            ${performanceInsights.length > 0 ? `
-                <div class="bg-white rounded-lg shadow p-6 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                        Insights de Rendimiento
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${performanceInsights.map(insight => `
-                            <div class="p-4 rounded-lg ${insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
-                                                         insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
-                                                         'bg-blue-50 border-l-4 border-blue-400'}">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0">
-                                        ${insight.icon}
-                                    </div>
-                                    <div class="ml-3">
-                                        <h4 class="text-sm font-medium text-gray-800">${insight.title}</h4>
-                                        <p class="text-sm text-gray-600 mt-1">${insight.message}</p>
-                                        ${insight.action ? `<p class="text-sm font-medium text-blue-600 mt-2">${insight.action}</p>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-
-            <!-- Gráficos y Análisis -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <!-- Distribución por Categoría -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Categoría HVC</h3>
-                    <div class="space-y-3">
-                        ${Object.entries(metrics.categoryCount || {}).length > 0 ?
-                            Object.entries(metrics.categoryCount).map(([categoria, count]) => `
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">${categoria}</span>
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-24 bg-gray-200 rounded-full h-2">
-                                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${(count / metrics.totalPassengers * 100) || 0}%"></div>
+                    <!-- Servicios Más Solicitados -->
+                    <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                            Servicios Solicitados
+                        </h3>
+                        <div class="space-y-3">
+                            ${Object.entries(metrics.serviciosCount || {}).length > 0 ?
+                                Object.entries(metrics.serviciosCount).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([servicio, count]) => {
+                                    const maxCount = Math.max(...Object.values(metrics.serviciosCount));
+                                    const percentage = ((count / maxCount) * 100).toFixed(1);
+                                    const serviceIcons = {
+                                        'sala_vip': '🏆',
+                                        'fast_track': '⚡',
+                                        'asistencia_especial': '🤝',
+                                        'upgrade': '⬆️',
+                                        'transporte': '🚗',
+                                        'concierge': '🔔'
+                                    };
+                                    return `
+                                        <div class="group">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                                    <span>${serviceIcons[servicio] || '📋'}</span>
+                                                    ${servicio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                </span>
+                                                <span class="text-sm font-bold text-gray-900">${count}</span>
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                                <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
+                                                     style="width: ${percentage}%"></div>
+                                            </div>
                                         </div>
-                                        <span class="text-sm font-medium text-gray-800 w-8 text-right">${count}</span>
-                                    </div>
-                                </div>
-                            `).join('') :
-                            '<p class="text-gray-500 text-sm">No hay datos de categorías disponibles</p>'
-                        }
-                    </div>
-                </div>
-
-                <!-- Servicios Más Utilizados -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Servicios Más Solicitados</h3>
-                    <div class="space-y-3">
-                        ${Object.entries(metrics.serviciosCount || {}).length > 0 ?
-                            Object.entries(metrics.serviciosCount).slice(0, 5).map(([servicio, count]) => `
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">${servicio.replace(/_/g, ' ')}</span>
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-24 bg-gray-200 rounded-full h-2">
-                                            <div class="bg-green-600 h-2 rounded-full" style="width: ${(count / Math.max(...Object.values(metrics.serviciosCount)) * 100) || 0}%"></div>
-                                        </div>
-                                        <span class="text-sm font-medium text-gray-800 w-8 text-right">${count}</span>
-                                    </div>
-                                </div>
-                            `).join('') :
-                            '<p class="text-gray-500 text-sm">No hay datos de servicios disponibles</p>'
-                        }
+                                    `;
+                                }).join('') :
+                                '<div class="text-center py-8 text-gray-400"><svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p class="text-sm">No hay datos de servicios disponibles</p></div>'
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
