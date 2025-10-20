@@ -4184,20 +4184,3 @@ const renderDashboardView = async () => {
         </div>
     `;
 };
-                                    <div>
-                                        <span class="text-gray-500">Última actualización:</span>
-                                        <br><span class="font-medium">${airportMetrics ? new Date(airportMetrics.ultima_actualizacion).toLocaleString('es-PE') : 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                        <span class="text-gray-500">Datos en tiempo real:</span>
-                                        <br><span class="font-medium text-green-600">✓ Activos</span>
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-};
