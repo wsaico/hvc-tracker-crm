@@ -3156,14 +3156,16 @@ const renderManifestView = async () => {
                         <div class="flex-1">
                             <h4 class="font-semibold text-blue-900 mb-2">Guía de Formato del Manifiesto</h4>
                             <p class="text-sm text-blue-800 mb-2">
-                                Formato: <code class="bg-white px-2 py-1 rounded font-mono text-xs">VUELO,DESTINO,NOMBRE,CATEGORIA,ESTATUS,ASIENTO</code>
+                                Formato: <code class="bg-white px-2 py-1 rounded font-mono text-xs break-all">VUELO,DESTINO,NOMBRE,CATEGORIA,ESTATUS,ASIENTO</code>
                             </p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-blue-800">
+                            <div class="grid grid-cols-1 gap-3 text-sm text-blue-800">
                                 <div>
-                                    <strong>Categorías válidas:</strong> SIGNATURE, TOP, BLACK, PLATINUM, GOLD PLUS, GOLD
+                                    <strong>Categorías válidas:</strong>
+                                    <span class="break-words">SIGNATURE, TOP, BLACK, PLATINUM, GOLD PLUS, GOLD</span>
                                 </div>
                                 <div>
-                                    <strong>Estatus válidos:</strong> CONFIRMADO, CHECK-IN, BOARDING, EMBARKED
+                                    <strong>Estatus válidos:</strong>
+                                    <span class="break-words">CONFIRMADO, CHECK-IN, BOARDING, EMBARKED</span>
                                 </div>
                             </div>
                             <p class="text-xs text-blue-700 mt-2">
@@ -3256,11 +3258,11 @@ VUELO002,CUZ,Pedro Ramos Quispe,GOLD,CONFIRMADO,2A
             }
 
             function loadSampleManifest() {
-                const sample = \`LA2001,LIM,Carlos Martinez,BLACK,CONFIRMADO,1A
+                const sample = \`LA2191,LIM,LUIS PALACIOS,SIGNATURE,CONFIRMADO,2B
+LA2001,LIM,Carlos Martinez,BLACK,CONFIRMADO,1A
 LA2001,LIM,Ana Torres,PLATINUM,CHECK-IN,1B
 LA2001,LIM,Roberto Silva,GOLD PLUS,CONFIRMADO,2A
-LA2002,CUZ,Patricia Gomez,SIGNATURE,CONFIRMADO,1C
-LA2002,CUZ,Miguel Ramos,TOP,BOARDING,2B\`;
+LA2002,CUZ,Patricia Gomez,TOP,BOARDING,2C\`;
                 document.getElementById('manifestText').value = sample;
                 updateManifestPreview();
             }
