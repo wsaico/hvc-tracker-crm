@@ -3566,33 +3566,44 @@ const renderPassengerTrackingView = async () => {
             const interactions = passengerInteractions[passengerId];
             const latestInteraction = interactions[0];
 
-            // Pasajeros en riesgo (última calificación baja)
-            if (latestInteraction.calificacion_medallia &&
-                latestInteraction.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR) {
-                passengersAtRisk.push({
-                    ...passenger,
-                    lastRating: latestInteraction.calificacion_medallia,
-                    lastInteraction: latestInteraction.fecha,
-                    interactionCount: interactions.length,
-                    hasRecoveryActions: latestInteraction.acciones_recuperacion ? true : false
-                });
-            }
+            // Determinar el estado del pasajero basado en su historial
+            const hasMultipleInteractions = interactions.length >= 2;
+            const latestRating = latestInteraction.calificacion_medallia;
 
-            // Pasajeros recuperados (pasaron de detractor a promotor)
-            if (interactions.length >= 2) {
-                const latest = interactions[0];
-                const previous = interactions[1];
+            if (hasMultipleInteractions && latestRating) {
+                const previousInteraction = interactions[1];
+                const previousRating = previousInteraction.calificacion_medallia;
 
-                if (previous.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR &&
-                    latest.calificacion_medallia >= CONSTANTS.MEDALLIA_THRESHOLDS.PROMOTER) {
+                // RECUPERADO: tenía calificación baja (≤6) y ahora mejoró (>6)
+                if (previousRating && previousRating <= 6 && latestRating > 6) {
                     passengersRecovered.push({
                         ...passenger,
-                        previousRating: previous.calificacion_medallia,
-                        currentRating: latest.calificacion_medallia,
-                        recoveryDate: latest.fecha,
+                        previousRating: previousRating,
+                        currentRating: latestRating,
+                        recoveryDate: latestInteraction.fecha,
                         interactionCount: interactions.length
                     });
                 }
+                // EN RIESGO: su última calificación es baja (≤6) - NO recuperado
+                else if (latestRating <= 6) {
+                    passengersAtRisk.push({
+                        ...passenger,
+                        lastRating: latestRating,
+                        lastInteraction: latestInteraction.fecha,
+                        interactionCount: interactions.length,
+                        hasRecoveryActions: latestInteraction.acciones_recuperacion && latestInteraction.acciones_recuperacion.trim() !== ''
+                    });
+                }
+            }
+            // Si solo tiene UNA interacción y es baja, está en riesgo
+            else if (latestRating && latestRating <= 6) {
+                passengersAtRisk.push({
+                    ...passenger,
+                    lastRating: latestRating,
+                    lastInteraction: latestInteraction.fecha,
+                    interactionCount: interactions.length,
+                    hasRecoveryActions: latestInteraction.acciones_recuperacion && latestInteraction.acciones_recuperacion.trim() !== ''
+                });
             }
 
             // Cumpleaños próximos
