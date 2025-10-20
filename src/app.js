@@ -1175,6 +1175,40 @@ async function showPassengerModal(passenger, interactions) {
         }
     }
 
+    // Construir timeline de recuperación (todas las interacciones con calificación)
+    const recoveryTimeline = interactions
+        .filter(i => i.calificacion_medallia)
+        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+        .map((interaction, index) => {
+            const score = interaction.calificacion_medallia;
+            const status = score <= 6 ? 'detractor' : score <= 8 ? 'passive' : 'promoter';
+            const hasRecoveryAction = interaction.acciones_recuperacion && interaction.acciones_recuperacion.trim();
+
+            return {
+                fecha: interaction.fecha,
+                score,
+                status,
+                hasRecoveryAction,
+                incidente: interaction.incidentes,
+                acciones: interaction.acciones_recuperacion,
+                agente: interaction.agente_nombre,
+                index
+            };
+        });
+
+    // Determinar si hubo recuperación exitosa
+    let hasSuccessfulRecovery = false;
+    if (recoveryTimeline.length >= 2) {
+        for (let i = 0; i < recoveryTimeline.length - 1; i++) {
+            if (recoveryTimeline[i].status === 'detractor' &&
+                recoveryTimeline[i].hasRecoveryAction &&
+                recoveryTimeline[i + 1].status === 'promoter') {
+                hasSuccessfulRecovery = true;
+                break;
+            }
+        }
+    }
+
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     modal.innerHTML = `
@@ -1382,6 +1416,157 @@ async function showPassengerModal(passenger, interactions) {
                                 ${['SIGNATURE', 'TOP', 'BLACK'].includes(passenger.categoria) ?
                                     '<br><strong class="text-purple-600">⚠️ Cliente VIP:</strong> Notificar a supervisor para seguimiento personalizado.' : ''}
                             </p>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Timeline de Recuperación -->
+                ${recoveryTimeline.length > 0 ? `
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                <svg class="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Historial de Recuperación
+                            </h3>
+                            ${hasSuccessfulRecovery ? `
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-bold flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Recuperación Exitosa
+                                </span>
+                            ` : ''}
+                        </div>
+
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-indigo-200">
+                            <div class="relative">
+                                <!-- Timeline vertical -->
+                                <div class="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-red-300 via-yellow-300 to-green-300"></div>
+
+                                <div class="space-y-6">
+                                    ${recoveryTimeline.map((item, index) => {
+                                        const statusConfig = {
+                                            'detractor': {
+                                                color: 'red',
+                                                icon: '😞',
+                                                label: 'Detractor',
+                                                bg: 'bg-red-100',
+                                                border: 'border-red-400',
+                                                text: 'text-red-800'
+                                            },
+                                            'passive': {
+                                                color: 'yellow',
+                                                icon: '😐',
+                                                label: 'Pasivo',
+                                                bg: 'bg-yellow-100',
+                                                border: 'border-yellow-400',
+                                                text: 'text-yellow-800'
+                                            },
+                                            'promoter': {
+                                                color: 'green',
+                                                icon: '😊',
+                                                label: 'Promotor',
+                                                bg: 'bg-green-100',
+                                                border: 'border-green-400',
+                                                text: 'text-green-800'
+                                            }
+                                        };
+
+                                        const config = statusConfig[item.status];
+                                        const isFirst = index === 0;
+                                        const isLast = index === recoveryTimeline.length - 1;
+
+                                        return `
+                                            <div class="relative pl-16">
+                                                <!-- Punto del timeline -->
+                                                <div class="absolute left-0 top-0 w-12 h-12 bg-white rounded-full border-4 border-${config.color}-500 flex items-center justify-center shadow-lg z-10">
+                                                    <span class="text-2xl">${config.icon}</span>
+                                                </div>
+
+                                                <!-- Contenido -->
+                                                <div class="bg-white rounded-xl p-4 shadow-md border-l-4 border-${config.color}-500 ${isLast ? 'ring-2 ring-indigo-300' : ''}">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="px-3 py-1 ${config.bg} ${config.text} rounded-full text-sm font-bold">
+                                                                ${config.label}
+                                                            </span>
+                                                            <span class="text-2xl font-bold ${config.text}">${item.score}/10</span>
+                                                        </div>
+                                                        <span class="text-xs text-gray-500 font-medium">
+                                                            ${new Date(item.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+
+                                                    ${item.incidente ? `
+                                                        <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                                                            <p class="text-xs font-semibold text-orange-800 mb-1">📋 Incidente:</p>
+                                                            <p class="text-sm text-gray-700">${item.incidente}</p>
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${item.hasRecoveryAction ? `
+                                                        <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                                            <p class="text-xs font-semibold text-blue-800 mb-1">🎯 Acciones de Recuperación:</p>
+                                                            <p class="text-sm text-gray-700">${item.acciones}</p>
+                                                        </div>
+                                                    ` : item.status === 'detractor' ? `
+                                                        <div class="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded-lg">
+                                                            <p class="text-xs font-semibold text-yellow-800">⚠️ No se registraron acciones de recuperación</p>
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${item.agente ? `
+                                                        <p class="text-xs text-gray-500 mt-2">👤 Atendido por: <span class="font-medium">${item.agente}</span></p>
+                                                    ` : ''}
+
+                                                    ${isLast && item.status === 'promoter' && index > 0 && recoveryTimeline[index - 1].status === 'detractor' ? `
+                                                        <div class="mt-3 pt-3 border-t border-green-200">
+                                                            <p class="text-sm font-bold text-green-700 flex items-center gap-2">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                </svg>
+                                                                ¡Recuperación exitosa! El pasajero pasó de detractor a promotor
+                                                            </p>
+                                                        </div>
+                                                    ` : ''}
+
+                                                    ${isFirst && item.status === 'detractor' ? `
+                                                        <div class="mt-3 pt-3 border-t border-red-200">
+                                                            <p class="text-sm font-bold text-red-700 flex items-center gap-2">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                                                </svg>
+                                                                Inicio del proceso de recuperación
+                                                            </p>
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Resumen del timeline -->
+                            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-1">Total de Interacciones</p>
+                                    <p class="text-2xl font-bold text-gray-800">${recoveryTimeline.length}</p>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-1">Acciones de Recuperación</p>
+                                    <p class="text-2xl font-bold text-blue-600">${recoveryTimeline.filter(i => i.hasRecoveryAction).length}</p>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-1">Estado Actual</p>
+                                    <p class="text-lg font-bold ${recoveryTimeline[recoveryTimeline.length - 1].status === 'promoter' ? 'text-green-600' : recoveryTimeline[recoveryTimeline.length - 1].status === 'detractor' ? 'text-red-600' : 'text-yellow-600'}">
+                                        ${recoveryTimeline[recoveryTimeline.length - 1].status === 'promoter' ? '😊 Promotor' :
+                                          recoveryTimeline[recoveryTimeline.length - 1].status === 'detractor' ? '😞 Detractor' : '😐 Pasivo'}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ` : ''}
