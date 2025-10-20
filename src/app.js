@@ -3559,6 +3559,8 @@ const renderPassengerTrackingView = async () => {
         const recentInteractions = [];
         const birthdayPassengers = [];
 
+        console.log('🎯 Total pasajeros con interacciones:', Object.keys(passengerInteractions).length);
+
         Object.keys(passengerInteractions).forEach(passengerId => {
             const passenger = passengerMap[passengerId];
             if (!passenger) return;
@@ -3570,18 +3572,27 @@ const renderPassengerTrackingView = async () => {
             const hasMultipleInteractions = interactions.length >= 2;
             const latestRating = latestInteraction.calificacion_medallia;
 
+            console.log(`👤 Analizando: ${passenger.nombre} - ${interactions.length} interacción(es)`);
+
             if (hasMultipleInteractions && latestRating) {
                 const previousInteraction = interactions[1];
                 const previousRating = previousInteraction.calificacion_medallia;
 
-                // DEBUG: Log para ver qué pasa
-                console.log('DEBUG Pasajero:', passenger.nombre, {
+                // DEBUG: Log para ver qué pasa con stringify para ver todo
+                const debugInfo = {
+                    nombre: passenger.nombre,
                     interacciones: interactions.length,
                     fechas: interactions.map(i => ({ fecha: i.fecha, rating: i.calificacion_medallia })),
                     calificacionAnterior: previousRating,
                     calificacionActual: latestRating,
-                    esRecuperado: (previousRating && previousRating <= 6 && latestRating > 6)
-                });
+                    esRecuperado: (previousRating && previousRating <= 6 && latestRating > 6),
+                    condiciones: {
+                        previousRatingExiste: !!previousRating,
+                        previousRatingMenorIgual6: previousRating <= 6,
+                        latestRatingMayor6: latestRating > 6
+                    }
+                };
+                console.log('🔍 DEBUG Pasajero:', JSON.stringify(debugInfo, null, 2));
 
                 // RECUPERADO: tenía calificación baja (≤6) y ahora mejoró (>6)
                 if (previousRating && previousRating <= 6 && latestRating > 6) {
