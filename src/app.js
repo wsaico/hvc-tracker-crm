@@ -1037,7 +1037,20 @@ async function savePassengerChanges(passengerId) {
 }
 
 // Función para mostrar modal de detalles del pasajero
-function showPassengerModal(passenger, interactions) {
+async function showPassengerModal(passenger, interactions) {
+    // Calcular sugerencias de recuperación si es detractor
+    let recoverySuggestions = [];
+    const lastInteraction = interactions[0];
+
+    if (lastInteraction && lastInteraction.calificacion_medallia && lastInteraction.calificacion_medallia <= 6) {
+        try {
+            const BusinessLogic = await import('./services/BusinessLogic.js');
+            recoverySuggestions = BusinessLogic.generateRecoverySuggestions(passenger, lastInteraction);
+        } catch (error) {
+            console.warn('Could not generate recovery suggestions:', error);
+        }
+    }
+
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     modal.innerHTML = `
@@ -1167,6 +1180,87 @@ function showPassengerModal(passenger, interactions) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Sugerencias de Recuperación para Detractores -->
+                ${recoverySuggestions.length > 0 ? `
+                    <div class="mb-6 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-300 rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-red-100 p-3 rounded-full mr-3">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-red-800">⚠️ Pasajero Detractor - Requiere Atención Inmediata</h3>
+                                <p class="text-sm text-red-600">Última calificación: ${lastInteraction?.calificacion_medallia}/10</p>
+                            </div>
+                        </div>
+
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                            Acciones de Recuperación Personalizadas
+                        </h4>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            ${recoverySuggestions.map((suggestion, index) => {
+                                const effectivenessColors = {
+                                    'very-high': { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-700', badge: 'bg-green-500 text-white' },
+                                    'high': { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-700', badge: 'bg-blue-500 text-white' },
+                                    'medium': { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-700', badge: 'bg-yellow-500 text-white' },
+                                    'low': { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-700', badge: 'bg-gray-500 text-white' }
+                                };
+                                const colors = effectivenessColors[suggestion.effectiveness] || effectivenessColors.medium;
+
+                                return `
+                                    <div class="${colors.bg} border-l-4 ${colors.border} rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="flex items-center">
+                                                <span class="text-2xl mr-2">${suggestion.icon}</span>
+                                                <h5 class="font-bold ${colors.text}">${suggestion.title}</h5>
+                                            </div>
+                                            <span class="text-xs font-bold ${colors.badge} px-2 py-1 rounded-full uppercase">
+                                                ${suggestion.effectiveness === 'very-high' ? 'Muy Efectivo' :
+                                                  suggestion.effectiveness === 'high' ? 'Efectivo' :
+                                                  suggestion.effectiveness === 'medium' ? 'Moderado' : 'Bajo'}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-700 mb-2">${suggestion.action}</p>
+                                        <div class="flex items-center justify-between mt-3 pt-3 border-t ${colors.border}">
+                                            <span class="text-xs font-medium text-gray-600">
+                                                ${suggestion.type === 'personalized' ? '👤 Basado en Gustos' :
+                                                  suggestion.type === 'category-based' ? '⭐ Basado en Categoría' :
+                                                  suggestion.type === 'incident-based' ? '🚨 Basado en Incidente' : 'General'}
+                                            </span>
+                                            <span class="text-xs font-medium text-gray-600">
+                                                ${suggestion.category === 'immediate' ? '⚡ Inmediato' :
+                                                  suggestion.category === 'medium-term' ? '📅 Mediano Plazo' : '🔄 Seguimiento'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        ${lastInteraction?.incidentes ? `
+                            <div class="mt-4 bg-white rounded-lg p-4 border border-red-200">
+                                <p class="text-sm font-semibold text-gray-700 mb-1">📋 Incidente Reportado:</p>
+                                <p class="text-sm text-gray-600">${lastInteraction.incidentes}</p>
+                            </div>
+                        ` : ''}
+
+                        <div class="mt-4 bg-white rounded-lg p-4 border border-blue-200">
+                            <p class="text-sm font-semibold text-blue-700 mb-2">💡 Recomendación del Sistema:</p>
+                            <p class="text-sm text-gray-700">
+                                Aplicar al menos <strong class="text-blue-600">${Math.min(3, recoverySuggestions.filter(s => s.effectiveness === 'very-high' || s.effectiveness === 'high').length)}</strong> acciones de alta efectividad de forma inmediata.
+                                ${passenger.idiomas && passenger.idiomas.length > 0 ? `Comunicar en <strong class="text-blue-600">${passenger.idiomas[0]}</strong>.` : ''}
+                                ${['SIGNATURE', 'TOP', 'BLACK'].includes(passenger.categoria) ?
+                                    '<br><strong class="text-purple-600">⚠️ Cliente VIP:</strong> Notificar a supervisor para seguimiento personalizado.' : ''}
+                            </p>
+                        </div>
+                    </div>
+                ` : ''}
 
                 ${interactions.length > 0 ? `
                     <div>
@@ -2285,10 +2379,21 @@ const renderDashboardView = async () => {
     let airportMetrics = null;
     let performanceInsights = [];
 
+    // Variables para métricas de recuperación
+    let recoveryMetrics = null;
+    let dashboardInsights = [];
+    let interactions = [];
+    let passengers = [];
+
     // Intentar cargar métricas reales si la BD está disponible
     if (window.DB_AVAILABLE) {
         try {
             const state = StateManager.getState();
+
+            // Cargar datos brutos para cálculos avanzados
+            interactions = await ApiService.getAirportInteractions(state.currentAirport);
+            passengers = await ApiService.getAllPassengers(state.currentAirport);
+
             // Usar la nueva función getAirportMetrics para obtener métricas calculadas en tiempo real
             airportMetrics = await ApiService.getAirportMetrics(state.currentAirport);
 
@@ -2309,13 +2414,28 @@ const renderDashboardView = async () => {
                 performanceInsights = generatePerformanceInsights(metrics);
             } else {
                 // Fallback a cálculo manual si falla
-                const interactions = await ApiService.getAirportInteractions(state.currentAirport);
-                const passengers = await ApiService.getAllPassengers(state.currentAirport);
-                const businessMetrics = await import('./services/BusinessLogic.js').then(module =>
-                    module.calculateDashboardMetrics(interactions, passengers)
-                );
+                const BusinessLogic = await import('./services/BusinessLogic.js');
+                const businessMetrics = BusinessLogic.calculateDashboardMetrics(interactions, passengers);
                 metrics = businessMetrics;
             }
+
+            // Calcular métricas de recuperación avanzadas usando BusinessLogic
+            const BusinessLogic = await import('./services/BusinessLogic.js');
+            const fullMetrics = BusinessLogic.calculateDashboardMetrics(interactions, passengers);
+
+            // Extraer métricas de recuperación específicas
+            recoveryMetrics = {
+                detractors: fullMetrics.detractors || 0,
+                passives: fullMetrics.passives || 0,
+                promoters: fullMetrics.promoters || 0,
+                recoveryActions: fullMetrics.recoveryActions || 0,
+                successfulRecoveries: fullMetrics.successfulRecoveries || 0,
+                successfulRecoveryRate: fullMetrics.successfulRecoveryRate || 0
+            };
+
+            // Generar insights inteligentes
+            dashboardInsights = BusinessLogic.generateDashboardInsights(fullMetrics, interactions, passengers);
+
         } catch (error) {
             console.warn('Could not load real metrics:', error);
         }
@@ -2488,6 +2608,168 @@ const renderDashboardView = async () => {
                     </div>
                 </div>
             </div>
+
+            <!-- Métricas de Recuperación NPS -->
+            ${recoveryMetrics && window.DB_AVAILABLE ? `
+                <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-6 mb-8 border-2 border-indigo-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <svg class="w-7 h-7 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Sistema de Recuperación de Pasajeros
+                    </h3>
+
+                    <!-- NPS Score Card -->
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-indigo-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-600">NPS Score</span>
+                                <svg class="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </div>
+                            <p class="text-3xl font-bold text-indigo-600">
+                                ${((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100).toFixed(0)}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ${((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100) >= 50 ? 'Excelente' :
+                                  ((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100) >= 0 ? 'Bueno' : 'Requiere Atención'}
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-red-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-600">Detractores</span>
+                                <span class="text-2xl">😞</span>
+                            </div>
+                            <p class="text-3xl font-bold text-red-600">${recoveryMetrics.detractors}</p>
+                            <p class="text-xs text-gray-500 mt-1">Calificación ≤ 6</p>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-yellow-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-600">Pasivos</span>
+                                <span class="text-2xl">😐</span>
+                            </div>
+                            <p class="text-3xl font-bold text-yellow-600">${recoveryMetrics.passives}</p>
+                            <p class="text-xs text-gray-500 mt-1">Calificación 7-8</p>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-green-500">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-600">Promotores</span>
+                                <span class="text-2xl">😊</span>
+                            </div>
+                            <p class="text-3xl font-bold text-green-600">${recoveryMetrics.promoters}</p>
+                            <p class="text-xs text-gray-500 mt-1">Calificación ≥ 9</p>
+                        </div>
+                    </div>
+
+                    <!-- Recovery Effectiveness -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-xl p-5 shadow-md">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Acciones de Recuperación</p>
+                                    <p class="text-2xl font-bold text-blue-600">${recoveryMetrics.recoveryActions}</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">Total de intentos realizados</p>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-5 shadow-md">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Recuperaciones Exitosas</p>
+                                    <p class="text-2xl font-bold text-green-600">${recoveryMetrics.successfulRecoveries}</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">Detractores que se convirtieron en promotores</p>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-5 shadow-md">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Tasa de Efectividad</p>
+                                    <p class="text-2xl font-bold ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'text-green-600' : parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'text-yellow-600' : 'text-red-600'}">
+                                        ${recoveryMetrics.successfulRecoveryRate}%
+                                    </p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'Excelente desempeño' :
+                                  parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'Puede mejorar' : 'Requiere atención'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Insights Inteligentes de Recuperación -->
+            ${dashboardInsights && dashboardInsights.length > 0 ? `
+                <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-blue-100">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <svg class="w-7 h-7 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                        Insights Inteligentes
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${dashboardInsights.map(insight => {
+                            const priorityColors = {
+                                'critical': { bg: 'bg-red-50', border: 'border-red-500', icon: 'text-red-600', title: 'text-red-800' },
+                                'high': { bg: 'bg-orange-50', border: 'border-orange-500', icon: 'text-orange-600', title: 'text-orange-800' },
+                                'medium': { bg: 'bg-yellow-50', border: 'border-yellow-500', icon: 'text-yellow-600', title: 'text-yellow-800' },
+                                'low': { bg: 'bg-blue-50', border: 'border-blue-500', icon: 'text-blue-600', title: 'text-blue-800' }
+                            };
+                            const colors = priorityColors[insight.priority] || priorityColors.low;
+
+                            return `
+                                <div class="${colors.bg} ${colors.border} border-l-4 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 text-3xl mr-3">
+                                            ${insight.icon}
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <h4 class="text-base font-bold ${colors.title}">${insight.title}</h4>
+                                                <span class="text-xs font-semibold ${colors.icon} uppercase px-2 py-1 rounded-full ${colors.bg}">
+                                                    ${insight.priority === 'critical' ? 'Crítico' :
+                                                      insight.priority === 'high' ? 'Alto' :
+                                                      insight.priority === 'medium' ? 'Medio' : 'Bajo'}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-700 mb-2">${insight.message}</p>
+                                            ${insight.action ? `
+                                                <div class="mt-3 pt-3 border-t ${colors.border}">
+                                                    <p class="text-sm font-semibold ${colors.icon}">
+                                                        💡 Acción Sugerida: ${insight.action}
+                                                    </p>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
 
             <!-- Insights de Rendimiento -->
             ${performanceInsights.length > 0 ? `
