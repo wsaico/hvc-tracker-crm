@@ -1621,24 +1621,82 @@ const renderPassengerInteractionView = () => {
     }
 
     return `
-        <div class="max-w-4xl mx-auto p-6">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Atención al Pasajero</h2>
-                    <div class="flex items-center space-x-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-12 h-12 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
-                                <span class="text-white font-bold text-lg">${passenger.nombre.charAt(0)}</span>
-                            </div>
+        <div class="max-w-6xl mx-auto p-4 sm:p-6">
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                <!-- Header Mejorado -->
+                <div class="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex items-center gap-4">
+                            ${passenger.foto_url ? `
+                                <img src="${passenger.foto_url}" alt="${passenger.nombre}"
+                                     class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-lg object-cover">
+                            ` : `
+                                <div class="w-16 h-16 sm:w-20 sm:h-20 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                                    <span class="text-white font-bold text-2xl sm:text-3xl">${passenger.nombre.charAt(0)}</span>
+                                </div>
+                            `}
                             <div>
-                                <h3 class="text-xl font-semibold text-gray-800">${passenger.nombre}</h3>
-                                <p class="text-gray-600">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
+                                <h2 class="text-2xl sm:text-3xl font-bold mb-1">Atención al Pasajero</h2>
+                                <h3 class="text-lg sm:text-xl font-semibold opacity-90">${passenger.nombre}</h3>
+                                <p class="text-sm sm:text-base opacity-75">${passenger.dni_pasaporte} • ${passenger.categoria}</p>
                             </div>
                         </div>
+                        <button type="button" onclick="cancelInteraction()"
+                                class="self-end sm:self-auto bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition font-medium text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Volver
+                        </button>
+                    </div>
+
+                    <!-- Tabs de navegación -->
+                    <div class="flex gap-2 mt-6 overflow-x-auto scrollbar-hide">
+                        <button type="button" onclick="switchInteractionTab('general')"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition active"
+                                data-tab="general">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                General
+                            </span>
+                        </button>
+                        <button type="button" onclick="switchInteractionTab('services')"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                data-tab="services">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Servicios
+                            </span>
+                        </button>
+                        <button type="button" onclick="switchInteractionTab('feedback')"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                data-tab="feedback">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                </svg>
+                                Feedback
+                            </span>
+                        </button>
+                        <button type="button" onclick="switchInteractionTab('issues')"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                data-tab="issues">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Incidentes
+                            </span>
+                        </button>
                     </div>
                 </div>
 
-                <form id="interactionForm" class="space-y-6">
+                <form id="interactionForm" class="p-6">
+                    <div class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Motivo de Viaje</label>
