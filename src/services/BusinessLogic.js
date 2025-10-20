@@ -56,7 +56,7 @@ export const generateRecommendations = (passenger, interactions) => {
         }
     }
 
-    // Preferencias conocidas
+    // Preferencias conocidas desde interacciones
     const preferencesFound = interactions.filter(i => i.preferencias && Object.keys(i.preferencias).length > 0);
     if (preferencesFound.length > 0) {
         const lastPref = preferencesFound[0].preferencias;
@@ -67,6 +67,85 @@ export const generateRecommendations = (passenger, interactions) => {
             title: 'Preferencias Conocidas',
             message: `Últimas preferencias registradas: ${prefText}`
         });
+    }
+
+    // Gustos del pasajero
+    if (passenger.gustos && Object.keys(passenger.gustos).length > 0) {
+        const gustosText = Object.entries(passenger.gustos).map(([k, v]) => `${k}: ${v}`).join(', ');
+        recommendations.push({
+            type: 'info',
+            icon: '🍽️',
+            title: 'Gustos Registrados',
+            message: `Preferencias culinarias y de confort: ${gustosText}`
+        });
+    }
+
+    // Preferencias del pasajero
+    if (passenger.preferencias && Object.keys(passenger.preferencias).length > 0) {
+        const prefText = Object.entries(passenger.preferencias).map(([k, v]) => `${k}: ${v}`).join(', ');
+        recommendations.push({
+            type: 'info',
+            icon: '⚙️',
+            title: 'Preferencias Personales',
+            message: `Configuraciones preferidas: ${prefText}`
+        });
+    }
+
+    // Idiomas del pasajero
+    if (passenger.idiomas && passenger.idiomas.length > 0) {
+        recommendations.push({
+            type: 'info',
+            icon: '🗣️',
+            title: 'Idiomas',
+            message: `Habla: ${passenger.idiomas.join(', ')}. Considerar comunicación en estos idiomas.`
+        });
+    }
+
+    // Información médica importante
+    if (passenger.alergias || passenger.restricciones_medicas) {
+        const medicalInfo = [];
+        if (passenger.alergias) medicalInfo.push(`Alergias: ${passenger.alergias}`);
+        if (passenger.restricciones_medicas) medicalInfo.push(`Restricciones: ${passenger.restricciones_medicas}`);
+
+        recommendations.push({
+            type: 'warning',
+            icon: '🏥',
+            title: 'Información Médica',
+            message: medicalInfo.join('. ') + '. Coordinar con servicios médicos si es necesario.'
+        });
+    }
+
+    // Contacto de emergencia disponible
+    if (passenger.contacto_emergencia_nombre && passenger.contacto_emergencia_telefono) {
+        recommendations.push({
+            type: 'info',
+            icon: '📞',
+            title: 'Contacto de Emergencia',
+            message: `Disponible: ${passenger.contacto_emergencia_nombre} (${passenger.contacto_emergencia_telefono})`
+        });
+    }
+
+    // Pasaporte próximo a vencer
+    if (passenger.fecha_vencimiento_pasaporte) {
+        const today = new Date();
+        const expiryDate = new Date(passenger.fecha_vencimiento_pasaporte);
+        const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+
+        if (daysUntilExpiry <= 90 && daysUntilExpiry > 0) {
+            recommendations.push({
+                type: 'warning',
+                icon: '🛂',
+                title: 'Pasaporte Próximo a Vencer',
+                message: `Vence en ${daysUntilExpiry} días. Recomendar renovación.`
+            });
+        } else if (daysUntilExpiry <= 0) {
+            recommendations.push({
+                type: 'danger',
+                icon: '🚫',
+                title: 'Pasaporte Vencido',
+                message: 'El pasaporte está vencido. No permitir embarque.'
+            });
+        }
     }
 
     return recommendations;
@@ -273,6 +352,29 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
             avg: (data.sum / data.count).toFixed(1)
         }));
 
+    // Métricas adicionales con nuevos campos
+    const passengersWithPhoto = passengers.filter(p => p.foto_url).length;
+    const passengersWithPreferences = passengers.filter(p => p.preferencias && Object.keys(p.preferencias).length > 0).length;
+    const passengersWithLanguages = passengers.filter(p => p.idiomas && p.idiomas.length > 0).length;
+    const passengersWithMedicalInfo = passengers.filter(p => p.alergias || p.restricciones_medicas).length;
+
+    // Cumpleaños del día
+    const today = new Date();
+    const birthdayPassengers = passengers.filter(p =>
+        p.fecha_nacimiento &&
+        new Date(p.fecha_nacimiento).getMonth() === today.getMonth() &&
+        new Date(p.fecha_nacimiento).getDate() === today.getDate()
+    ).length;
+
+    // Pasaportes por vencer (próximos 90 días)
+    const ninetyDaysFromNow = new Date();
+    ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+    const expiringPassports = passengers.filter(p =>
+        p.fecha_vencimiento_pasaporte &&
+        new Date(p.fecha_vencimiento_pasaporte) <= ninetyDaysFromNow &&
+        new Date(p.fecha_vencimiento_pasaporte) >= today
+    ).length;
+
     return {
         totalInteractions,
         totalPassengers: passengers.length,
@@ -282,6 +384,13 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
         categoryCount,
         motivoCount,
         serviciosCount,
-        trendData
+        trendData,
+        // Nuevas métricas
+        passengersWithPhoto,
+        passengersWithPreferences,
+        passengersWithLanguages,
+        passengersWithMedicalInfo,
+        birthdayPassengers,
+        expiringPassports
     };
 };

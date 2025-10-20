@@ -47,6 +47,10 @@ const render = async () => {
         // Renderizar login
         app.innerHTML = renderLoginView();
         await setupLoginHandlers();
+    } else if (state.currentView === 'register') {
+        // Renderizar registro
+        app.innerHTML = renderRegisterView();
+        await setupRegisterHandlers();
     } else {
         // Renderizar vista principal con navegación
         app.innerHTML = `
@@ -94,6 +98,159 @@ const render = async () => {
 const renderLoginView = () => {
     return `
         <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in" id="loginContainer">
+                <div class="text-center mb-8">
+                    <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-800">HVC Tracker</h1>
+                    <p class="text-gray-600 mt-2">Sistema de Gestión de Pasajeros de Alto Valor</p>
+                </div>
+
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                        <input type="text" id="username" required placeholder="Ingrese su usuario"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                        <input type="password" id="password" required placeholder="Ingrese su contraseña"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Iniciar Sesión
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <button onclick="showRegisterForm()"
+                            class="text-blue-600 hover:text-blue-700 font-medium">
+                        ¿No tienes cuenta? Regístrate aquí
+                    </button>
+                </div>
+
+                <!-- Información de usuarios de prueba -->
+                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">👥 Usuarios de Prueba</h4>
+                    <div class="text-xs text-gray-600 space-y-1">
+                        <div><strong>Jauja (JAU):</strong> supervisor_jau / agente_jau</div>
+                        <div><strong>Tacna (TCQ):</strong> supervisor_tcq / agente_tcq</div>
+                        <div><strong>Talara (TYL):</strong> supervisor_tyl / agente_tyl</div>
+                        <div class="mt-2 text-yellow-600"><em>Contraseña: admin123 (todos)</em></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+/**
+ * Renderiza la vista de registro
+ * @returns {string} HTML del registro
+ * @private
+ */
+const renderRegisterView = () => {
+    return `
+        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-blue-600 p-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in" id="registerContainer">
+                <div class="text-center mb-8">
+                    <div class="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-3xl font-bold text-gray-800">Crear Cuenta</h1>
+                    <p class="text-gray-600 mt-2">Regístrate en HVC Tracker</p>
+                </div>
+
+                <form id="registerForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
+                        <input type="text" id="regNombreCompleto" required placeholder="Ej: Juan Pérez"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                        <input type="text" id="regUsername" required placeholder="Ej: jperez"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Solo letras, números y guiones bajos</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                        <input type="password" id="regPassword" required placeholder="Mínimo 6 caracteres"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contraseña</label>
+                        <input type="password" id="regConfirmPassword" required placeholder="Repite tu contraseña"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Aeropuerto</label>
+                        <select id="regAeropuerto" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="">Seleccione un aeropuerto...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="regRol" value="supervisor" required class="peer hidden">
+                                <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <span class="font-medium">Supervisor</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="regRol" value="agente" required class="peer hidden">
+                                <div class="border-2 border-gray-300 rounded-lg p-4 text-center peer-checked:border-green-600 peer-checked:bg-green-50 hover:border-green-400 transition">
+                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span class="font-medium">Agente</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition shadow-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                        </svg>
+                        Crear Cuenta
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <button onclick="showLoginForm()"
+                            class="text-green-600 hover:text-green-700 font-medium">
+                        ¿Ya tienes cuenta? Inicia sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+};
+    return `
+        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
             <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
                 <div class="text-center mb-8">
                     <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -126,6 +283,13 @@ const renderLoginView = () => {
                         Iniciar Sesión
                     </button>
                 </form>
+
+                <div class="mt-6 text-center">
+                    <button onclick="showRegisterForm()"
+                            class="text-blue-600 hover:text-blue-700 font-medium">
+                        ¿No tienes cuenta? Regístrate aquí
+                    </button>
+                </div>
 
                 <!-- Información de usuarios de prueba -->
                 <div class="mt-8 p-4 bg-gray-50 rounded-lg">
@@ -465,21 +629,26 @@ window.startPassengerInteraction = async function(passengerId) {
     }
 };
 
-// Función para mostrar modal de detalles del pasajero
-function showPassengerModal(passenger, interactions) {
+// Función para editar pasajero
+window.editPassenger = async function(passengerId) {
+    try {
+        const passenger = await ApiService.getPassengerById(passengerId);
+        showEditPassengerModal(passenger);
+    } catch (error) {
+        console.error('Error loading passenger for edit:', error);
+        showNotification('Error al cargar datos del pasajero', 'error');
+    }
+};
+
+// Función para mostrar modal de edición de pasajero
+function showEditPassengerModal(passenger) {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6">
                 <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">${passenger.nombre}</h2>
-                        <p class="text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
-                        <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${Utils.getBadgeClass(passenger.categoria)}">
-                            ${passenger.categoria}
-                        </span>
-                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">Editar Pasajero: ${passenger.nombre}</h2>
                     <button onclick="this.closest('.fixed').remove()"
                             class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,7 +657,311 @@ function showPassengerModal(passenger, interactions) {
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <form id="editPassengerForm" class="space-y-6">
+                    <!-- Información Básica -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Básica</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
+                                <input type="text" id="editNombre" required value="${passenger.nombre || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">DNI/Pasaporte *</label>
+                                <input type="text" id="editDniPasaporte" required value="${passenger.dni_pasaporte || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría HVC *</label>
+                                <select id="editCategoria" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">Seleccione categoría...</option>
+                                    <option value="SIGNATURE" ${passenger.categoria === 'SIGNATURE' ? 'selected' : ''}>SIGNATURE</option>
+                                    <option value="TOP" ${passenger.categoria === 'TOP' ? 'selected' : ''}>TOP</option>
+                                    <option value="BLACK" ${passenger.categoria === 'BLACK' ? 'selected' : ''}>BLACK</option>
+                                    <option value="PLATINUM" ${passenger.categoria === 'PLATINUM' ? 'selected' : ''}>PLATINUM</option>
+                                    <option value="GOLD PLUS" ${passenger.categoria === 'GOLD PLUS' ? 'selected' : ''}>GOLD PLUS</option>
+                                    <option value="GOLD" ${passenger.categoria === 'GOLD' ? 'selected' : ''}>GOLD</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+                                <input type="date" id="editFechaNacimiento" value="${passenger.fecha_nacimiento ? passenger.fecha_nacimiento.split('T')[0] : ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Contacto -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Contacto</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                                <input type="tel" id="editTelefono" value="${passenger.telefono || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" id="editEmail" value="${passenger.email || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Pasaporte -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Pasaporte</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Número de Pasaporte</label>
+                                <input type="text" id="editNumeroPasaporte" value="${passenger.numero_pasaporte || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
+                                <input type="text" id="editNacionalidad" value="${passenger.nacionalidad || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Emisión</label>
+                                <input type="date" id="editFechaEmisionPasaporte" value="${passenger.fecha_emision_pasaporte ? passenger.fecha_emision_pasaporte.split('T')[0] : ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Vencimiento</label>
+                                <input type="date" id="editFechaVencimientoPasaporte" value="${passenger.fecha_vencimiento_pasaporte ? passenger.fecha_vencimiento_pasaporte.split('T')[0] : ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información Médica -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Médica</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
+                                <textarea id="editAlergias" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.alergias || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Restricciones Médicas</label>
+                                <textarea id="editRestriccionesMedicas" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.restricciones_medicas || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contacto de Emergencia -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Contacto de Emergencia</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Contacto</label>
+                                <input type="text" id="editContactoEmergenciaNombre" value="${passenger.contacto_emergencia_nombre || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono de Emergencia</label>
+                                <input type="tel" id="editContactoEmergenciaTelefono" value="${passenger.contacto_emergencia_telefono || ''}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gustos y Preferencias -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Gustos y Preferencias</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Gustos (JSON)</label>
+                                <textarea id="editGustos" rows="3" placeholder='{"bebida": "agua mineral", "comida": "vegetariana"}'
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.gustos ? JSON.stringify(passenger.gustos, null, 2) : ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Preferencias (JSON)</label>
+                                <textarea id="editPreferencias" rows="3" placeholder='{"asiento": "ventana", "servicio": "fast track"}'
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.preferencias ? JSON.stringify(passenger.preferencias, null, 2) : ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Idiomas (separados por coma)</label>
+                            <input type="text" id="editIdiomas" value="${passenger.idiomas ? passenger.idiomas.join(', ') : ''}"
+                                   placeholder="Español, Inglés, Francés"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Foto -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Foto del Pasajero</h3>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URL de la Foto</label>
+                            <input type="url" id="editFotoUrl" value="${passenger.foto_url || ''}"
+                                   placeholder="https://ejemplo.com/foto.jpg"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Notas Especiales -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Notas Especiales</h3>
+                        <div>
+                            <textarea id="editNotasEspeciales" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.notas_especiales || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit"
+                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Guardar Cambios
+                        </button>
+                        <button type="button" onclick="this.closest('.fixed').remove()"
+                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Configurar el handler del formulario
+    document.getElementById('editPassengerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await savePassengerChanges(passenger.id);
+    });
+}
+
+// Función para guardar cambios del pasajero
+async function savePassengerChanges(passengerId) {
+    try {
+        // Recopilar datos del formulario
+        const formData = {
+            nombre: document.getElementById('editNombre').value.trim(),
+            dni_pasaporte: document.getElementById('editDniPasaporte').value.trim(),
+            categoria: document.getElementById('editCategoria').value,
+            fecha_nacimiento: document.getElementById('editFechaNacimiento').value || null,
+            telefono: document.getElementById('editTelefono').value.trim() || null,
+            email: document.getElementById('editEmail').value.trim() || null,
+            numero_pasaporte: document.getElementById('editNumeroPasaporte').value.trim() || null,
+            nacionalidad: document.getElementById('editNacionalidad').value.trim() || null,
+            fecha_emision_pasaporte: document.getElementById('editFechaEmisionPasaporte').value || null,
+            fecha_vencimiento_pasaporte: document.getElementById('editFechaVencimientoPasaporte').value || null,
+            alergias: document.getElementById('editAlergias').value.trim() || null,
+            restricciones_medicas: document.getElementById('editRestriccionesMedicas').value.trim() || null,
+            contacto_emergencia_nombre: document.getElementById('editContactoEmergenciaNombre').value.trim() || null,
+            contacto_emergencia_telefono: document.getElementById('editContactoEmergenciaTelefono').value.trim() || null,
+            foto_url: document.getElementById('editFotoUrl').value.trim() || null,
+            notas_especiales: document.getElementById('editNotasEspeciales').value.trim() || null
+        };
+
+        // Procesar JSON
+        try {
+            const gustosText = document.getElementById('editGustos').value.trim();
+            formData.gustos = gustosText ? JSON.parse(gustosText) : {};
+        } catch (error) {
+            showNotification('Error en formato JSON de gustos', 'error');
+            return;
+        }
+
+        try {
+            const preferenciasText = document.getElementById('editPreferencias').value.trim();
+            formData.preferencias = preferenciasText ? JSON.parse(preferenciasText) : {};
+        } catch (error) {
+            showNotification('Error en formato JSON de preferencias', 'error');
+            return;
+        }
+
+        // Procesar idiomas
+        const idiomasText = document.getElementById('editIdiomas').value.trim();
+        formData.idiomas = idiomasText ? idiomasText.split(',').map(lang => lang.trim()).filter(lang => lang) : [];
+
+        // Importar validaciones
+        const { validatePassengerData } = await import('./utils/validators.js');
+
+        // Validar datos
+        const validation = validatePassengerData(formData);
+        if (!validation.isValid) {
+            showNotification(`Errores de validación: ${validation.errors.join(', ')}`, 'error');
+            return;
+        }
+
+        // Actualizar pasajero
+        await ApiService.updatePassenger(passengerId, formData);
+
+        showNotification('Pasajero actualizado exitosamente', 'success');
+
+        // Cerrar modal y refrescar vista
+        document.querySelector('.fixed').remove();
+
+        // Refrescar la vista actual
+        const state = StateManager.getState();
+        if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
+            render();
+        }
+
+    } catch (error) {
+        console.error('Error saving passenger changes:', error);
+        showNotification('Error al guardar cambios', 'error');
+    }
+}
+
+// Función para mostrar modal de detalles del pasajero
+function showPassengerModal(passenger, interactions) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center space-x-4">
+                        ${passenger.foto_url ? `
+                            <img src="${passenger.foto_url}" alt="Foto de ${passenger.nombre}"
+                                 class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
+                        ` : `
+                            <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
+                            </div>
+                        `}
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">${passenger.nombre}</h2>
+                            <p class="text-gray-600">DNI/Pasaporte: ${passenger.dni_pasaporte}</p>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${Utils.getBadgeClass(passenger.categoria)}">
+                                    ${passenger.categoria}
+                                </span>
+                                ${passenger.fecha_nacimiento && Utils.isBirthday(passenger.fecha_nacimiento) ? `
+                                    <span class="inline-block px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        🎂 ¡Cumpleaños!
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="editPassenger('${passenger.id}')"
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Editar
+                        </button>
+                        <button onclick="this.closest('.fixed').remove()"
+                                class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">Información Personal</h3>
                         <div class="space-y-2">
@@ -499,11 +972,61 @@ function showPassengerModal(passenger, interactions) {
                             ${passenger.fecha_nacimiento ? `<p><strong>Edad:</strong> ${Utils.calculateAge(passenger.fecha_nacimiento)} años</p>` : ''}
                             ${passenger.telefono ? `<p><strong>Teléfono:</strong> ${passenger.telefono}</p>` : ''}
                             ${passenger.email ? `<p><strong>Email:</strong> ${passenger.email}</p>` : ''}
+                            ${passenger.nacionalidad ? `<p><strong>Nacionalidad:</strong> ${passenger.nacionalidad}</p>` : ''}
+                            ${passenger.numero_pasaporte ? `<p><strong>Número Pasaporte:</strong> ${passenger.numero_pasaporte}</p>` : ''}
+                            ${passenger.fecha_emision_pasaporte ? `<p><strong>Emisión Pasaporte:</strong> ${Utils.formatDate(passenger.fecha_emision_pasaporte)}</p>` : ''}
+                            ${passenger.fecha_vencimiento_pasaporte ? `<p><strong>Vencimiento Pasaporte:</strong> ${Utils.formatDate(passenger.fecha_vencimiento_pasaporte)}</p>` : ''}
+                            ${passenger.alergias ? `<p><strong>Alergias:</strong> ${passenger.alergias}</p>` : ''}
+                            ${passenger.restricciones_medicas ? `<p><strong>Restricciones Médicas:</strong> ${passenger.restricciones_medicas}</p>` : ''}
+                            ${passenger.contacto_emergencia_nombre ? `<p><strong>Contacto Emergencia:</strong> ${passenger.contacto_emergencia_nombre}</p>` : ''}
+                            ${passenger.contacto_emergencia_telefono ? `<p><strong>Teléfono Emergencia:</strong> ${passenger.contacto_emergencia_telefono}</p>` : ''}
                         </div>
                     </div>
 
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Estadísticas</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Preferencias y Gustos</h3>
+                        <div class="space-y-3">
+                            ${passenger.gustos && Object.keys(passenger.gustos).length > 0 ? `
+                                <div>
+                                    <p class="font-medium text-gray-700">Gustos:</p>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        ${Object.entries(passenger.gustos).map(([key, value]) => `
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                ${key}: ${value}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-gray-500 text-sm">No hay gustos registrados</p>'}
+
+                            ${passenger.preferencias && Object.keys(passenger.preferencias).length > 0 ? `
+                                <div>
+                                    <p class="font-medium text-gray-700">Preferencias:</p>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        ${Object.entries(passenger.preferencias).map(([key, value]) => `
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                                ${key}: ${value}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-gray-500 text-sm">No hay preferencias registradas</p>'}
+
+                            ${passenger.idiomas && passenger.idiomas.length > 0 ? `
+                                <div>
+                                    <p class="font-medium text-gray-700">Idiomas:</p>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        ${passenger.idiomas.map(lang => `
+                                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                                ${lang}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-gray-500 text-sm">No hay idiomas registrados</p>'}
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 mt-6">Estadísticas</h3>
                         <div class="space-y-2">
                             <p><strong>Total Interacciones:</strong> ${interactions.length}</p>
                             ${interactions.length > 0 ? `
@@ -778,6 +1301,22 @@ const setupInteractionFormHandlers = () => {
 };
 
 /**
+ * Muestra el formulario de registro
+ */
+const showRegisterForm = () => {
+    StateManager.setState({ currentView: 'register' });
+    render();
+};
+
+/**
+ * Muestra el formulario de login
+ */
+const showLoginForm = () => {
+    StateManager.setState({ currentView: CONSTANTS.VIEWS.LOGIN });
+    render();
+};
+
+/**
  * Configura los manejadores de eventos para el login
  * @private
  */
@@ -822,6 +1361,80 @@ const setupLoginHandlers = async () => {
         } catch (error) {
             console.error('Login error:', error);
             showNotification('Error al iniciar sesión', CONSTANTS.NOTIFICATION_TYPES.ERROR);
+        }
+    });
+};
+
+/**
+ * Configura los manejadores de eventos para el registro
+ * @private
+ */
+const setupRegisterHandlers = async () => {
+    // Cargar aeropuertos
+    const airports = await ApiService.getAirports();
+    const aeropuertoSelect = document.getElementById('regAeropuerto');
+    airports.forEach(airport => {
+        const option = document.createElement('option');
+        option.value = airport.id;
+        option.textContent = airport.nombre;
+        aeropuertoSelect.appendChild(option);
+    });
+
+    // Manejar envío del formulario de registro
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const nombreCompleto = document.getElementById('regNombreCompleto').value.trim();
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        const aeropuertoId = document.getElementById('regAeropuerto').value;
+        const rol = document.querySelector('input[name="regRol"]:checked')?.value;
+
+        // Validaciones
+        if (!nombreCompleto || !username || !password || !confirmPassword || !aeropuertoId || !rol) {
+            showNotification('Complete todos los campos', CONSTANTS.NOTIFICATION_TYPES.WARNING);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showNotification('Las contraseñas no coinciden', CONSTANTS.NOTIFICATION_TYPES.ERROR);
+            return;
+        }
+
+        if (password.length < 6) {
+            showNotification('La contraseña debe tener al menos 6 caracteres', CONSTANTS.NOTIFICATION_TYPES.WARNING);
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            showNotification('El usuario solo puede contener letras, números y guiones bajos', CONSTANTS.NOTIFICATION_TYPES.WARNING);
+            return;
+        }
+
+        try {
+            // Crear usuario
+            const userData = {
+                nombreCompleto,
+                username,
+                password,
+                rol,
+                aeropuertoId
+            };
+
+            const newUser = await ApiService.createUser(userData);
+            showNotification('Usuario creado exitosamente. Ahora puedes iniciar sesión.', CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
+
+            // Cambiar a vista de login
+            showLoginForm();
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            if (error.message.includes('duplicate key')) {
+                showNotification('El nombre de usuario ya existe', CONSTANTS.NOTIFICATION_TYPES.ERROR);
+            } else {
+                showNotification('Error al crear usuario', CONSTANTS.NOTIFICATION_TYPES.ERROR);
+            }
         }
     });
 };
@@ -940,7 +1553,7 @@ const renderPassengerTrackingView = async () => {
     const state = StateManager.getState();
 
     try {
-        // Obtener todas las interacciones del aeropuerto
+        // Obtener todas las interacciones del aeropuerto (ya filtradas por aeropuerto)
         const interactions = await ApiService.getAirportInteractions(state.currentAirport);
         const passengers = await ApiService.getAllPassengers(state.currentAirport);
 
@@ -1230,16 +1843,31 @@ const renderDashboardView = async () => {
         passengersAtRisk: 0
     };
 
+    let airportMetrics = null;
+
     // Intentar cargar métricas reales si la BD está disponible
     if (window.DB_AVAILABLE) {
         try {
             const state = StateManager.getState();
-            const interactions = await ApiService.getAirportInteractions(state.currentAirport);
-            const passengers = await ApiService.getAllPassengers(state.currentAirport);
-            const businessMetrics = await import('./services/BusinessLogic.js').then(module =>
-                module.calculateDashboardMetrics(interactions, passengers)
-            );
-            metrics = businessMetrics;
+            // Usar la nueva función getAirportMetrics para obtener métricas filtradas por aeropuerto
+            airportMetrics = await ApiService.getAirportMetrics(state.currentAirport);
+
+            if (airportMetrics) {
+                metrics = {
+                    totalInteractions: airportMetrics.total_interacciones || 0,
+                    totalPassengers: airportMetrics.total_pasajeros || 0,
+                    avgMedallia: airportMetrics.calificacion_promedio || 0,
+                    passengersAtRisk: airportMetrics.pasajeros_en_riesgo || 0
+                };
+            } else {
+                // Fallback a cálculo manual si no hay vista
+                const interactions = await ApiService.getAirportInteractions(state.currentAirport);
+                const passengers = await ApiService.getAllPassengers(state.currentAirport);
+                const businessMetrics = await import('./services/BusinessLogic.js').then(module =>
+                    module.calculateDashboardMetrics(interactions, passengers)
+                );
+                metrics = businessMetrics;
+            }
         } catch (error) {
             console.warn('Could not load real metrics:', error);
         }
@@ -1248,7 +1876,7 @@ const renderDashboardView = async () => {
     const statusColor = window.DB_AVAILABLE ? 'green' : 'yellow';
     const statusText = window.DB_AVAILABLE ? 'Sistema Conectado' : 'Modo Demo Activo';
     const statusMessage = window.DB_AVAILABLE
-        ? 'Conectado a base de datos Supabase. Datos en tiempo real.'
+        ? 'Conectado a base de datos Supabase. Datos filtrados por aeropuerto.'
         : 'Las métricas mostradas son datos de ejemplo. Configure Supabase para datos reales.';
 
     return `
@@ -1258,7 +1886,7 @@ const renderDashboardView = async () => {
                 <p class="text-gray-600">Métricas y estadísticas del aeropuerto</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex items-center">
                         <div class="bg-blue-100 p-3 rounded-lg">
@@ -1300,7 +1928,49 @@ const renderDashboardView = async () => {
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="bg-purple-100 p-3 rounded-lg">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4v10a2 2 0 002 2h4a2 2 0 002-2V11M9 11h6"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Total Interacciones</h3>
+                            <p class="text-2xl font-bold text-purple-600">${metrics.totalInteractions || 0}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            ${airportMetrics ? `
+                <!-- Métricas adicionales del aeropuerto -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Alertas del Día</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Cumpleaños del día:</span>
+                                <span class="font-bold text-green-600">${airportMetrics.cumpleanos_hoy || 0}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Pasaportes por vencer:</span>
+                                <span class="font-bold text-red-600">${airportMetrics.pasaportes_por_vencer || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Estado del Aeropuerto</h3>
+                        <div class="space-y-2">
+                            <p><strong>Aeropuerto:</strong> ${airportMetrics.nombre || 'N/A'}</p>
+                            <p><strong>Código:</strong> ${airportMetrics.codigo || 'N/A'}</p>
+                            <p><strong>Activo:</strong> <span class="text-green-600">Sí</span></p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
 
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Estado del Sistema</h3>

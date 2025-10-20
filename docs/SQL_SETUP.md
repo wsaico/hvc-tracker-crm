@@ -29,7 +29,21 @@ CREATE TABLE passengers (
     telefono TEXT,
     email TEXT,
     notas_especiales TEXT,
+    -- Nuevos campos según requerimientos
+    foto_url TEXT, -- URL de la foto del pasajero
+    gustos JSONB, -- Preferencias y gustos (bebidas, comidas, etc.)
+    preferencias JSONB, -- Preferencias de viaje (asiento, servicios, etc.)
+    idiomas TEXT[], -- Idiomas que habla
+    nacionalidad TEXT,
+    numero_pasaporte TEXT,
+    fecha_emision_pasaporte DATE,
+    fecha_vencimiento_pasaporte DATE,
+    alergias TEXT,
+    restricciones_medicas TEXT,
+    contacto_emergencia_nombre TEXT,
+    contacto_emergencia_telefono TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     UNIQUE(dni_pasaporte, aeropuerto_id)
 );
 
@@ -97,6 +111,12 @@ CREATE TABLE interactions (
 CREATE INDEX idx_passengers_aeropuerto ON passengers(aeropuerto_id);
 CREATE INDEX idx_passengers_dni ON passengers(dni_pasaporte);
 CREATE INDEX idx_passengers_categoria ON passengers(categoria);
+-- Nuevos índices para campos adicionales
+CREATE INDEX idx_passengers_nacionalidad ON passengers(nacionalidad);
+CREATE INDEX idx_passengers_fecha_nacimiento ON passengers(fecha_nacimiento);
+CREATE INDEX idx_passengers_fecha_vencimiento_pasaporte ON passengers(fecha_vencimiento_pasaporte);
+CREATE INDEX idx_passengers_gustos ON passengers USING GIN(gustos);
+CREATE INDEX idx_passengers_preferencias ON passengers USING GIN(preferencias);
 
 CREATE INDEX idx_flights_aeropuerto ON flights(aeropuerto_id);
 CREATE INDEX idx_flights_fecha ON flights(fecha);
@@ -190,11 +210,35 @@ SELECT
     COUNT(DISTINCT p.id) AS total_pasajeros,
     COUNT(DISTINCT i.id) AS total_interacciones,
     ROUND(AVG(i.calificacion_medallia), 2) AS calificacion_promedio,
-    COUNT(DISTINCT CASE WHEN i.calificacion_medallia < 7 THEN p.id END) AS pasajeros_en_riesgo
+    COUNT(DISTINCT CASE WHEN i.calificacion_medallia < 7 THEN p.id END) AS pasajeros_en_riesgo,
+    -- Nuevas métricas
+    COUNT(DISTINCT CASE WHEN is_birthday_today(p.fecha_nacimiento) THEN p.id END) AS cumpleanos_hoy,
+    COUNT(DISTINCT CASE WHEN is_passport_expiring_soon(p.fecha_vencimiento_pasaporte) THEN p.id END) AS pasaportes_por_vencer
 FROM airports a
 LEFT JOIN passengers p ON p.aeropuerto_id = a.id
 LEFT JOIN interactions i ON i.pasajero_id = p.id
 GROUP BY a.id, a.nombre, a.codigo;
+
+-- Vista de pasajeros con información completa
+CREATE OR REPLACE VIEW passengers_complete AS
+SELECT
+    p.*,
+    -- Información adicional calculada
+    get_passenger_age(p.fecha_nacimiento) AS edad,
+    is_birthday_today(p.fecha_nacimiento) AS es_cumpleanos_hoy,
+    is_passport_expiring_soon(p.fecha_vencimiento_pasaporte) AS pasaporte_por_vencer,
+    -- Última interacción
+    li.fecha AS ultima_interaccion_fecha,
+    li.calificacion_medallia AS ultima_calificacion,
+    li.agente_nombre AS ultimo_agente
+FROM passengers p
+LEFT JOIN LATERAL (
+    SELECT fecha, calificacion_medallia, agente_nombre
+    FROM interactions
+    WHERE pasajero_id = p.id
+    ORDER BY fecha DESC
+    LIMIT 1
+) li ON true;
 
 -- ============================================================
 -- FUNCIONES ÚTILES
@@ -216,6 +260,27 @@ BEGIN
        AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM CURRENT_DATE);
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Función para verificar pasaportes próximos a vencer (30 días)
+CREATE OR REPLACE FUNCTION is_passport_expiring_soon(expiry_date DATE)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN expiry_date <= CURRENT_DATE + INTERVAL '30 days';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Función para obtener preferencias de un pasajero por tipo
+CREATE OR REPLACE FUNCTION get_passenger_preferences(passenger_id UUID, pref_type TEXT)
+RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT preferencias->pref_type INTO result
+    FROM passengers
+    WHERE id = passenger_id;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================
 -- TRIGGERS

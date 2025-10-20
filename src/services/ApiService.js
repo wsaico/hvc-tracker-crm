@@ -154,9 +154,17 @@ export const getPassengerById = async (id) => {
  */
 export const createPassenger = async (passengerData) => {
     try {
+        // Asegurar que los campos JSONB sean objetos válidos
+        const processedData = {
+            ...passengerData,
+            gustos: passengerData.gustos || {},
+            preferencias: passengerData.preferencias || {},
+            idiomas: Array.isArray(passengerData.idiomas) ? passengerData.idiomas : []
+        };
+
         const { data, error } = await client
             .from('passengers')
-            .insert([passengerData])
+            .insert([processedData])
             .select()
             .single();
 
@@ -175,9 +183,26 @@ export const createPassenger = async (passengerData) => {
  */
 export const updatePassenger = async (id, updates) => {
     try {
+        // Procesar campos JSONB y arrays
+        const processedUpdates = {
+            ...updates,
+            updated_at: new Date().toISOString()
+        };
+
+        // Asegurar que gustos y preferencias sean objetos válidos
+        if (processedUpdates.gustos !== undefined) {
+            processedUpdates.gustos = processedUpdates.gustos || {};
+        }
+        if (processedUpdates.preferencias !== undefined) {
+            processedUpdates.preferencias = processedUpdates.preferencias || {};
+        }
+        if (processedUpdates.idiomas !== undefined) {
+            processedUpdates.idiomas = Array.isArray(processedUpdates.idiomas) ? processedUpdates.idiomas : [];
+        }
+
         const { data, error } = await client
             .from('passengers')
-            .update(updates)
+            .update(processedUpdates)
             .eq('id', id)
             .select()
             .single();
@@ -230,6 +255,82 @@ export const getAllPassengers = async (aeropuertoId) => {
         return data || [];
     } catch (error) {
         handleError('getAllPassengers', error);
+        return [];
+    }
+};
+
+/**
+ * Obtiene información completa de un pasajero incluyendo cálculos
+ * @param {string} passengerId - ID del pasajero
+ * @returns {Promise<Object|null>} Información completa del pasajero
+ */
+export const getPassengerCompleteInfo = async (passengerId) => {
+    try {
+        const { data, error } = await client
+            .from('passengers_complete')
+            .select('*')
+            .eq('id', passengerId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data;
+    } catch (error) {
+        handleError('getPassengerCompleteInfo', error);
+        return null;
+    }
+};
+
+/**
+ * Busca pasajeros con filtros avanzados
+ * @param {Object} filters - Filtros de búsqueda
+ * @param {string} aeropuertoId - ID del aeropuerto
+ * @returns {Promise<Array>} Lista de pasajeros filtrados
+ */
+export const searchPassengersAdvanced = async (filters, aeropuertoId) => {
+    try {
+        let query = client
+            .from('passengers_complete')
+            .select('*')
+            .eq('aeropuerto_id', aeropuertoId);
+
+        // Filtros básicos
+        if (filters.nombre) {
+            query = query.ilike('nombre', `%${filters.nombre}%`);
+        }
+        if (filters.dni_pasaporte) {
+            query = query.ilike('dni_pasaporte', `%${filters.dni_pasaporte}%`);
+        }
+        if (filters.categoria) {
+            query = query.eq('categoria', filters.categoria);
+        }
+        if (filters.nacionalidad) {
+            query = query.ilike('nacionalidad', `%${filters.nacionalidad}%`);
+        }
+
+        // Filtros especiales
+        if (filters.es_cumpleanos_hoy === true) {
+            query = query.eq('es_cumpleanos_hoy', true);
+        }
+        if (filters.pasaporte_por_vencer === true) {
+            query = query.eq('pasaporte_por_vencer', true);
+        }
+
+        // Filtros por rango de edad
+        if (filters.edad_min || filters.edad_max) {
+            if (filters.edad_min) {
+                query = query.gte('edad', filters.edad_min);
+            }
+            if (filters.edad_max) {
+                query = query.lte('edad', filters.edad_max);
+            }
+        }
+
+        const { data, error } = await query.order('nombre').limit(50);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        handleError('searchPassengersAdvanced', error);
         return [];
     }
 };
@@ -391,7 +492,12 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
     try {
         let query = client
             .from('interactions')
-            .select('*, passengers!inner(aeropuerto_id), flights(*)')
+            .select(`
+                *,
+                passengers!inner(aeropuerto_id, nombre, categoria, foto_url),
+                flights(*),
+                users(agente_nombre: nombre_completo)
+            `)
             .eq('passengers.aeropuerto_id', aeropuertoId);
 
         if (startDate) {
@@ -408,6 +514,27 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
     } catch (error) {
         handleError('getAirportInteractions', error);
         return [];
+    }
+};
+
+/**
+ * Obtiene métricas del aeropuerto desde la vista
+ * @param {string} aeropuertoId - ID del aeropuerto
+ * @returns {Promise<Object>} Métricas del aeropuerto
+ */
+export const getAirportMetrics = async (aeropuertoId) => {
+    try {
+        const { data, error } = await client
+            .from('airport_metrics')
+            .select('*')
+            .eq('id', aeropuertoId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        handleError('getAirportMetrics', error);
+        return null;
     }
 };
 
