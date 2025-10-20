@@ -190,6 +190,48 @@ export const parseManifest = (manifestText) => {
 };
 
 /**
+ * Calcula similitud entre dos nombres usando Levenshtein distance
+ * @param {string} name1 - Primer nombre
+ * @param {string} name2 - Segundo nombre
+ * @returns {number} - Similitud entre 0 y 1 (1 = idénticos)
+ */
+const calculateNameSimilarity = (name1, name2) => {
+    const s1 = name1.toLowerCase().trim();
+    const s2 = name2.toLowerCase().trim();
+
+    // Si uno contiene al otro, alta similitud
+    if (s1.includes(s2) || s2.includes(s1)) {
+        return 0.9;
+    }
+
+    // Calcular Levenshtein distance
+    const matrix = [];
+    for (let i = 0; i <= s1.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= s2.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= s1.length; i++) {
+        for (let j = 1; j <= s2.length; j++) {
+            if (s1.charAt(i - 1) === s2.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1      // deletion
+                );
+            }
+        }
+    }
+
+    const maxLen = Math.max(s1.length, s2.length);
+    return 1 - (matrix[s1.length][s2.length] / maxLen);
+};
+
+/**
  * Procesa y guarda el manifiesto
  * @param {Array} manifestData - Datos del manifiesto
  * @param {string} flightDate - Fecha del vuelo
@@ -200,6 +242,7 @@ export const processManifest = async (manifestData, flightDate, aeropuertoId) =>
     let processed = 0;
     let created = 0;
     let found = 0;
+    const duplicates = [];
     const flightGroups = {};
 
     // Agrupar por vuelo
@@ -241,20 +284,71 @@ export const processManifest = async (manifestData, flightDate, aeropuertoId) =>
         for (const p of group.passengers) {
             let passenger = null;
 
-            // Intentar encontrar pasajero existente por nombre (búsqueda flexible)
+            // Intentar encontrar pasajero existente con fuzzy matching
             try {
-                const searchResults = await ApiService.searchPassengers(p.nombre, aeropuertoId);
-                // Buscar coincidencia exacta o muy similar
-                passenger = searchResults.find(existing =>
-                    existing.nombre.toLowerCase().trim() === p.nombre.toLowerCase().trim()
-                );
+                // Buscar por primeras palabras del nombre
+                const firstWords = p.nombre.split(' ').slice(0, 2).join(' ');
+                const searchResults = await ApiService.searchPassengers(firstWords, aeropuertoId);
+
+                if (searchResults && searchResults.length > 0) {
+                    // Buscar mejor coincidencia usando similitud de nombres
+                    let bestMatch = null;
+                    let bestSimilarity = 0;
+
+                    for (const existing of searchResults) {
+                        const similarity = calculateNameSimilarity(p.nombre, existing.nombre);
+
+                        // Coincidencia exacta
+                        if (similarity === 1) {
+                            passenger = existing;
+                            break;
+                        }
+
+                        // Coincidencia similar (>=85%)
+                        if (similarity >= 0.85 && similarity > bestSimilarity) {
+                            bestMatch = existing;
+                            bestSimilarity = similarity;
+                        }
+                    }
+
+                    // Si no hay coincidencia exacta pero sí similar, usar la mejor
+                    if (!passenger && bestMatch && bestSimilarity >= 0.85) {
+                        passenger = bestMatch;
+
+                        // Registrar duplicado detectado
+                        duplicates.push({
+                            manifestName: p.nombre,
+                            existingName: passenger.nombre,
+                            existingDNI: passenger.dni_pasaporte,
+                            similarity: (bestSimilarity * 100).toFixed(0) + '%'
+                        });
+
+                        // Actualizar categoría si es superior en el manifiesto
+                        const categoryRanks = {
+                            'SIGNATURE': 7,
+                            'TOP': 6,
+                            'BLACK': 5,
+                            'PLATINUM': 4,
+                            'GOLD PLUS': 3,
+                            'GOLD': 2
+                        };
+
+                        const manifestRank = categoryRanks[p.categoria] || 0;
+                        const existingRank = categoryRanks[passenger.categoria] || 0;
+
+                        if (manifestRank > existingRank) {
+                            await ApiService.updatePassenger(passenger.id, { categoria: p.categoria });
+                            console.log(`Updated category for ${passenger.nombre}: ${passenger.categoria} → ${p.categoria}`);
+                        }
+                    }
+                }
             } catch (error) {
                 console.warn('Error searching for existing passenger:', error);
             }
 
             if (!passenger) {
                 // Crear nuevo pasajero con DNI generado (temporal)
-                const dniPasaporte = `${p.nombre.replace(/\s+/g, '').toUpperCase()}${Date.now().toString().slice(-4)}`;
+                const dniPasaporte = `TEMP${p.nombre.replace(/\s+/g, '').toUpperCase().substring(0, 10)}${Date.now().toString().slice(-4)}`;
                 passenger = await ApiService.createPassenger({
                     nombre: p.nombre,
                     dni_pasaporte: dniPasaporte,
@@ -281,7 +375,8 @@ export const processManifest = async (manifestData, flightDate, aeropuertoId) =>
         processed,
         created,
         found,
-        message: `Procesados: ${processed} | Creados: ${created} | Encontrados: ${found}`
+        duplicates,
+        message: `Procesados: ${processed} | Nuevos: ${created} | Existentes: ${found}${duplicates.length > 0 ? ` | Duplicados detectados: ${duplicates.length}` : ''}`
     };
 };
 

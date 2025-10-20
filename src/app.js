@@ -260,6 +260,7 @@ const renderNavbar = () => {
     const airport = state.airports.find(a => a.id === state.currentAirport);
     const airportName = airport ? airport.nombre : '';
 
+    // Supervisores tienen acceso a todos los módulos
     const supervisorLinks = state.currentRole === CONSTANTS.ROLES.SUPERVISOR ? `
         <button onclick="App.changeView('${CONSTANTS.VIEWS.DASHBOARD}')"
                 class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.DASHBOARD ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
@@ -268,6 +269,14 @@ const renderNavbar = () => {
         <button onclick="App.changeView('${CONSTANTS.VIEWS.MANIFEST}')"
                 class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.MANIFEST ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
             Cargar Manifiesto
+        </button>
+        <button onclick="App.changeView('${CONSTANTS.VIEWS.PASSENGER_SEARCH}')"
+                class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
+            Atención al Pasajero
+        </button>
+        <button onclick="App.changeView('passenger-tracking')"
+                class="text-gray-700 hover:text-blue-600 font-medium ${state.currentView === 'passenger-tracking' ? 'text-blue-600 border-b-2 border-blue-600' : ''}">
+            Tracking de Pasajeros
         </button>
     ` : `
         <button onclick="App.changeView('${CONSTANTS.VIEWS.PASSENGER_SEARCH}')"
@@ -363,17 +372,73 @@ window.processManifest = async function() {
         const processResult = await processManifest(parseResult.data, date, airportId);
 
         document.getElementById('manifestOutput').innerHTML = `
-            <div class="text-green-600">
-                <h4 class="font-semibold mb-2">✅ Manifiesto procesado exitosamente</h4>
-                <p>${processResult.message}</p>
-                <div class="mt-3 text-sm text-gray-600">
-                    <p><strong>📊 Resumen:</strong></p>
-                    <ul class="list-disc list-inside mt-1">
-                        <li>Pasajeros procesados: ${processResult.processed}</li>
-                        <li>Pasajeros nuevos creados: ${processResult.created}</li>
-                        <li>Pasajeros existentes encontrados: ${processResult.found}</li>
-                    </ul>
+            <div class="space-y-4">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-5 rounded-lg">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h4 class="text-xl font-bold text-green-800">Manifiesto Procesado Exitosamente</h4>
+                    </div>
+                    <p class="text-green-700">${processResult.message}</p>
                 </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-blue-600 font-medium">Total Procesados</p>
+                                <p class="text-3xl font-bold text-blue-800">${processResult.processed}</p>
+                            </div>
+                            <svg class="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-green-600 font-medium">Nuevos Creados</p>
+                                <p class="text-3xl font-bold text-green-800">${processResult.created}</p>
+                            </div>
+                            <svg class="w-12 h-12 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-purple-600 font-medium">Ya Existentes</p>
+                                <p class="text-3xl font-bold text-purple-800">${processResult.found}</p>
+                            </div>
+                            <svg class="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                ${processResult.duplicates && processResult.duplicates.length > 0 ? `
+                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <svg class="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-yellow-800 mb-2">Duplicados Detectados</h4>
+                                <p class="text-sm text-yellow-700 mb-2">Se detectaron ${processResult.duplicates.length} pasajero(s) que ya existían en la base de datos:</p>
+                                <ul class="text-sm text-yellow-700 space-y-1">
+                                    ${processResult.duplicates.map(d => `
+                                        <li>• <strong>${d.manifestName}</strong> → Vinculado con: <em>${d.existingName}</em> (${d.existingDNI})</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
         document.getElementById('manifestResults').classList.remove('hidden');
@@ -1441,47 +1506,114 @@ const renderManifestView = async () => {
     const airport = state.airports.find(a => a.id === currentAirport);
     const airportName = airport ? airport.nombre : '';
 
-    return `
-        <div class="max-w-4xl mx-auto p-6">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Cargar Manifiesto de Vuelo</h2>
+    // Establecer fecha de hoy por defecto
+    const today = new Date().toISOString().split('T')[0];
 
-                <div class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha del Vuelo</label>
-                            <input type="date" id="manifestDate"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Aeropuerto</label>
-                            <div class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                                ${airportName} (Seleccionado automáticamente)
+    return `
+        <div class="max-w-6xl mx-auto p-6">
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-xl p-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+                            <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Cargar Manifiesto de Vuelo
+                        </h2>
+                        <p class="text-gray-600 mt-2">Gestión inteligente de pasajeros con detección automática de duplicados</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-md">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <div>
+                                <p class="text-xs text-gray-500">Aeropuerto</p>
+                                <p class="font-semibold text-gray-800">${airportName}</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Manifiesto (Formato: VUELO,DESTINO,NOMBRE,CATEGORIA,ESTATUS,ASIENTO)</label>
-                        <textarea id="manifestText" rows="10" placeholder="VUELO001,LIM,Juan Perez,BLACK,CONFIRMADO,1A
-VUELO001,LIM,Maria Garcia,PLATINUM,CHECK-IN,1B
-..."
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"></textarea>
+                <!-- Guía rápida -->
+                <div class="bg-blue-100 border-l-4 border-blue-600 p-4 mb-6 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-blue-900 mb-2">Guía de Formato del Manifiesto</h4>
+                            <p class="text-sm text-blue-800 mb-2">
+                                Formato: <code class="bg-white px-2 py-1 rounded font-mono text-xs">VUELO,DESTINO,NOMBRE,CATEGORIA,ESTATUS,ASIENTO</code>
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-blue-800">
+                                <div>
+                                    <strong>Categorías válidas:</strong> SIGNATURE, TOP, BLACK, PLATINUM, GOLD PLUS, GOLD
+                                </div>
+                                <div>
+                                    <strong>Estatus válidos:</strong> CONFIRMADO, CHECK-IN, BOARDING, EMBARKED
+                                </div>
+                            </div>
+                            <p class="text-xs text-blue-700 mt-2">
+                                💡 El sistema detectará automáticamente pasajeros existentes para evitar duplicados
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Fecha del vuelo -->
+                    <div class="bg-white rounded-xl p-6 shadow-md">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Fecha del Vuelo
+                        </label>
+                        <input type="date" id="manifestDate" value="${today}"
+                               class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                     </div>
 
-                    <div class="flex space-x-4">
+                    <!-- Área de texto del manifiesto -->
+                    <div class="bg-white rounded-xl p-6 shadow-md">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Datos del Manifiesto
+                            </label>
+                            <button onclick="loadSampleManifest()" class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Cargar ejemplo
+                            </button>
+                        </div>
+                        <textarea id="manifestText" rows="12" placeholder="VUELO001,LIM,Juan Perez Rodriguez,BLACK,CONFIRMADO,1A
+VUELO001,LIM,Maria Garcia Lopez,PLATINUM,CHECK-IN,1B
+VUELO002,CUZ,Pedro Ramos Quispe,GOLD,CONFIRMADO,2A
+..."
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm transition resize-none"
+                                oninput="updateManifestPreview()"></textarea>
+                        <div class="mt-2 flex justify-between items-center text-xs text-gray-500">
+                            <span id="lineCount">0 líneas</span>
+                            <span>Una línea por pasajero</span>
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="flex flex-wrap gap-4">
                         <button onclick="processManifest()"
-                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition font-semibold flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Procesar Manifiesto
                         </button>
                         <button onclick="clearManifest()"
-                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium flex items-center">
+                                class="bg-gray-100 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-200 transition font-semibold flex items-center shadow-md">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
@@ -1490,12 +1622,38 @@ VUELO001,LIM,Maria Garcia,PLATINUM,CHECK-IN,1B
                     </div>
                 </div>
 
-                <div id="manifestResults" class="mt-6 hidden">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Resultados del Procesamiento</h3>
-                    <div id="manifestOutput" class="bg-gray-50 p-4 rounded-lg"></div>
+                <!-- Resultados del procesamiento -->
+                <div id="manifestResults" class="mt-8 hidden">
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Resultados del Procesamiento
+                        </h3>
+                        <div id="manifestOutput"></div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <script>
+            function updateManifestPreview() {
+                const text = document.getElementById('manifestText').value;
+                const lines = text.split('\\n').filter(l => l.trim()).length;
+                document.getElementById('lineCount').textContent = lines + ' línea' + (lines !== 1 ? 's' : '');
+            }
+
+            function loadSampleManifest() {
+                const sample = \`LA2001,LIM,Carlos Martinez,BLACK,CONFIRMADO,1A
+LA2001,LIM,Ana Torres,PLATINUM,CHECK-IN,1B
+LA2001,LIM,Roberto Silva,GOLD PLUS,CONFIRMADO,2A
+LA2002,CUZ,Patricia Gomez,SIGNATURE,CONFIRMADO,1C
+LA2002,CUZ,Miguel Ramos,TOP,BOARDING,2B\`;
+                document.getElementById('manifestText').value = sample;
+                updateManifestPreview();
+            }
+        </script>
     `;
 };
 
