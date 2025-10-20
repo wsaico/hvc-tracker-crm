@@ -588,15 +588,14 @@ export const getAirportMetrics = async (aeropuertoId) => {
                 i.fecha.startsWith(dateStr)
             );
 
-            const avg = dayInteractions.length > 0
-                ? (dayInteractions.reduce((sum, i) => sum + i.calificacion_medallia, 0) / dayInteractions.length).toFixed(1)
-                : null;
-
-            trendData.push({
-                date: dateStr,
-                avg: avg,
-                count: dayInteractions.length
-            });
+            if (dayInteractions.length > 0) {
+                const avg = (dayInteractions.reduce((sum, i) => sum + i.calificacion_medallia, 0) / dayInteractions.length).toFixed(1);
+                trendData.push({
+                    date: dateStr,
+                    avg: parseFloat(avg),
+                    count: dayInteractions.length
+                });
+            }
         }
 
         // Métricas de servicios utilizados

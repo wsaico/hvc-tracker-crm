@@ -4257,13 +4257,18 @@ const renderDashboardView = async () => {
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
 
+    // Identificar detractores y detractores recuperados
+    const allDetractors = monthInteractions.filter(i => i.calificacion_medallia && i.calificacion_medallia <= 6);
+    const recoveredDetractors = allDetractors.filter(i => i.acciones_recuperacion && i.acciones_recuperacion.trim() !== '');
+    const activeDetractors = allDetractors.filter(i => !i.acciones_recuperacion || i.acciones_recuperacion.trim() === '');
+
     const monthStats = {
         totalInteractions: monthInteractions.length,
         avgRating: monthInteractions.length > 0 ?
             (monthInteractions.reduce((sum, i) => sum + (i.calificacion_medallia || 0), 0) / monthInteractions.filter(i => i.calificacion_medallia).length).toFixed(1) : 0,
-        detractors: monthInteractions.filter(i => i.calificacion_medallia && i.calificacion_medallia <= 6).length,
+        detractors: activeDetractors.length, // Solo detractores SIN recuperación
         promoters: monthInteractions.filter(i => i.calificacion_medallia && i.calificacion_medallia >= 9).length,
-        withRecovery: monthInteractions.filter(i => i.acciones_recuperacion).length
+        withRecovery: recoveredDetractors.length // Solo detractores que SÍ tienen recuperación
     };
 
     return `
