@@ -26,10 +26,13 @@ const hashPassword = async (password) => {
 
 // Función para verificar contraseñas
 const verifyPassword = async (password, hash) => {
+    console.log('Verifying password:', password, 'against hash:', hash);
     // Para demo, verificar contra hash fijo
     if (password === 'admin123' && hash === 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890') {
+        console.log('Password verification successful');
         return true;
     }
+    console.log('Password verification failed');
     // Para otras contraseñas, verificar normalmente
     const hashedPassword = await hashPassword(password);
     return hashedPassword === hash;
@@ -420,6 +423,8 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
  */
 export const authenticateUser = async (username, password) => {
     try {
+        console.log('Authenticating user:', username);
+
         const { data, error } = await client
             .from('users')
             .select(`
@@ -430,6 +435,7 @@ export const authenticateUser = async (username, password) => {
                 aeropuerto_id,
                 activo,
                 ultimo_login,
+                password_hash,
                 airports (
                     id,
                     nombre,
@@ -440,20 +446,33 @@ export const authenticateUser = async (username, password) => {
             .eq('activo', true)
             .single();
 
+        console.log('User data from DB:', data);
+        console.log('Query error:', error);
+
         if (error && error.code !== 'PGRST116') throw error;
-        if (!data) return null;
+        if (!data) {
+            console.log('User not found');
+            return null;
+        }
 
         // Verificar contraseña
+        console.log('Stored hash:', data.password_hash);
         const isValidPassword = await verifyPassword(password, data.password_hash);
-        if (!isValidPassword) return null;
+        console.log('Password valid:', isValidPassword);
+
+        if (!isValidPassword) {
+            console.log('Invalid password');
+            return null;
+        }
 
         // Actualizar último login
+        console.log('Updating last login for user:', data.id);
         await client
             .from('users')
             .update({ ultimo_login: new Date().toISOString() })
             .eq('id', data.id);
 
-        return {
+        const result = {
             id: data.id,
             username: data.username,
             nombreCompleto: data.nombre_completo,
@@ -461,6 +480,9 @@ export const authenticateUser = async (username, password) => {
             aeropuerto: data.airports,
             ultimoLogin: data.ultimo_login
         };
+
+        console.log('Authentication successful:', result);
+        return result;
     } catch (error) {
         console.error('Authentication error:', error);
         return null;
