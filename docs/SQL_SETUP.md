@@ -210,10 +210,7 @@ SELECT
     COUNT(DISTINCT p.id) AS total_pasajeros,
     COUNT(DISTINCT i.id) AS total_interacciones,
     ROUND(AVG(i.calificacion_medallia), 2) AS calificacion_promedio,
-    COUNT(DISTINCT CASE WHEN i.calificacion_medallia < 7 THEN p.id END) AS pasajeros_en_riesgo,
-    -- Nuevas métricas
-    COUNT(DISTINCT CASE WHEN is_birthday_today(p.fecha_nacimiento) THEN p.id END) AS cumpleanos_hoy,
-    COUNT(DISTINCT CASE WHEN is_passport_expiring_soon(p.fecha_vencimiento_pasaporte) THEN p.id END) AS pasaportes_por_vencer
+    COUNT(DISTINCT CASE WHEN i.calificacion_medallia < 7 THEN p.id END) AS pasajeros_en_riesgo
 FROM airports a
 LEFT JOIN passengers p ON p.aeropuerto_id = a.id
 LEFT JOIN interactions i ON i.pasajero_id = p.id
@@ -223,10 +220,6 @@ GROUP BY a.id, a.nombre, a.codigo;
 CREATE OR REPLACE VIEW passengers_complete AS
 SELECT
     p.*,
-    -- Información adicional calculada
-    get_passenger_age(p.fecha_nacimiento) AS edad,
-    is_birthday_today(p.fecha_nacimiento) AS es_cumpleanos_hoy,
-    is_passport_expiring_soon(p.fecha_vencimiento_pasaporte) AS pasaporte_por_vencer,
     -- Última interacción
     li.fecha AS ultima_interaccion_fecha,
     li.calificacion_medallia AS ultima_calificacion,
