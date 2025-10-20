@@ -18,15 +18,37 @@ export const generateRecommendations = (passenger, interactions) => {
     const recommendations = [];
     const lastInteraction = interactions[0];
 
-    // Pasajero en riesgo
+    // Pasajero en riesgo - Mostrar sugerencias personalizadas
     if (lastInteraction?.calificacion_medallia &&
         lastInteraction.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
-        recommendations.push({
-            type: 'danger',
-            icon: '⚠️',
-            title: 'Pasajero en Riesgo',
-            message: `Última calificación: ${lastInteraction.calificacion_medallia}/10. Se recomienda: Ofrecer upgrade de cortesía, acceso a sala VIP, o atención personalizada del supervisor.`
-        });
+
+        // Importar y usar sugerencias personalizadas
+        const recoverySuggestions = generateRecoverySuggestions(passenger, lastInteraction);
+
+        if (recoverySuggestions.length > 0) {
+            // Mostrar las 3 sugerencias más efectivas
+            const topSuggestions = recoverySuggestions
+                .filter(s => s.effectiveness === 'very-high' || s.effectiveness === 'high')
+                .slice(0, 3);
+
+            const suggestionText = topSuggestions
+                .map(s => `${s.icon} <strong>${s.title}</strong>: ${s.action}`)
+                .join('<br>');
+
+            recommendations.push({
+                type: 'danger',
+                icon: '⚠️',
+                title: `Pasajero en Riesgo - Calificación: ${lastInteraction.calificacion_medallia}/10`,
+                message: `<div class="space-y-2"><p class="font-semibold mb-2">Acciones de Recuperación Recomendadas:</p>${suggestionText}</div>`
+            });
+        } else {
+            recommendations.push({
+                type: 'danger',
+                icon: '⚠️',
+                title: 'Pasajero en Riesgo',
+                message: `Última calificación: ${lastInteraction.calificacion_medallia}/10. Se recomienda: Ofrecer upgrade de cortesía, acceso a sala VIP, o atención personalizada del supervisor.`
+            });
+        }
     }
 
     // Cumpleaños
@@ -394,10 +416,57 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
         ? (withMedallia.reduce((sum, i) => sum + i.calificacion_medallia, 0) / withMedallia.length).toFixed(1)
         : 0;
 
-    const passengersAtRisk = withMedallia.filter(i => i.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD).length;
+    // Métricas de recuperación mejoradas
+    const detractors = withMedallia.filter(i => i.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR);
+    const passives = withMedallia.filter(i =>
+        i.calificacion_medallia > CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR &&
+        i.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD
+    );
+    const promoters = withMedallia.filter(i => i.calificacion_medallia >= CONSTANTS.MEDALLIA_THRESHOLDS.GOOD);
+
+    const passengersAtRisk = detractors.length + passives.length;
     const recoveryActions = interactions.filter(i => i.acciones_recuperacion?.trim()).length;
+
+    // Tasa de recuperación mejorada
     const recoveryRate = passengersAtRisk > 0
         ? ((recoveryActions / passengersAtRisk) * 100).toFixed(1)
+        : 0;
+
+    // Calcular pasajeros recuperados (los que tenían baja calificación y luego mejoraron)
+    const passengerHistory = {};
+    interactions.forEach(i => {
+        if (i.calificacion_medallia) {
+            if (!passengerHistory[i.pasajero_id]) {
+                passengerHistory[i.pasajero_id] = [];
+            }
+            passengerHistory[i.pasajero_id].push({
+                date: i.fecha,
+                score: i.calificacion_medallia,
+                hasRecovery: i.acciones_recuperacion?.trim() ? true : false
+            });
+        }
+    });
+
+    let successfulRecoveries = 0;
+    Object.values(passengerHistory).forEach(history => {
+        if (history.length >= 2) {
+            history.sort((a, b) => new Date(a.date) - new Date(b.date));
+            for (let i = 0; i < history.length - 1; i++) {
+                const prev = history[i];
+                const next = history[i + 1];
+                // Si tenía calificación baja, se aplicó acción de recuperación, y luego mejoró
+                if (prev.score < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD &&
+                    prev.hasRecovery &&
+                    next.score >= CONSTANTS.MEDALLIA_THRESHOLDS.GOOD) {
+                    successfulRecoveries++;
+                    break;
+                }
+            }
+        }
+    });
+
+    const successfulRecoveryRate = recoveryActions > 0
+        ? ((successfulRecoveries / recoveryActions) * 100).toFixed(1)
         : 0;
 
     // Distribución por categoría
@@ -486,6 +555,384 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
         passengersWithLanguages,
         passengersWithMedicalInfo,
         birthdayPassengers,
-        expiringPassports
+        expiringPassports,
+        // Métricas de recuperación
+        detractors: detractors.length,
+        passives: passives.length,
+        promoters: promoters.length,
+        recoveryActions,
+        successfulRecoveries,
+        successfulRecoveryRate
     };
+};
+
+/**
+ * Genera sugerencias de recuperación personalizadas según gustos y preferencias del pasajero
+ * @param {Object} passenger - Pasajero
+ * @param {Object} interaction - Última interacción
+ * @returns {Array} Lista de sugerencias de recuperación
+ */
+export const generateRecoverySuggestions = (passenger, interaction) => {
+    const suggestions = [];
+
+    if (!interaction || !interaction.calificacion_medallia) {
+        return suggestions;
+    }
+
+    const score = interaction.calificacion_medallia;
+    const isDetractor = score <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR;
+    const isPassive = score > CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR && score < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD;
+
+    if (!isDetractor && !isPassive) {
+        return suggestions; // No necesita recuperación
+    }
+
+    // Categoría del pasajero determina nivel de compensación
+    const category = passenger.categoria;
+    const isTopTier = ['SIGNATURE', 'TOP', 'BLACK'].includes(category);
+    const isMidTier = ['PLATINUM', 'GOLD PLUS'].includes(category);
+
+    // Sugerencias basadas en gustos
+    if (passenger.gustos && Object.keys(passenger.gustos).length > 0) {
+        const gustos = passenger.gustos;
+
+        if (gustos.bebida) {
+            suggestions.push({
+                type: 'personalized',
+                icon: '🍷',
+                title: 'Cortesía de Bebida Favorita',
+                action: `Ofrecer ${gustos.bebida} de cortesía como disculpa`,
+                category: 'immediate',
+                effectiveness: 'high'
+            });
+        }
+
+        if (gustos.comida) {
+            suggestions.push({
+                type: 'personalized',
+                icon: '🍽️',
+                title: 'Experiencia Gastronómica',
+                action: `Voucher para ${gustos.comida} en ${isTopTier ? 'restaurante premium' : 'cafetería VIP'}`,
+                category: 'medium-term',
+                effectiveness: 'high'
+            });
+        }
+
+        if (gustos.entretenimiento) {
+            suggestions.push({
+                type: 'personalized',
+                icon: '🎬',
+                title: 'Entretenimiento Premium',
+                action: `Acceso a ${gustos.entretenimiento} durante la espera`,
+                category: 'immediate',
+                effectiveness: 'medium'
+            });
+        }
+    }
+
+    // Sugerencias basadas en preferencias
+    if (passenger.preferencias && Object.keys(passenger.preferencias).length > 0) {
+        const prefs = passenger.preferencias;
+
+        if (prefs.asiento) {
+            suggestions.push({
+                type: 'personalized',
+                icon: '💺',
+                title: 'Upgrade de Asiento',
+                action: `Garantizar asiento ${prefs.asiento} o upgrade a clase superior sin costo`,
+                category: 'immediate',
+                effectiveness: 'very-high'
+            });
+        }
+
+        if (prefs.servicio) {
+            suggestions.push({
+                type: 'personalized',
+                icon: '⚡',
+                title: 'Servicio Prioritario',
+                action: `Activar ${prefs.servicio} inmediatamente`,
+                category: 'immediate',
+                effectiveness: 'high'
+            });
+        }
+    }
+
+    // Sugerencias basadas en categoría
+    if (isTopTier) {
+        suggestions.push({
+            type: 'category-based',
+            icon: '👔',
+            title: 'Atención Ejecutiva Personal',
+            action: 'Asignar asistente personal durante todo el viaje',
+            category: 'immediate',
+            effectiveness: 'very-high'
+        });
+
+        suggestions.push({
+            type: 'category-based',
+            icon: '🏨',
+            title: 'Cortesía Premium',
+            action: 'Voucher de hotel 5 estrellas o upgrade de sala VIP',
+            category: 'immediate',
+            effectiveness: 'very-high'
+        });
+    } else if (isMidTier) {
+        suggestions.push({
+            type: 'category-based',
+            icon: '🎁',
+            title: 'Beneficio de Compensación',
+            action: 'Millas adicionales (50% del vuelo) o acceso sala VIP',
+            category: 'immediate',
+            effectiveness: 'high'
+        });
+    } else {
+        suggestions.push({
+            type: 'category-based',
+            icon: '🎫',
+            title: 'Compensación Estándar',
+            action: 'Voucher de descuento 20% o millas de bonificación',
+            category: 'immediate',
+            effectiveness: 'medium'
+        });
+    }
+
+    // Sugerencias basadas en el incidente reportado
+    if (interaction.incidentes) {
+        const incidente = interaction.incidentes.toLowerCase();
+
+        if (incidente.includes('retraso') || incidente.includes('demora')) {
+            suggestions.push({
+                type: 'incident-based',
+                icon: '⏰',
+                title: 'Compensación por Tiempo',
+                action: 'Voucher de alimentación + acceso a sala de espera confortable',
+                category: 'immediate',
+                effectiveness: 'high'
+            });
+        }
+
+        if (incidente.includes('equipaje') || incidente.includes('maleta')) {
+            suggestions.push({
+                type: 'incident-based',
+                icon: '🧳',
+                title: 'Asistencia con Equipaje',
+                action: 'Kit de emergencia + seguimiento prioritario + compensación económica',
+                category: 'immediate',
+                effectiveness: 'very-high'
+            });
+        }
+
+        if (incidente.includes('servicio') || incidente.includes('atención')) {
+            suggestions.push({
+                type: 'incident-based',
+                icon: '🤝',
+                title: 'Disculpa Personal',
+                action: 'Carta de disculpa del supervisor + llamada de seguimiento',
+                category: 'immediate',
+                effectiveness: 'high'
+            });
+        }
+
+        if (incidente.includes('comida') || incidente.includes('bebida')) {
+            suggestions.push({
+                type: 'incident-based',
+                icon: '🍴',
+                title: 'Compensación Gastronómica',
+                action: 'Comida completa de cortesía en próximo vuelo',
+                category: 'medium-term',
+                effectiveness: 'medium'
+            });
+        }
+    }
+
+    // Sugerencia de contacto personalizado
+    if (passenger.idiomas && passenger.idiomas.length > 0) {
+        suggestions.push({
+            type: 'communication',
+            icon: '🗣️',
+            title: 'Comunicación en su Idioma',
+            action: `Contacto de seguimiento en ${passenger.idiomas.join(' o ')}`,
+            category: 'immediate',
+            effectiveness: 'medium'
+        });
+    }
+
+    // Sugerencia de seguimiento
+    suggestions.push({
+        type: 'follow-up',
+        icon: '📞',
+        title: 'Seguimiento Post-Vuelo',
+        action: 'Llamada de cortesía 48h después del vuelo para verificar satisfacción',
+        category: 'follow-up',
+        effectiveness: 'high'
+    });
+
+    return suggestions;
+};
+
+/**
+ * Genera insights inteligentes del dashboard
+ * @param {Object} metrics - Métricas calculadas
+ * @param {Array} interactions - Interacciones
+ * @param {Array} passengers - Pasajeros
+ * @returns {Array} Lista de insights
+ */
+export const generateDashboardInsights = (metrics, interactions, passengers) => {
+    const insights = [];
+
+    // Insight: Tasa de recuperación
+    if (metrics.recoveryActions > 0) {
+        const effectiveness = metrics.successfulRecoveryRate;
+        if (effectiveness >= 70) {
+            insights.push({
+                type: 'success',
+                icon: '🎯',
+                title: 'Excelente Tasa de Recuperación',
+                message: `${effectiveness}% de las acciones de recuperación fueron exitosas. ¡El equipo está haciendo un gran trabajo!`,
+                priority: 'high'
+            });
+        } else if (effectiveness >= 40) {
+            insights.push({
+                type: 'warning',
+                icon: '📊',
+                title: 'Oportunidad de Mejora en Recuperación',
+                message: `Tasa de éxito: ${effectiveness}%. Considera personalizar más las acciones según preferencias del pasajero.`,
+                priority: 'medium'
+            });
+        } else {
+            insights.push({
+                type: 'alert',
+                icon: '⚠️',
+                title: 'Revisar Estrategia de Recuperación',
+                message: `Solo ${effectiveness}% de éxito. Es necesario revisar y mejorar las acciones de recuperación.`,
+                priority: 'high'
+            });
+        }
+    }
+
+    // Insight: Detractores sin acción
+    const detractorsWithoutAction = interactions.filter(i =>
+        i.calificacion_medallia <= CONSTANTS.MEDALLIA_THRESHOLDS.DETRACTOR &&
+        (!i.acciones_recuperacion || !i.acciones_recuperacion.trim())
+    ).length;
+
+    if (detractorsWithoutAction > 0) {
+        insights.push({
+            type: 'alert',
+            icon: '🚨',
+            title: 'Detractores sin Atender',
+            message: `${detractorsWithoutAction} pasajero(s) con baja calificación no tienen acciones de recuperación registradas.`,
+            priority: 'critical',
+            action: 'Revisar y aplicar acciones inmediatamente'
+        });
+    }
+
+    // Insight: Cumpleaños del día
+    if (metrics.birthdayPassengers > 0) {
+        insights.push({
+            type: 'opportunity',
+            icon: '🎂',
+            title: '¡Cumpleaños Hoy!',
+            message: `${metrics.birthdayPassengers} pasajero(s) HVC celebran su cumpleaños. Gran oportunidad para crear momentos memorables.`,
+            priority: 'high',
+            action: 'Preparar detalles especiales'
+        });
+    }
+
+    // Insight: Pasaportes por vencer
+    if (metrics.expiringPassports > 0) {
+        insights.push({
+            type: 'info',
+            icon: '🛂',
+            title: 'Pasaportes por Vencer',
+            message: `${metrics.expiringPassports} pasajero(s) tienen pasaporte por vencer en 90 días.`,
+            priority: 'medium',
+            action: 'Notificar proactivamente'
+        });
+    }
+
+    // Insight: Tendencia de satisfacción
+    if (metrics.trendData && metrics.trendData.length >= 7) {
+        const recent = metrics.trendData.slice(-7);
+        const older = metrics.trendData.slice(-14, -7);
+
+        if (older.length > 0 && recent.length > 0) {
+            const recentAvg = recent.reduce((sum, d) => sum + parseFloat(d.avg), 0) / recent.length;
+            const olderAvg = older.reduce((sum, d) => sum + parseFloat(d.avg), 0) / older.length;
+            const trend = ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1);
+
+            if (trend > 5) {
+                insights.push({
+                    type: 'success',
+                    icon: '📈',
+                    title: 'Tendencia Positiva',
+                    message: `La satisfacción ha mejorado ${trend}% en la última semana. ¡Excelente trabajo!`,
+                    priority: 'medium'
+                });
+            } else if (trend < -5) {
+                insights.push({
+                    type: 'warning',
+                    icon: '📉',
+                    title: 'Tendencia Negativa',
+                    message: `La satisfacción ha disminuido ${Math.abs(trend)}% en la última semana. Requiere atención.`,
+                    priority: 'high',
+                    action: 'Analizar causas y tomar medidas'
+                });
+            }
+        }
+    }
+
+    // Insight: Perfiles incompletos
+    const incompleteProfiles = passengers.filter(p =>
+        !p.preferencias || Object.keys(p.preferencias).length === 0 ||
+        !p.gustos || Object.keys(p.gustos).length === 0
+    ).length;
+
+    if (incompleteProfiles > passengers.length * 0.3) {
+        insights.push({
+            type: 'opportunity',
+            icon: '📝',
+            title: 'Oportunidad de Personalización',
+            message: `${incompleteProfiles} pasajeros (${((incompleteProfiles/passengers.length)*100).toFixed(0)}%) no tienen preferencias completas.`,
+            priority: 'low',
+            action: 'Recopilar información en próximas interacciones'
+        });
+    }
+
+    // Insight: NPS Score
+    if (metrics.promoters > 0 || metrics.detractors > 0) {
+        const nps = ((metrics.promoters - metrics.detractors) / (metrics.promoters + metrics.passives + metrics.detractors) * 100).toFixed(0);
+
+        if (nps >= 50) {
+            insights.push({
+                type: 'success',
+                icon: '⭐',
+                title: 'NPS Excelente',
+                message: `NPS de ${nps}. Los pasajeros son embajadores de la marca.`,
+                priority: 'low'
+            });
+        } else if (nps >= 0) {
+            insights.push({
+                type: 'info',
+                icon: '📊',
+                title: 'NPS Positivo',
+                message: `NPS de ${nps}. Hay espacio para mejorar y crear más promotores.`,
+                priority: 'medium'
+            });
+        } else {
+            insights.push({
+                type: 'alert',
+                icon: '🎯',
+                title: 'NPS Requiere Atención',
+                message: `NPS de ${nps}. Se necesita estrategia agresiva de recuperación.`,
+                priority: 'critical',
+                action: 'Plan de acción inmediato'
+            });
+        }
+    }
+
+    return insights.sort((a, b) => {
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
 };
