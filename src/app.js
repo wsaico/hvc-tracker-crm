@@ -1653,7 +1653,7 @@ const renderPassengerInteractionView = () => {
                     <!-- Tabs de navegación -->
                     <div class="flex gap-2 mt-6 overflow-x-auto scrollbar-hide">
                         <button type="button" onclick="switchInteractionTab('general')"
-                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition active"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition bg-white/30 shadow-lg"
                                 data-tab="general">
                             <span class="flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1663,7 +1663,7 @@ const renderPassengerInteractionView = () => {
                             </span>
                         </button>
                         <button type="button" onclick="switchInteractionTab('services')"
-                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition bg-white/10 hover:bg-white/20"
                                 data-tab="services">
                             <span class="flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1673,7 +1673,7 @@ const renderPassengerInteractionView = () => {
                             </span>
                         </button>
                         <button type="button" onclick="switchInteractionTab('feedback')"
-                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition bg-white/10 hover:bg-white/20"
                                 data-tab="feedback">
                             <span class="flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1683,7 +1683,7 @@ const renderPassengerInteractionView = () => {
                             </span>
                         </button>
                         <button type="button" onclick="switchInteractionTab('issues')"
-                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                                class="interaction-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition bg-white/10 hover:bg-white/20"
                                 data-tab="issues">
                             <span class="flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1696,89 +1696,158 @@ const renderPassengerInteractionView = () => {
                 </div>
 
                 <form id="interactionForm" class="p-6">
-                    <div class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Motivo de Viaje</label>
-                            <select id="motivoViaje" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="">Seleccione motivo...</option>
-                                <option value="${CONSTANTS.TRAVEL_REASONS.NEGOCIOS}">Negocios</option>
-                                <option value="${CONSTANTS.TRAVEL_REASONS.TURISMO}">Turismo</option>
-                                <option value="${CONSTANTS.TRAVEL_REASONS.PERSONAL}">Personal</option>
-                                <option value="${CONSTANTS.TRAVEL_REASONS.MEDICO}">Médico</option>
-                                <option value="${CONSTANTS.TRAVEL_REASONS.OTRO}">Otro</option>
-                            </select>
+                    <!-- Tab: General -->
+                    <div id="interaction-tab-general" class="interaction-tab-content" style="display: block;">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Motivo de Viaje *
+                                </label>
+                                <select id="motivoViaje" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                                    <option value="">Seleccione motivo...</option>
+                                    <option value="${CONSTANTS.TRAVEL_REASONS.NEGOCIOS}">💼 Negocios</option>
+                                    <option value="${CONSTANTS.TRAVEL_REASONS.TURISMO}">✈️ Turismo</option>
+                                    <option value="${CONSTANTS.TRAVEL_REASONS.PERSONAL}">👨‍👩‍👧‍👦 Personal</option>
+                                    <option value="${CONSTANTS.TRAVEL_REASONS.MEDICO}">⚕️ Médico</option>
+                                    <option value="${CONSTANTS.TRAVEL_REASONS.OTRO}">📋 Otro</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Preferencias Observadas</label>
+                                <textarea id="preferencias" rows="3"
+                                        placeholder="Ej: Asiento ventana, comida vegetariana, bebida agua sin gas..."
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></textarea>
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Calificación Medallia (1-10)</label>
-                            <input type="number" id="calificacionMedallia" min="1" max="10"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Feedback del Pasajero</label>
-                        <textarea id="feedback" rows="3" placeholder="Comentarios del pasajero sobre su experiencia..."
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Servicios Utilizados</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" value="${CONSTANTS.SERVICES.SALA_VIP}" class="servicio-checkbox rounded">
-                                <span class="text-sm">Sala VIP</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" value="${CONSTANTS.SERVICES.FAST_TRACK}" class="servicio-checkbox rounded">
-                                <span class="text-sm">Fast Track</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" value="${CONSTANTS.SERVICES.ASISTENCIA_ESPECIAL}" class="servicio-checkbox rounded">
-                                <span class="text-sm">Asistencia Especial</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" value="${CONSTANTS.SERVICES.UPGRADE}" class="servicio-checkbox rounded">
-                                <span class="text-sm">Upgrade</span>
-                            </label>
+                        <div class="mt-4">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">📝 Notas Generales de la Atención</label>
+                            <textarea id="notas" rows="3"
+                                    placeholder="Observaciones adicionales del agente sobre la interacción..."
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></textarea>
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferencias del Pasajero</label>
-                        <textarea id="preferencias" rows="2" placeholder="Asiento ventana, comida vegetariana, bebida agua, etc..."
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    <!-- Tab: Servicios -->
+                    <div id="interaction-tab-services" class="interaction-tab-content" style="display: none;">
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Servicios Utilizados
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-4">Seleccione todos los servicios que el pasajero utilizó durante su experiencia</p>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="${CONSTANTS.SERVICES.SALA_VIP}" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">🏆 Sala VIP</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="${CONSTANTS.SERVICES.FAST_TRACK}" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">⚡ Fast Track</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="${CONSTANTS.SERVICES.ASISTENCIA_ESPECIAL}" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">🤝 Asistencia Especial</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="${CONSTANTS.SERVICES.UPGRADE}" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">⬆️ Upgrade</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="transporte" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">🚗 Transporte</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition">
+                                    <input type="checkbox" value="concierge" class="servicio-checkbox w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="font-medium text-gray-700">🔔 Concierge</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Incidentes</label>
-                        <textarea id="incidentes" rows="2" placeholder="Problemas reportados, quejas, etc..."
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    <!-- Tab: Feedback -->
+                    <div id="interaction-tab-feedback" class="interaction-tab-content" style="display: none;">
+                        <div class="space-y-6">
+                            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-orange-200 rounded-xl p-6">
+                                <label class="block text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                    </svg>
+                                    Calificación Medallia (1-10) *
+                                </label>
+                                <div class="flex items-center gap-4">
+                                    <input type="number" id="calificacionMedallia" min="1" max="10" required
+                                           class="flex-1 px-6 py-4 border-2 border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition text-2xl font-bold text-center"
+                                           placeholder="0">
+                                    <div class="flex flex-col gap-2">
+                                        <span class="text-sm font-medium text-gray-600">Escala:</span>
+                                        <div class="flex gap-1">
+                                            <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">1-6 Detractor</span>
+                                            <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">7-8 Pasivo</span>
+                                            <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">9-10 Promotor</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">💬 Feedback del Pasajero</label>
+                                <textarea id="feedback" rows="5"
+                                        placeholder="Comentarios del pasajero sobre su experiencia, qué le gustó, qué no le gustó, sugerencias..."
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></textarea>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Acciones de Recuperación</label>
-                        <textarea id="accionesRecuperacion" rows="2" placeholder="Medidas tomadas para resolver problemas..."
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    <!-- Tab: Incidentes -->
+                    <div id="interaction-tab-issues" class="interaction-tab-content" style="display: none;">
+                        <div class="space-y-6">
+                            <div class="bg-red-50 border-2 border-red-200 rounded-xl p-6">
+                                <label class="block text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    Incidentes Reportados
+                                </label>
+                                <textarea id="incidentes" rows="4"
+                                        placeholder="Describa cualquier problema, queja o situación negativa reportada por el pasajero..."
+                                        class="w-full px-4 py-3 border-2 border-red-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"></textarea>
+                                <p class="text-xs text-red-600 mt-2">⚠️ Si hay incidentes, es importante registrar acciones de recuperación</p>
+                            </div>
+
+                            <div class="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                                <label class="block text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Acciones de Recuperación
+                                </label>
+                                <textarea id="accionesRecuperacion" rows="4"
+                                        placeholder="Describa las medidas tomadas para resolver problemas, compensaciones ofrecidas, etc..."
+                                        class="w-full px-4 py-3 border-2 border-green-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></textarea>
+                                <p class="text-xs text-green-600 mt-2">💡 Ejemplo: "Upgrade a business class", "Voucher de $100", "Acceso VIP lounge gratuito"</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales</label>
-                        <textarea id="notas" rows="2" placeholder="Observaciones adicionales del agente..."
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-                    </div>
-
-                    <div class="flex space-x-4">
+                    <!-- Botones de acción -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t-2 border-gray-200 mt-6">
                         <button type="button" onclick="saveInteraction(event)"
-                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition font-bold text-lg flex items-center justify-center shadow-lg hover:shadow-xl">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             Guardar Interacción
                         </button>
                         <button type="button" onclick="cancelInteraction()"
-                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                                class="flex-1 sm:flex-initial bg-gray-500 text-white px-6 py-4 rounded-xl hover:bg-gray-600 transition font-bold">
                             Cancelar
                         </button>
                     </div>
@@ -1825,6 +1894,37 @@ window.cancelInteraction = function() {
     render();
 };
 
+// Función para cambiar entre tabs del formulario de interacción
+window.switchInteractionTab = function(tabName) {
+    // Remover clase active de todos los botones de tabs
+    document.querySelectorAll('.interaction-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.remove('bg-white/30', 'shadow-lg');
+        btn.classList.add('bg-white/10', 'hover:bg-white/20');
+    });
+
+    // Agregar clase active al botón clickeado
+    const activeBtn = document.querySelector(`.interaction-tab-btn[data-tab="${tabName}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.classList.add('bg-white/30', 'shadow-lg');
+        activeBtn.classList.remove('bg-white/10', 'hover:bg-white/20');
+    }
+
+    // Ocultar todos los contenidos de tabs
+    document.querySelectorAll('.interaction-tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+    });
+
+    // Mostrar el contenido del tab seleccionado
+    const activeContent = document.getElementById(`interaction-tab-${tabName}`);
+    if (activeContent) {
+        activeContent.classList.add('active');
+        activeContent.style.display = 'block';
+    }
+};
+
 // Función para guardar interacción (llamada desde el botón)
 window.saveInteraction = async function(event) {
     event.preventDefault();
@@ -1853,7 +1953,6 @@ window.saveInteraction = async function(event) {
 
     const interactionData = {
         pasajero_id: passenger.id,
-        usuario_id: state.currentUserId, // Nuevo: ID del usuario autenticado
         agente_nombre: state.currentUser,
         fecha: new Date().toISOString(),
         motivo_viaje: document.getElementById('motivoViaje').value || null,
