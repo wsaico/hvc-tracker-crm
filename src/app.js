@@ -1247,7 +1247,7 @@ const setupInteractionFormHandlers = () => {
 /**
  * Muestra el formulario de registro
  */
-const showRegisterForm = () => {
+export const showRegisterForm = () => {
     StateManager.setState({ currentView: 'register' });
     render();
 };
@@ -1255,7 +1255,7 @@ const showRegisterForm = () => {
 /**
  * Muestra el formulario de login
  */
-const showLoginForm = () => {
+export const showLoginForm = () => {
     StateManager.setState({ currentView: CONSTANTS.VIEWS.LOGIN });
     render();
 };
