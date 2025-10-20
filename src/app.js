@@ -1697,61 +1697,92 @@ const renderPassengerSearchView = async () => {
         console.warn('Could not load today passengers:', error);
     }
 
-    // Generar HTML para pasajeros de hoy
-    const todayPassengersHTML = todayPassengers.length > 0 ? todayPassengers.map(passenger => `
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5 border-l-4 ${Utils.getCategoryClass(passenger.categoria)} hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-            <div class="flex justify-between items-start">
-                <div class="flex items-center space-x-4 flex-1">
+    // Generar HTML para pasajeros de hoy con diseño mejorado
+    const todayPassengersHTML = todayPassengers.length > 0 ? todayPassengers.map(passenger => {
+        // Definir colores suaves según categoría
+        const categoryColors = {
+            'SIGNATURE': { bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50', border: 'border-purple-300', badge: 'bg-purple-100 text-purple-800 border border-purple-300' },
+            'TOP': { bg: 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-50', border: 'border-amber-300', badge: 'bg-amber-100 text-amber-800 border border-amber-300' },
+            'BLACK': { bg: 'bg-gradient-to-br from-gray-50 via-slate-50 to-gray-50', border: 'border-gray-400', badge: 'bg-gray-100 text-gray-800 border border-gray-400' },
+            'PLATINUM': { bg: 'bg-gradient-to-br from-cyan-50 via-blue-50 to-cyan-50', border: 'border-cyan-300', badge: 'bg-cyan-100 text-cyan-800 border border-cyan-300' },
+            'GOLD PLUS': { bg: 'bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-50', border: 'border-orange-300', badge: 'bg-orange-100 text-orange-800 border border-orange-300' },
+            'GOLD': { bg: 'bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-50', border: 'border-yellow-400', badge: 'bg-yellow-100 text-yellow-800 border border-yellow-400' }
+        };
+
+        const colors = categoryColors[passenger.categoria] || categoryColors['GOLD'];
+
+        return `
+        <div class="${colors.bg} rounded-2xl p-6 border-2 ${colors.border} hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02]">
+            <div class="flex flex-col md:flex-row md:items-center gap-6">
+                <!-- Avatar y info principal -->
+                <div class="flex items-center gap-4 flex-1">
                     ${passenger.foto_url ? `
-                        <img src="${passenger.foto_url}" alt="${passenger.nombre}"
-                             class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md">
+                        <div class="relative">
+                            <img src="${passenger.foto_url}" alt="${passenger.nombre}"
+                                 class="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg">
+                            <div class="absolute -bottom-2 -right-2 ${colors.badge} rounded-full px-2 py-1 text-xs font-bold shadow">
+                                ${passenger.categoria.substring(0, 3)}
+                            </div>
+                        </div>
                     ` : `
-                        <div class="w-14 h-14 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-md">
-                            <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
+                        <div class="relative">
+                            <div class="w-20 h-20 ${Utils.getCategoryClass(passenger.categoria)} rounded-2xl flex items-center justify-center shadow-lg border-4 border-white">
+                                <span class="text-white font-bold text-3xl">${passenger.nombre.charAt(0)}</span>
+                            </div>
+                            <div class="absolute -bottom-2 -right-2 ${colors.badge} rounded-full px-2 py-1 text-xs font-bold shadow">
+                                ${passenger.categoria.substring(0, 3)}
+                            </div>
                         </div>
                     `}
-                    <div class="flex-1">
-                        <h3 class="font-bold text-gray-800 text-lg">${passenger.nombre}</h3>
-                        <div class="flex items-center space-x-3 mt-1">
-                            <span class="text-sm text-gray-600 flex items-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-gray-900 text-xl mb-2 truncate">${passenger.nombre}</h3>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-700 shadow-sm">
+                                <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                                 </svg>
-                                ${passenger.dni_pasaporte}
+                                <span class="font-medium">${passenger.dni_pasaporte}</span>
                             </span>
-                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                            <span class="${colors.badge} inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm">
+                                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
                                 ${passenger.categoria}
                             </span>
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col space-y-2">
+
+                <!-- Botones de acción -->
+                <div class="flex md:flex-col gap-2 justify-end">
                     <button onclick="viewPassengerDetails('${passenger.id}')"
-                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="flex-1 md:flex-none bg-white border-2 border-blue-300 text-blue-700 px-5 py-2.5 rounded-xl hover:bg-blue-50 hover:border-blue-400 transition-all text-sm font-semibold flex items-center justify-center gap-2 shadow-sm hover:shadow-md whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
-                        Ver
+                        <span class="hidden sm:inline">Ver</span>
                     </button>
                     <button onclick="editPassenger('${passenger.id}')"
-                            class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="flex-1 md:flex-none bg-white border-2 border-amber-300 text-amber-700 px-5 py-2.5 rounded-xl hover:bg-amber-50 hover:border-amber-400 transition-all text-sm font-semibold flex items-center justify-center gap-2 shadow-sm hover:shadow-md whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
-                        Editar
+                        <span class="hidden sm:inline">Editar</span>
                     </button>
                     <button onclick="startPassengerInteraction('${passenger.id}')"
-                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="flex-1 md:flex-none bg-gradient-to-r from-emerald-500 to-green-500 text-white px-5 py-2.5 rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all text-sm font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                         </svg>
-                        Atender
+                        <span class="hidden sm:inline">Atender</span>
                     </button>
                 </div>
             </div>
         </div>
-    `).join('') : `
+    `;
+    }).join('') : `
         <div class="text-center py-12">
             <svg class="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
