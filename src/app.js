@@ -515,6 +515,34 @@ window.searchPassengers = async function() {
     }
 };
 
+// Función para cambiar entre pestañas de pasajeros
+window.switchPassengerTab = function(tab) {
+    const todayTab = document.getElementById('tab-today');
+    const searchTab = document.getElementById('tab-search');
+    const todayContent = document.getElementById('today-passengers-tab');
+    const searchContent = document.getElementById('search-passengers-tab');
+
+    if (tab === 'today') {
+        // Activar pestaña "Pasajeros de Hoy"
+        todayTab.className = 'tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+        searchTab.className = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+        todayContent.classList.remove('hidden');
+        searchContent.classList.add('hidden');
+    } else {
+        // Activar pestaña "Búsqueda Manual"
+        searchTab.className = 'tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+        todayTab.className = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+        searchContent.classList.remove('hidden');
+        todayContent.classList.add('hidden');
+    }
+};
+
+// Función para recargar pasajeros de hoy
+window.loadTodayPassengers = async function() {
+    showNotification('Actualizando lista de pasajeros...', 'info');
+    render();
+};
+
 // Función para crear nuevo pasajero
 window.createNewPassenger = async function(name) {
     const state = StateManager.getState();
@@ -1477,33 +1505,212 @@ VUELO001,LIM,Maria Garcia,PLATINUM,CHECK-IN,1B
  * @private
  */
 const renderPassengerSearchView = async () => {
-    return `
-        <div class="max-w-4xl mx-auto p-6">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Búsqueda de Pasajeros</h2>
+    const state = StateManager.getState();
+    const today = new Date().toISOString().split('T')[0];
 
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar por DNI/Pasaporte o Nombre</label>
-                        <div class="flex space-x-4">
-                            <input type="text" id="searchQuery" placeholder="Ingrese DNI, pasaporte o nombre..."
-                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <button onclick="searchPassengers()"
-                                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    // Cargar pasajeros del día automáticamente
+    let todayPassengers = [];
+    let totalFlights = 0;
+
+    try {
+        const flights = await ApiService.getFlightsByDate(today, state.currentAirport);
+        totalFlights = flights.length;
+
+        // Extraer todos los pasajeros únicos de los vuelos de hoy
+        const passengerIds = new Set();
+        flights.forEach(flight => {
+            if (flight.flight_passengers) {
+                flight.flight_passengers.forEach(fp => passengerIds.add(fp.pasajero_id));
+            }
+        });
+
+        // Obtener detalles de cada pasajero
+        if (passengerIds.size > 0) {
+            const passengerPromises = Array.from(passengerIds).map(id =>
+                ApiService.getPassengerById(id).catch(err => {
+                    console.warn(`Could not load passenger ${id}:`, err);
+                    return null;
+                })
+            );
+            const passengers = await Promise.all(passengerPromises);
+            todayPassengers = passengers.filter(p => p !== null);
+        }
+    } catch (error) {
+        console.warn('Could not load today passengers:', error);
+    }
+
+    // Generar HTML para pasajeros de hoy
+    const todayPassengersHTML = todayPassengers.length > 0 ? todayPassengers.map(passenger => `
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5 border-l-4 ${Utils.getCategoryClass(passenger.categoria)} hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <div class="flex justify-between items-start">
+                <div class="flex items-center space-x-4 flex-1">
+                    ${passenger.foto_url ? `
+                        <img src="${passenger.foto_url}" alt="${passenger.nombre}"
+                             class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md">
+                    ` : `
+                        <div class="w-14 h-14 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-md">
+                            <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
+                        </div>
+                    `}
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-800 text-lg">${passenger.nombre}</h3>
+                        <div class="flex items-center space-x-3 mt-1">
+                            <span class="text-sm text-gray-600 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                                 </svg>
-                                Buscar
+                                ${passenger.dni_pasaporte}
+                            </span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                                ${passenger.categoria}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <button onclick="viewPassengerDetails('${passenger.id}')"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Ver
+                    </button>
+                    <button onclick="editPassenger('${passenger.id}')"
+                            class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar
+                    </button>
+                    <button onclick="startPassengerInteraction('${passenger.id}')"
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm flex items-center shadow-md hover:shadow-lg">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        Atender
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('') : `
+        <div class="text-center py-12">
+            <svg class="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <p class="text-gray-500 text-lg font-medium">No hay pasajeros en el manifiesto de hoy</p>
+            <p class="text-gray-400 text-sm mt-2">El supervisor aún no ha cargado el manifiesto, o no hay vuelos programados</p>
+        </div>
+    `;
+
+    return `
+        <div class="max-w-7xl mx-auto p-6">
+            <!-- Tabs -->
+            <div class="mb-6">
+                <div class="border-b border-gray-200">
+                    <nav class="flex space-x-8" aria-label="Tabs">
+                        <button onclick="switchPassengerTab('today')" id="tab-today"
+                                class="tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Pasajeros de Hoy
+                            ${todayPassengers.length > 0 ? `<span class="ml-2 bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-bold">${todayPassengers.length}</span>` : ''}
+                        </button>
+                        <button onclick="switchPassengerTab('search')" id="tab-search"
+                                class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Búsqueda Manual
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Tab: Pasajeros de Hoy -->
+            <div id="today-passengers-tab" class="tab-content">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                                <svg class="w-7 h-7 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                                Pasajeros HVC del Día
+                            </h2>
+                            <p class="text-gray-600 mt-1">
+                                ${todayPassengers.length > 0
+                                    ? `${todayPassengers.length} pasajero${todayPassengers.length !== 1 ? 's' : ''} en ${totalFlights} vuelo${totalFlights !== 1 ? 's' : ''} programado${totalFlights !== 1 ? 's' : ''}`
+                                    : 'Esperando carga de manifiesto'}
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="loadTodayPassengers()"
+                                    class="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition flex items-center text-sm font-medium">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Actualizar
                             </button>
                         </div>
                     </div>
 
-                    <div id="searchResults" class="space-y-4">
-                        <!-- Resultados de búsqueda aparecerán aquí -->
+                    <div class="space-y-4">
+                        ${todayPassengersHTML}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Búsqueda Manual -->
+            <div id="search-passengers-tab" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <svg class="w-7 h-7 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Búsqueda Manual de Pasajeros
+                    </h2>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Buscar por DNI/Pasaporte o Nombre</label>
+                            <div class="flex space-x-4">
+                                <input type="text" id="searchQuery" placeholder="Ingrese DNI, pasaporte o nombre..."
+                                       class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       onkeypress="if(event.key==='Enter') searchPassengers()">
+                                <button onclick="searchPassengers()"
+                                        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center shadow-md hover:shadow-lg">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    Buscar
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">
+                                💡 Use esta búsqueda para pasajeros que no están en el manifiesto del día
+                            </p>
+                        </div>
+
+                        <div id="searchResults" class="space-y-4">
+                            <!-- Resultados de búsqueda aparecerán aquí -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <style>
+            .tab-content { display: none; }
+            .tab-content:not(.hidden) { display: block; }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .fade-in { animation: fadeIn 0.3s ease-out; }
+        </style>
     `;
 };
 
