@@ -495,8 +495,7 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
             .select(`
                 *,
                 passengers!inner(aeropuerto_id, nombre, categoria, foto_url),
-                flights(*),
-                users(agente_nombre: nombre_completo)
+                flights(*)
             `)
             .eq('passengers.aeropuerto_id', aeropuertoId);
 
