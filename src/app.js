@@ -826,6 +826,199 @@ window.filterTracking = function() {
     console.log(`Mostrando ${visibleCards.length} resultados`);
 };
 
+// Funciones para el Dashboard
+
+// Mostrar modal con recomendaciones del manual
+window.showManualRecommendations = function() {
+    import('./data/ManualRecommendations.js').then(module => {
+        const { MANUAL_RECOMMENDATIONS } = module;
+
+        const modalHTML = `
+            <div id="manualModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white sticky top-0 z-10">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-2xl font-bold flex items-center gap-3">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                                Manual de Servicio HVC
+                            </h2>
+                            <button onclick="closeModal('manualModal')" class="text-white hover:bg-white/20 rounded-lg p-2 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            ${Object.entries(MANUAL_RECOMMENDATIONS.PASSENGER_CATEGORIES).map(([key, category]) => `
+                                <div class="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+                                    <h3 class="font-bold text-lg text-purple-900 mb-2">⭐ ${category.name}</h3>
+                                    <p class="text-sm text-gray-600 mb-3">${category.description}</p>
+                                    <div class="space-y-1">
+                                        ${category.benefits.slice(0, 3).map(benefit => `
+                                            <p class="text-xs text-gray-700">• ${benefit}</p>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Protocolos de Recuperación por Incidente</h3>
+                        <div class="space-y-4">
+                            ${Object.entries(MANUAL_RECOMMENDATIONS.RECOVERY_ACTIONS).map(([key, incident]) => `
+                                <div class="border-2 border-gray-200 rounded-xl p-4 hover:shadow-lg transition">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h4 class="font-bold text-lg text-gray-900">${incident.title}</h4>
+                                        <span class="text-xs font-bold px-3 py-1 rounded-full ${
+                                            incident.priority === 'critical' ? 'bg-red-600 text-white' : 'bg-orange-600 text-white'
+                                        }">${incident.priority.toUpperCase()}</span>
+                                    </div>
+                                    <p class="text-sm text-blue-600 mb-3">📖 ${incident.manual_reference}</p>
+                                    <button onclick="showManualSection('${key}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                        Ver detalles completos →
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    });
+};
+
+// Mostrar sección específica del manual
+window.showManualSection = function(sectionKey) {
+    import('./data/ManualRecommendations.js').then(module => {
+        const { MANUAL_RECOMMENDATIONS } = module;
+        const incident = MANUAL_RECOMMENDATIONS.RECOVERY_ACTIONS[sectionKey];
+        const protocol = MANUAL_RECOMMENDATIONS.SERVICE_PROTOCOLS[sectionKey];
+
+        const content = incident || protocol;
+        if (!content) {
+            showNotification('Sección no encontrada', 'error');
+            return;
+        }
+
+        const modalHTML = `
+            <div id="sectionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="bg-gradient-to-r from-orange-600 to-red-600 p-6 text-white sticky top-0">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-2xl font-bold">${content.title}</h2>
+                            <button onclick="closeModal('sectionModal')" class="text-white hover:bg-white/20 rounded-lg p-2 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        ${incident ? `<p class="text-sm opacity-90 mt-2">📖 ${incident.manual_reference}</p>` : ''}
+                    </div>
+
+                    <div class="p-6">
+                        ${incident ? incident.actions.map(action => `
+                            <div class="mb-6">
+                                <h3 class="font-bold text-lg text-gray-900 mb-3 flex items-center gap-2">
+                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm">${action.category}</span>
+                                </h3>
+                                <div class="space-y-2 pl-4">
+                                    ${action.steps.map((step, idx) => `
+                                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                                            <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">${idx + 1}</span>
+                                            <p class="text-sm text-gray-700">${step}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('') : ''}
+
+                        ${protocol ? `
+                            <div class="space-y-3">
+                                <p class="text-sm text-gray-600"><strong>Aplica a:</strong> ${protocol.applies_to.join(', ')}</p>
+                                <div class="space-y-2">
+                                    ${protocol.actions.map((action, idx) => `
+                                        <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                                            <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">${idx + 1}</span>
+                                            <p class="text-sm text-gray-700">${action}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    });
+};
+
+// Mostrar detalles de un insight
+window.showInsightDetails = function(title, message, action) {
+    const modalHTML = `
+        <div id="insightModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+                <div class="bg-gradient-to-r from-orange-600 to-red-600 p-6 text-white">
+                    <div class="flex justify-between items-start">
+                        <h2 class="text-xl font-bold">${title}</h2>
+                        <button onclick="closeModal('insightModal')" class="text-white hover:bg-white/20 rounded-lg p-2 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-700 mb-4">${message}</p>
+                    ${action ? `
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                            <p class="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                                Acción Recomendada:
+                            </p>
+                            <p class="text-sm text-blue-700 mt-2">${action}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+};
+
+// Filtrar por NPS
+window.filterByNPS = function(type) {
+    // Cambiar a vista de tracking con filtro aplicado
+    changeView('passenger-tracking');
+    setTimeout(() => {
+        const filterStatus = document.getElementById('trackingFilterStatus');
+        if (filterStatus) {
+            if (type === 'detractors') filterStatus.value = 'risk';
+            else if (type === 'promoters') filterStatus.value = 'recovered';
+            filterTracking();
+        }
+    }, 500);
+};
+
+// Cerrar modal
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('animate-fadeOut');
+        setTimeout(() => modal.remove(), 300);
+    }
+};
+
 // Función para editar pasajero
 window.editPassenger = async function(passengerId) {
     try {
@@ -3349,71 +3542,103 @@ const renderDashboardView = async () => {
     const npsScore = recoveryMetrics ?
         ((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100).toFixed(0) : 0;
 
+    // Calcular estadísticas del mes
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const monthInteractions = interactions.filter(i => {
+        const date = new Date(i.fecha);
+        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    const monthStats = {
+        totalInteractions: monthInteractions.length,
+        avgRating: monthInteractions.length > 0 ?
+            (monthInteractions.reduce((sum, i) => sum + (i.calificacion_medallia || 0), 0) / monthInteractions.filter(i => i.calificacion_medallia).length).toFixed(1) : 0,
+        detractors: monthInteractions.filter(i => i.calificacion_medallia && i.calificacion_medallia <= 6).length,
+        promoters: monthInteractions.filter(i => i.calificacion_medallia && i.calificacion_medallia >= 9).length,
+        withRecovery: monthInteractions.filter(i => i.acciones_recuperacion).length
+    };
+
     return `
         <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-            <!-- Header con Resumen Ejecutivo -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-2xl p-6 sm:p-8 mb-6 text-white">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <div>
-                        <h1 class="text-3xl sm:text-4xl font-bold mb-2 flex items-center">
-                            <svg class="w-8 h-8 sm:w-10 sm:h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                            Dashboard HVC
-                        </h1>
-                        <p class="text-blue-100 text-base sm:text-lg">Monitoreo en tiempo real de pasajeros de alto valor</p>
-                    </div>
-                    <div class="flex items-center gap-4">
+            <!-- 1. HEADER: Monitoreo en Tiempo Real -->
+            <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl shadow-2xl p-6 sm:p-8 mb-8 text-white relative overflow-hidden">
+                <!-- Patrón de fondo decorativo -->
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
+                    <div class="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-32 translate-y-32"></div>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                        <div>
+                            <h1 class="text-3xl sm:text-4xl font-bold mb-2 flex items-center gap-3">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Dashboard HVC
+                            </h1>
+                            <p class="text-blue-100 text-lg">Monitoreo en tiempo real de pasajeros de alto valor</p>
+                        </div>
                         ${window.DB_AVAILABLE ? `
-                            <div class="bg-green-500/20 backdrop-blur-sm border border-green-300 rounded-lg px-4 py-2">
+                            <div class="bg-green-500/20 backdrop-blur-sm border-2 border-green-300 rounded-xl px-5 py-3">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-                                    <span class="text-sm font-medium">Sistema Activo</span>
+                                    <div class="w-3 h-3 bg-green-300 rounded-full animate-pulse shadow-lg"></div>
+                                    <span class="text-sm font-bold">Sistema Activo</span>
                                 </div>
                                 <p class="text-xs text-green-200 mt-1">Datos en tiempo real</p>
                             </div>
                         ` : `
-                            <div class="bg-yellow-500/20 backdrop-blur-sm border border-yellow-300 rounded-lg px-4 py-2">
+                            <div class="bg-yellow-500/20 backdrop-blur-sm border-2 border-yellow-300 rounded-xl px-5 py-3">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-2 h-2 bg-yellow-300 rounded-full"></div>
-                                    <span class="text-sm font-medium">Modo Demo</span>
+                                    <div class="w-3 h-3 bg-yellow-300 rounded-full"></div>
+                                    <span class="text-sm font-bold">Modo Demo</span>
                                 </div>
                                 <p class="text-xs text-yellow-200 mt-1">Datos de ejemplo</p>
                             </div>
                         `}
                     </div>
-                </div>
 
-                <!-- Resumen rápido en header -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <p class="text-blue-100 text-xs sm:text-sm mb-1">Pasajeros HVC</p>
-                        <p class="text-2xl sm:text-3xl font-bold">${metrics.totalPassengers || 0}</p>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <p class="text-blue-100 text-xs sm:text-sm mb-1">Satisfacción</p>
-                        <p class="text-2xl sm:text-3xl font-bold">${metrics.avgMedallia || 0}<span class="text-lg">/10</span></p>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <p class="text-blue-100 text-xs sm:text-sm mb-1">NPS Score</p>
-                        <p class="text-2xl sm:text-3xl font-bold">${npsScore}</p>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <p class="text-blue-100 text-xs sm:text-sm mb-1">En Riesgo</p>
-                        <p class="text-2xl sm:text-3xl font-bold ${metrics.passengersAtRisk > 0 ? 'text-yellow-300' : 'text-green-300'}">${metrics.passengersAtRisk || 0}</p>
+                    <!-- Métricas en tiempo real -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition">
+                            <p class="text-blue-100 text-sm mb-1">👥 Pasajeros HVC</p>
+                            <p class="text-3xl font-black">${metrics.totalPassengers || 0}</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition">
+                            <p class="text-blue-100 text-sm mb-1">⭐ Satisfacción</p>
+                            <p class="text-3xl font-black">${(metrics.avgMedallia || 0).toFixed(1)}<span class="text-lg">/10</span></p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition">
+                            <p class="text-blue-100 text-sm mb-1">📊 NPS Score</p>
+                            <p class="text-3xl font-black">${npsScore}</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/15 transition">
+                            <p class="text-blue-100 text-sm mb-1">⚠️ En Riesgo</p>
+                            <p class="text-3xl font-black ${metrics.passengersAtRisk > 0 ? 'text-yellow-300' : 'text-green-300'}">${metrics.passengersAtRisk || 0}</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Insights Prioritarios (Combinados) -->
+            <!-- 2. ALERTAS E INSIGHTS PRIORITARIOS (con Manual) -->
             ${(dashboardInsights && dashboardInsights.length > 0) || (performanceInsights && performanceInsights.length > 0) ? `
-                <div class="mb-6">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-6 h-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        Alertas e Insights Prioritarios
-                    </h2>
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            Alertas e Insights Inteligentes
+                        </h2>
+                        <button onclick="showManualRecommendations()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 shadow-lg transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual de Servicio
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         ${dashboardInsights && dashboardInsights.length > 0 ? dashboardInsights.map(insight => {
                             const priorityColors = {
@@ -3425,23 +3650,27 @@ const renderDashboardView = async () => {
                             const colors = priorityColors[insight.priority] || priorityColors.low;
 
                             return `
-                                <div class="${colors.bg} ${colors.border} border-l-4 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
-                                    <div class="flex items-start justify-between mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-2xl">${insight.icon}</span>
-                                            <h3 class="font-bold ${colors.title} text-sm sm:text-base">${insight.title}</h3>
+                                <div class="${colors.bg} border-l-4 ${colors.border} rounded-xl p-5 shadow-lg hover:shadow-xl transition-all cursor-pointer"
+                                     onclick="showInsightDetails('${insight.title}', '${insight.message}', '${insight.action || ''}')">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-3xl">${insight.icon}</span>
+                                            <h3 class="font-bold ${colors.title} text-base">${insight.title}</h3>
                                         </div>
-                                        <span class="text-xs font-bold text-white ${colors.badge} px-2 py-1 rounded-full uppercase whitespace-nowrap">
+                                        <span class="text-xs font-bold text-white ${colors.badge} px-3 py-1 rounded-full uppercase">
                                             ${insight.priority === 'critical' ? 'Crítico' :
                                               insight.priority === 'high' ? 'Alto' :
                                               insight.priority === 'medium' ? 'Medio' : 'Bajo'}
                                         </span>
                                     </div>
-                                    <p class="text-sm text-gray-700 mb-2">${insight.message}</p>
+                                    <p class="text-sm text-gray-700 mb-3">${insight.message}</p>
                                     ${insight.action ? `
                                         <div class="mt-3 pt-3 border-t ${colors.border}">
-                                            <p class="text-xs sm:text-sm font-semibold ${colors.icon}">
-                                                💡 ${insight.action}
+                                            <p class="text-sm font-semibold ${colors.icon} flex items-center gap-2">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                                </svg>
+                                                ${insight.action}
                                             </p>
                                         </div>
                                     ` : ''}
@@ -3450,17 +3679,24 @@ const renderDashboardView = async () => {
                         }).join('') : ''}
 
                         ${performanceInsights && performanceInsights.length > 0 ? performanceInsights.map(insight => `
-                            <div class="p-4 rounded-xl shadow-md hover:shadow-lg transition-all ${
+                            <div class="p-5 rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer ${
                                 insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
                                 insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
                                 insight.type === 'danger' ? 'bg-red-50 border-l-4 border-red-400' :
                                 'bg-blue-50 border-l-4 border-blue-400'}">
                                 <div class="flex items-start gap-3">
-                                    <div class="text-2xl flex-shrink-0">${insight.icon}</div>
+                                    <div class="text-3xl flex-shrink-0">${insight.icon}</div>
                                     <div class="flex-1">
-                                        <h3 class="font-bold text-gray-800 text-sm sm:text-base mb-1">${insight.title}</h3>
-                                        <p class="text-sm text-gray-600 mb-2">${insight.message}</p>
-                                        ${insight.action ? `<p class="text-xs sm:text-sm font-medium text-blue-600 mt-2">→ ${insight.action}</p>` : ''}
+                                        <h3 class="font-bold text-gray-800 text-base mb-2">${insight.title}</h3>
+                                        <p class="text-sm text-gray-600 mb-3">${insight.message}</p>
+                                        ${insight.action ? `
+                                            <p class="text-sm font-medium text-blue-600 flex items-center gap-2">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                                </svg>
+                                                ${insight.action}
+                                            </p>
+                                        ` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -3469,405 +3705,485 @@ const renderDashboardView = async () => {
                 </div>
             ` : ''}
 
-            <!-- KPIs Principales -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="bg-blue-100 p-3 rounded-lg">
-                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Total Pasajeros</h3>
-                            <p class="text-2xl font-bold text-blue-600">${metrics.totalPassengers || 0}</p>
-                            <p class="text-sm text-gray-500">Registrados en el aeropuerto</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="bg-green-100 p-3 rounded-lg">
-                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Calificación Promedio</h3>
-                            <p class="text-2xl font-bold text-green-600">${metrics.avgMedallia || 0}</p>
-                            <p class="text-sm text-gray-500">Escala Medallia (1-10)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="bg-yellow-100 p-3 rounded-lg">
-                            <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Pasajeros en Riesgo</h3>
-                            <p class="text-2xl font-bold text-yellow-600">${metrics.passengersAtRisk || 0}</p>
-                            <p class="text-sm text-gray-500">Calificación < 7</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center">
-                        <div class="bg-purple-100 p-3 rounded-lg">
-                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4v10a2 2 0 002 2h4a2 2 0 002-2V11M9 11h6"/>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-gray-800">Total Interacciones</h3>
-                            <p class="text-2xl font-bold text-purple-600">${metrics.totalInteractions || 0}</p>
-                            <p class="text-sm text-gray-500">Atenciones realizadas</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sistema de Recuperación NPS -->
-            ${recoveryMetrics && window.DB_AVAILABLE ? `
-                <div class="mb-6">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-6 h-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            <!-- 3. SISTEMA DE RECUPERACIÓN DE PASAJEROS (Interactivo) -->
+            ${recoveryMetrics ? `
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        Sistema de Recuperación de Pasajeros
+                        Sistema de Recuperación NPS
                     </h2>
-
-                    <!-- Grid combinado de NPS y Recuperación -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-                        <!-- NPS Score (destacado) -->
-                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg text-white xl:col-span-1">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium opacity-90">NPS Score</span>
-                                <svg class="w-4 h-4 opacity-90" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                </svg>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- NPS Score -->
+                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl hover:scale-105 transition-transform cursor-pointer">
+                            <div class="text-center">
+                                <p class="text-sm font-medium opacity-90 mb-2">NPS Score</p>
+                                <p class="text-5xl font-black mb-2">${npsScore}</p>
+                                <p class="text-xs opacity-75">Net Promoter Score</p>
                             </div>
-                            <p class="text-4xl font-bold mb-1">${npsScore}</p>
-                            <p class="text-xs opacity-80">
-                                ${parseFloat(npsScore) >= 50 ? '🎉 Excelente' :
-                                  parseFloat(npsScore) >= 0 ? '👍 Bueno' : '⚠️ Crítico'}
-                            </p>
                         </div>
 
                         <!-- Detractores -->
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-red-500 hover:shadow-lg transition-shadow">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Detractores</span>
-                                <span class="text-xl">😞</span>
+                        <div class="bg-gradient-to-br from-red-50 to-rose-100 border-2 border-red-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                             onclick="filterByNPS('detractors')">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-red-500 p-3 rounded-xl">
+                                    <span class="text-2xl">😞</span>
+                                </div>
+                                <span class="text-4xl font-black text-red-600">${recoveryMetrics.detractors || 0}</span>
                             </div>
-                            <p class="text-3xl font-bold text-red-600 mb-1">${recoveryMetrics.detractors}</p>
-                            <p class="text-xs text-gray-500">Cal. ≤ 6</p>
+                            <p class="text-sm font-bold text-red-800 uppercase">Detractores</p>
+                            <p class="text-xs text-red-600 mt-1">Calificación ≤ 6</p>
                         </div>
 
                         <!-- Pasivos -->
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Pasivos</span>
-                                <span class="text-xl">😐</span>
+                        <div class="bg-gradient-to-br from-yellow-50 to-amber-100 border-2 border-yellow-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                             onclick="filterByNPS('passives')">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-yellow-500 p-3 rounded-xl">
+                                    <span class="text-2xl">😐</span>
+                                </div>
+                                <span class="text-4xl font-black text-yellow-600">${recoveryMetrics.passives || 0}</span>
                             </div>
-                            <p class="text-3xl font-bold text-yellow-600 mb-1">${recoveryMetrics.passives}</p>
-                            <p class="text-xs text-gray-500">Cal. 7-8</p>
+                            <p class="text-sm font-bold text-yellow-800 uppercase">Pasivos</p>
+                            <p class="text-xs text-yellow-600 mt-1">Calificación 7-8</p>
                         </div>
 
                         <!-- Promotores -->
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-green-500 hover:shadow-lg transition-shadow">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Promotores</span>
-                                <span class="text-xl">😊</span>
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                             onclick="filterByNPS('promoters')">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-green-500 p-3 rounded-xl">
+                                    <span class="text-2xl">😊</span>
+                                </div>
+                                <span class="text-4xl font-black text-green-600">${recoveryMetrics.promoters || 0}</span>
                             </div>
-                            <p class="text-3xl font-bold text-green-600 mb-1">${recoveryMetrics.promoters}</p>
-                            <p class="text-xs text-gray-500">Cal. ≥ 9</p>
+                            <p class="text-sm font-bold text-green-800 uppercase">Promotores</p>
+                            <p class="text-xs text-green-600 mt-1">Calificación ≥ 9</p>
                         </div>
 
-                        <!-- Acciones de Recuperación -->
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Acciones</span>
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
+                        <!-- Tasa de Recuperación -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="bg-blue-500 p-3 rounded-xl">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                    </svg>
+                                </div>
+                                <span class="text-4xl font-black text-blue-600">${(recoveryMetrics.successfulRecoveryRate || 0).toFixed(0)}%</span>
                             </div>
-                            <p class="text-3xl font-bold text-blue-600 mb-1">${recoveryMetrics.recoveryActions}</p>
-                            <p class="text-xs text-gray-500">Intentos</p>
-                        </div>
-
-                        <!-- Recuperaciones Exitosas -->
-                        <div class="bg-white rounded-xl p-5 shadow-md border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Exitosas</span>
-                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </div>
-                            <p class="text-3xl font-bold text-emerald-600 mb-1">${recoveryMetrics.successfulRecoveries}</p>
-                            <p class="text-xs text-gray-500">Logradas</p>
-                        </div>
-
-                        <!-- Tasa de Efectividad -->
-                        <div class="bg-gradient-to-br ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? 'from-green-500 to-emerald-600' : parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? 'from-yellow-500 to-orange-500' : 'from-red-500 to-pink-600'} rounded-xl p-5 shadow-lg text-white">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium opacity-90">Efectividad</span>
-                                <svg class="w-4 h-4 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                </svg>
-                            </div>
-                            <p class="text-4xl font-bold mb-1">${recoveryMetrics.successfulRecoveryRate}%</p>
-                            <p class="text-xs opacity-80">
-                                ${parseFloat(recoveryMetrics.successfulRecoveryRate) >= 70 ? '🎯 Excelente' :
-                                  parseFloat(recoveryMetrics.successfulRecoveryRate) >= 40 ? '📊 Mejorable' : '⚠️ Revisar'}
-                            </p>
+                            <p class="text-sm font-bold text-blue-800 uppercase">Efectividad</p>
+                            <p class="text-xs text-blue-600 mt-1">${recoveryMetrics.successfulRecoveries || 0} recuperados</p>
                         </div>
                     </div>
                 </div>
             ` : ''}
 
-            <!-- Análisis de Datos -->
-            <div class="mb-6">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                    <svg class="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    Análisis de Datos
-                </h2>
+            <!-- 4. ANÁLISIS DE DATOS -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Distribución por Categoría -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        Distribución por Categoría
+                    </h3>
+                    <div class="space-y-4">
+                        ${Object.entries(metrics.categoryCount || {}).sort((a, b) => b[1] - a[1]).map(([category, count]) => {
+                            const total = Object.values(metrics.categoryCount).reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                            const categoryColors = {
+                                'SIGNATURE': 'from-purple-500 to-pink-500',
+                                'TOP': 'from-amber-500 to-orange-500',
+                                'BLACK': 'from-gray-700 to-gray-900',
+                                'PLATINUM': 'from-cyan-500 to-blue-500',
+                                'GOLD PLUS': 'from-orange-500 to-yellow-500',
+                                'GOLD': 'from-yellow-500 to-amber-500'
+                            };
+                            const gradient = categoryColors[category] || 'from-gray-400 to-gray-600';
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    <!-- Distribución por Categoría HVC -->
-                    <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                            </svg>
-                            Categorías HVC
-                        </h3>
-                        <div class="space-y-3">
-                            ${Object.entries(metrics.categoryCount || {}).length > 0 ?
-                                Object.entries(metrics.categoryCount).sort((a, b) => b[1] - a[1]).map(([categoria, count]) => {
-                                    const categoryColors = {
-                                        'SIGNATURE': 'bg-gradient-to-r from-purple-500 to-pink-500',
-                                        'TOP': 'bg-gradient-to-r from-amber-500 to-orange-500',
-                                        'BLACK': 'bg-gradient-to-r from-gray-700 to-gray-900',
-                                        'PLATINUM': 'bg-gradient-to-r from-cyan-500 to-blue-500',
-                                        'GOLD PLUS': 'bg-gradient-to-r from-orange-400 to-yellow-400',
-                                        'GOLD': 'bg-gradient-to-r from-yellow-500 to-amber-500'
-                                    };
-                                    const percentage = ((count / metrics.totalPassengers) * 100).toFixed(1);
-                                    return `
-                                        <div class="group">
-                                            <div class="flex justify-between items-center mb-2">
-                                                <span class="text-sm font-medium text-gray-700">${categoria}</span>
-                                                <span class="text-sm font-bold text-gray-900">${count} <span class="text-xs text-gray-500">(${percentage}%)</span></span>
-                                            </div>
-                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                                                <div class="${categoryColors[categoria] || 'bg-blue-600'} h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
-                                                     style="width: ${percentage}%"></div>
-                                            </div>
+                            return `
+                                <div class="group hover:bg-gray-50 p-3 rounded-xl transition">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-bold text-gray-700">${category}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm text-gray-600">${count}</span>
+                                            <span class="text-xs text-gray-500">(${percentage}%)</span>
                                         </div>
-                                    `;
-                                }).join('') :
-                                '<div class="text-center py-8 text-gray-400"><svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg><p class="text-sm">No hay datos de categorías disponibles</p></div>'
-                            }
-                        </div>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                        <div class="bg-gradient-to-r ${gradient} h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
+                                             style="width: ${percentage}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') || '<p class="text-center text-gray-400 py-8">No hay datos disponibles</p>'}
                     </div>
+                </div>
 
-                    <!-- Servicios Más Solicitados -->
-                    <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                            </svg>
-                            Servicios Solicitados
-                        </h3>
-                        <div class="space-y-3">
-                            ${Object.entries(metrics.serviciosCount || {}).length > 0 ?
-                                Object.entries(metrics.serviciosCount).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([servicio, count]) => {
-                                    const maxCount = Math.max(...Object.values(metrics.serviciosCount));
-                                    const percentage = ((count / maxCount) * 100).toFixed(1);
-                                    const serviceIcons = {
-                                        'sala_vip': '🏆',
-                                        'fast_track': '⚡',
-                                        'asistencia_especial': '🤝',
-                                        'upgrade': '⬆️',
-                                        'transporte': '🚗',
-                                        'concierge': '🔔'
-                                    };
-                                    return `
-                                        <div class="group">
-                                            <div class="flex justify-between items-center mb-2">
-                                                <span class="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                                    <span>${serviceIcons[servicio] || '📋'}</span>
-                                                    ${servicio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                </span>
-                                                <span class="text-sm font-bold text-gray-900">${count}</span>
-                                            </div>
-                                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                                                <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
-                                                     style="width: ${percentage}%"></div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('') :
-                                '<div class="text-center py-8 text-gray-400"><svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p class="text-sm">No hay datos de servicios disponibles</p></div>'
-                            }
-                        </div>
+                <!-- Servicios Utilizados -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        Servicios Utilizados
+                    </h3>
+                    <div class="space-y-4">
+                        ${Object.entries(metrics.serviciosCount || {}).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([servicio, count]) => {
+                            const total = Object.values(metrics.serviciosCount).reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                            const serviceIcons = {
+                                'sala_vip': '🏆',
+                                'fast_track': '⚡',
+                                'asistencia_especial': '🤝',
+                                'upgrade': '⬆️',
+                                'transporte': '🚗',
+                                'concierge': '🔔'
+                            };
+
+                            return `
+                                <div class="group hover:bg-gray-50 p-3 rounded-xl transition">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                            <span>${serviceIcons[servicio] || '📋'}</span>
+                                            ${servicio.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
+                                        <span class="text-sm font-bold text-gray-900">${count}</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                                        <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 group-hover:opacity-90"
+                                             style="width: ${percentage}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') || '<p class="text-center text-gray-400 py-8">No hay datos disponibles</p>'}
                     </div>
                 </div>
             </div>
 
-            <!-- Tendencia de Calificaciones (últimos 30 días) -->
+            <!-- 5. TENDENCIA DE SATISFACCIÓN (Gráfico Interactivo) -->
             ${metrics.trendData && metrics.trendData.length > 0 ? `
-                <div class="bg-white rounded-lg shadow p-6 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Tendencia de Satisfacción (30 días)</h3>
-                    <div class="h-64">
+                <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border-2 border-gray-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                            </svg>
+                            Tendencia de Satisfacción (Últimos 30 días)
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="toggleChartType('line')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
+                                Línea
+                            </button>
+                            <button onclick="toggleChartType('bar')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                                Barras
+                            </button>
+                        </div>
+                    </div>
+                    <div class="h-80">
                         <canvas id="trendChart"></canvas>
                     </div>
                     <script>
-                        const ctx = document.getElementById('trendChart').getContext('2d');
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
-                                datasets: [{
-                                    label: 'Calificación Promedio',
-                                    data: ${JSON.stringify(metrics.trendData.map(d => d.avg))},
-                                    borderColor: 'rgb(59, 130, 246)',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    tension: 0.4,
-                                    fill: true
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        beginAtZero: false,
-                                        min: 1,
-                                        max: 10,
-                                        ticks: {
-                                            stepSize: 1
+                        if (typeof Chart !== 'undefined') {
+                            const ctx = document.getElementById('trendChart');
+                            if (ctx && !window.trendChartInstance) {
+                                window.trendChartInstance = new Chart(ctx.getContext('2d'), {
+                                    type: 'line',
+                                    data: {
+                                        labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
+                                        datasets: [{
+                                            label: 'Calificación Promedio',
+                                            data: ${JSON.stringify(metrics.trendData.map(d => d.avg))},
+                                            borderColor: 'rgb(59, 130, 246)',
+                                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                            tension: 0.4,
+                                            fill: true,
+                                            borderWidth: 3,
+                                            pointRadius: 4,
+                                            pointHoverRadius: 6,
+                                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                                            pointBorderColor: '#fff',
+                                            pointBorderWidth: 2
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                display: true,
+                                                position: 'top',
+                                                labels: {
+                                                    font: { size: 14, weight: 'bold' },
+                                                    padding: 15
+                                                }
+                                            },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                                padding: 12,
+                                                titleFont: { size: 14, weight: 'bold' },
+                                                bodyFont: { size: 13 },
+                                                cornerRadius: 8
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: false,
+                                                min: 0,
+                                                max: 10,
+                                                ticks: {
+                                                    stepSize: 1,
+                                                    font: { size: 12, weight: 'bold' }
+                                                },
+                                                grid: {
+                                                    color: 'rgba(0, 0, 0, 0.05)'
+                                                }
+                                            },
+                                            x: {
+                                                ticks: {
+                                                    font: { size: 11 },
+                                                    maxRotation: 45,
+                                                    minRotation: 45
+                                                },
+                                                grid: {
+                                                    display: false
+                                                }
+                                            }
+                                        },
+                                        interaction: {
+                                            mode: 'index',
+                                            intersect: false
                                         }
                                     }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: false
+                                });
+
+                                // Función para cambiar tipo de gráfico
+                                window.toggleChartType = function(type) {
+                                    if (window.trendChartInstance) {
+                                        window.trendChartInstance.config.type = type;
+                                        window.trendChartInstance.update();
                                     }
-                                }
+                                };
                             }
-                        });
+                        }
                     </script>
                 </div>
             ` : ''}
 
-            <!-- Alertas y Recomendaciones -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        Acciones Prioritarias
-                    </h3>
-                    <div class="space-y-3">
-                        ${metrics.passengersAtRisk > 0 ? `
-                            <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-red-800 font-medium">Atender ${metrics.passengersAtRisk} pasajeros en riesgo</span>
-                                    <button onclick="changeView('passenger-tracking')" class="text-red-600 hover:text-red-700 text-sm font-medium">
-                                        Ver lista →
-                                    </button>
-                                </div>
+            <!-- 6. ACCIONES PRIORITARIAS (con enlaces a manual) -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Acciones Prioritarias
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-red-50 to-rose-100 border-2 border-red-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('EQUIPAJE_PERDIDO')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-red-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
                             </div>
-                        ` : `
-                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <span class="text-green-800 font-medium">¡Excelente! No hay pasajeros en riesgo</span>
-                            </div>
-                        `}
-
-                        ${airportMetrics && airportMetrics.cumpleanos_hoy > 0 ? `
-                            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-blue-800 font-medium">${airportMetrics.cumpleanos_hoy} cumpleaños(s) hoy</span>
-                                    <button onclick="changeView('passenger-tracking')" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                        Felicitar →
-                                    </button>
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        ${metrics.avgMedallia < 7 ? `
-                            <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <span class="text-yellow-800 font-medium">Mejorar calificación promedio (${metrics.avgMedallia})</span>
-                            </div>
-                        ` : metrics.avgMedallia >= 9 ? `
-                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <span class="text-green-800 font-medium">¡Excelente calificación! (${metrics.avgMedallia})</span>
-                            </div>
-                        ` : ''}
+                            <span class="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Equipaje Perdido</h3>
+                        <p class="text-sm text-gray-600 mb-3">Protocolo de atención inmediata según categoría del pasajero</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual Sección 4.1
+                        </div>
                     </div>
-                </div>
 
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        Estadísticas del Mes
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Tasa de recuperación:</span>
-                            <span class="font-bold ${metrics.recoveryRate >= 70 ? 'text-green-600' : metrics.recoveryRate >= 50 ? 'text-yellow-600' : 'text-red-600'}">
-                                ${metrics.recoveryRate}%
-                            </span>
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('RETRASO_VUELO')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-orange-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-orange-600 text-white px-2 py-1 rounded-full">ALTO</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Interacciones promedio/día:</span>
-                            <span class="font-bold text-blue-600">
-                                ${metrics.totalInteractions ? (metrics.totalInteractions / 30).toFixed(1) : 0}
-                            </span>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Retraso de Vuelo</h3>
+                        <p class="text-sm text-gray-600 mb-3">Compensaciones y atenciones según tiempo de retraso</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual Sección 3.2
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Categoría más frecuente:</span>
-                            <span class="font-bold text-purple-600">
-                                ${Object.entries(metrics.categoryCount || {}).length > 0 ?
-                                    Object.entries(metrics.categoryCount).reduce((a, b) => metrics.categoryCount[a[0]] > metrics.categoryCount[b[0]] ? a : b)[0] :
-                                    'N/A'}
-                            </span>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('SERVICIO_DEFICIENTE')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-blue-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-blue-600 text-white px-2 py-1 rounded-full">ALTO</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Servicio Deficiente</h3>
+                        <p class="text-sm text-gray-600 mb-3">Estrategias de recuperación y compensación</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual Sección 5.3
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('CUMPLEANOS')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-purple-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">ESPECIAL</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Cumpleaños</h3>
+                        <p class="text-sm text-gray-600 mb-3">Protocolo de celebración y atenciones especiales</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Protocolos Especiales
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('CANCELACION_VUELO')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-green-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-green-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Cancelación</h3>
+                        <p class="text-sm text-gray-600 mb-3">Reprogramación y compensaciones integrales</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual Sección 3.1
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-yellow-50 to-orange-100 border-2 border-yellow-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                         onclick="showManualSection('OVERBOOKING')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="bg-yellow-500 p-3 rounded-xl">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-xs font-bold bg-yellow-600 text-white px-2 py-1 rounded-full">CRÍTICO</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-lg mb-2">Overbooking</h3>
+                        <p class="text-sm text-gray-600 mb-3">Gestión de sobreventa y compensaciones</p>
+                        <div class="flex items-center gap-2 text-blue-600 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Ver Manual Sección 6.2
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Estado del Sistema -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Estado del Sistema</h3>
-                <div class="bg-${statusColor}-50 border-l-4 border-${statusColor}-400 p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-${statusColor}-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            <!-- 7. ESTADÍSTICAS DEL MES (Interactivas) -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Estadísticas del Mes - ${new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                </h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-5 border-2 border-blue-200 hover:shadow-lg transition cursor-pointer">
+                        <div class="flex items-center justify-between mb-2">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                             </svg>
+                            <span class="text-3xl font-black text-blue-600">${monthStats.totalInteractions}</span>
                         </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-${statusColor}-700">
-                                <strong>${statusText}</strong>
-                            </p>
-                            <p class="text-sm text-${statusColor}-600 mt-1">
-                                ${statusMessage}
-                            </p>
-                            ${window.DB_AVAILABLE ? `
-                                <div class="mt-3 grid grid-cols-2 gap-4 text-xs">
+                        <p class="text-sm font-bold text-blue-800">Total Interacciones</p>
+                        <p class="text-xs text-blue-600 mt-1">Este mes</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-5 border-2 border-green-200 hover:shadow-lg transition cursor-pointer">
+                        <div class="flex items-center justify-between mb-2">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                            <span class="text-3xl font-black text-green-600">${monthStats.avgRating}</span>
+                        </div>
+                        <p class="text-sm font-bold text-green-800">Calificación Promedio</p>
+                        <p class="text-xs text-green-600 mt-1">De 10 puntos</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-red-50 to-rose-100 rounded-xl p-5 border-2 border-red-200 hover:shadow-lg transition cursor-pointer">
+                        <div class="flex items-center justify-between mb-2">
+                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span class="text-3xl font-black text-red-600">${monthStats.detractors}</span>
+                        </div>
+                        <p class="text-sm font-bold text-red-800">Detractores</p>
+                        <p class="text-xs text-red-600 mt-1">Requieren atención</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl p-5 border-2 border-purple-200 hover:shadow-lg transition cursor-pointer">
+                        <div class="flex items-center justify-between mb-2">
+                            <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-3xl font-black text-purple-600">${monthStats.promoters}</span>
+                        </div>
+                        <p class="text-sm font-bold text-purple-800">Promotores</p>
+                        <p class="text-xs text-purple-600 mt-1">Satisfechos</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-5 border-2 border-orange-200 hover:shadow-lg transition cursor-pointer">
+                        <div class="flex items-center justify-between mb-2">
+                            <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span class="text-3xl font-black text-orange-600">${monthStats.withRecovery}</span>
+                        </div>
+                        <p class="text-sm font-bold text-orange-800">Con Recuperación</p>
+                        <p class="text-xs text-orange-600 mt-1">Acciones aplicadas</p>
+                    </div>
+                </div>
+
+                <!-- Progreso del mes -->
+                <div class="mt-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-bold text-gray-700">Progreso del Mes</span>
+                        <span class="text-sm font-bold text-indigo-600">${new Date().getDate()} / ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} días</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-4 rounded-full transition-all duration-500"
+                             style="width: ${((new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()) * 100).toFixed(1)}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};
                                     <div>
                                         <span class="text-gray-500">Última actualización:</span>
                                         <br><span class="font-medium">${airportMetrics ? new Date(airportMetrics.ultima_actualizacion).toLocaleString('es-PE') : 'N/A'}</span>
