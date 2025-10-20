@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HVC Tracker CRM - Sistema de Gestión de Pasajeros de Alto Valor</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Main App Container -->
+    <div id="app"></div>
+
+    <!-- Módulos ES6 -->
+    <script type="module">
+        // Importar controlador principal de la aplicación
+        import * as App from './src/app.js';
+
+        // Exponer App globalmente para onclick handlers en el HTML
+        window.App = App;
+
+        // Inicializar aplicación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+</html>

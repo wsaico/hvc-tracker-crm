@@ -249,62 +249,6 @@ const renderRegisterView = () => {
         </div>
     `;
 };
-    return `
-        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
-            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in">
-                <div class="text-center mb-8">
-                    <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                        </svg>
-                    </div>
-                    <h1 class="text-3xl font-bold text-gray-800">HVC Tracker</h1>
-                    <p class="text-gray-600 mt-2">Sistema de Gestión de Pasajeros de Alto Valor</p>
-                </div>
-
-                <form id="loginForm" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
-                        <input type="text" id="username" required placeholder="Ingrese su usuario"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-                        <input type="password" id="password" required placeholder="Ingrese su contraseña"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <button type="submit"
-                            class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        </svg>
-                        Iniciar Sesión
-                    </button>
-                </form>
-
-                <div class="mt-6 text-center">
-                    <button onclick="showRegisterForm()"
-                            class="text-blue-600 hover:text-blue-700 font-medium">
-                        ¿No tienes cuenta? Regístrate aquí
-                    </button>
-                </div>
-
-                <!-- Información de usuarios de prueba -->
-                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-3">👥 Usuarios de Prueba</h4>
-                    <div class="text-xs text-gray-600 space-y-1">
-                        <div><strong>Jauja (JAU):</strong> supervisor_jau / agente_jau</div>
-                        <div><strong>Tacna (TCQ):</strong> supervisor_tcq / agente_tcq</div>
-                        <div><strong>Talara (TYL):</strong> supervisor_tyl / agente_tyl</div>
-                        <div class="mt-2 text-yellow-600"><em>Contraseña: admin123 (todos)</em></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-};
 
 /**
  * Renderiza la barra de navegación
