@@ -132,7 +132,7 @@ const renderLoginView = () => {
                 </form>
 
                 <div class="mt-6 text-center">
-                    <button onclick="showRegisterForm()"
+                    <button onclick="App.showRegisterForm()"
                             class="text-blue-600 hover:text-blue-700 font-medium">
                         ¿No tienes cuenta? Regístrate aquí
                     </button>
@@ -240,7 +240,7 @@ const renderRegisterView = () => {
                 </form>
 
                 <div class="mt-6 text-center">
-                    <button onclick="showLoginForm()"
+                    <button onclick="App.showLoginForm()"
                             class="text-green-600 hover:text-green-700 font-medium">
                         ¿Ya tienes cuenta? Inicia sesión
                     </button>
