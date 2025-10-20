@@ -762,198 +762,322 @@ window.editPassenger = async function(passengerId) {
 // Función para mostrar modal de edición de pasajero
 function showEditPassengerModal(passenger) {
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Editar Información del Pasajero: ${passenger.nombre}
-                    </h2>
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold mb-2 flex items-center">
+                            <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Editar Pasajero
+                        </h2>
+                        <p class="text-blue-100 text-sm sm:text-base">${passenger.nombre} • ${passenger.dni_pasaporte}</p>
+                    </div>
                     <button onclick="this.closest('.fixed').remove()"
-                            class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="text-white hover:text-gray-200 transition">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
 
-                <form id="editPassengerForm" class="space-y-6">
-                    <!-- Información Básica -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Básica</h3>
+                <!-- Tabs de navegación -->
+                <div class="flex gap-2 mt-6 overflow-x-auto scrollbar-hide">
+                    <button type="button" onclick="switchEditTab('basic')"
+                            class="edit-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition active"
+                            data-tab="basic">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            Básico
+                        </span>
+                    </button>
+                    <button type="button" onclick="switchEditTab('contact')"
+                            class="edit-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                            data-tab="contact">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                            Contacto
+                        </span>
+                    </button>
+                    <button type="button" onclick="switchEditTab('preferences')"
+                            class="edit-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                            data-tab="preferences">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            Preferencias
+                        </span>
+                    </button>
+                    <button type="button" onclick="switchEditTab('medical')"
+                            class="edit-tab-btn px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition"
+                            data-tab="medical">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Médico
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <form id="editPassengerForm" class="overflow-y-auto" style="max-height: calc(95vh - 250px);">
+                <div class="p-6">
+                    <!-- Tab: Básico -->
+                    <div id="edit-tab-basic" class="edit-tab-content active space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre Completo *</label>
                                 <input type="text" id="editNombre" required value="${passenger.nombre || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">DNI/Pasaporte *</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">DNI/Pasaporte *</label>
                                 <input type="text" id="editDniPasaporte" required value="${passenger.dni_pasaporte || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría HVC *</label>
-                                <select id="editCategoria" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría HVC *</label>
+                                <select id="editCategoria" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                                     <option value="">Seleccione categoría...</option>
-                                    <option value="SIGNATURE" ${passenger.categoria === 'SIGNATURE' ? 'selected' : ''}>SIGNATURE</option>
-                                    <option value="TOP" ${passenger.categoria === 'TOP' ? 'selected' : ''}>TOP</option>
-                                    <option value="BLACK" ${passenger.categoria === 'BLACK' ? 'selected' : ''}>BLACK</option>
-                                    <option value="PLATINUM" ${passenger.categoria === 'PLATINUM' ? 'selected' : ''}>PLATINUM</option>
-                                    <option value="GOLD PLUS" ${passenger.categoria === 'GOLD PLUS' ? 'selected' : ''}>GOLD PLUS</option>
-                                    <option value="GOLD" ${passenger.categoria === 'GOLD' ? 'selected' : ''}>GOLD</option>
+                                    <option value="SIGNATURE" ${passenger.categoria === 'SIGNATURE' ? 'selected' : ''}>🌟 SIGNATURE</option>
+                                    <option value="TOP" ${passenger.categoria === 'TOP' ? 'selected' : ''}>⭐ TOP</option>
+                                    <option value="BLACK" ${passenger.categoria === 'BLACK' ? 'selected' : ''}>⚫ BLACK</option>
+                                    <option value="PLATINUM" ${passenger.categoria === 'PLATINUM' ? 'selected' : ''}>💎 PLATINUM</option>
+                                    <option value="GOLD PLUS" ${passenger.categoria === 'GOLD PLUS' ? 'selected' : ''}>🥇 GOLD PLUS</option>
+                                    <option value="GOLD" ${passenger.categoria === 'GOLD' ? 'selected' : ''}>🏅 GOLD</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha de Nacimiento</label>
                                 <input type="date" id="editFechaNacimiento" value="${passenger.fecha_nacimiento ? passenger.fecha_nacimiento.split('T')[0] : ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Información de Contacto -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Contacto</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                                <input type="tel" id="editTelefono" value="${passenger.telefono || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input type="email" id="editEmail" value="${passenger.email || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Información de Pasaporte -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Pasaporte</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Número de Pasaporte</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Número de Pasaporte</label>
                                 <input type="text" id="editNumeroPasaporte" value="${passenger.numero_pasaporte || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nacionalidad</label>
                                 <input type="text" id="editNacionalidad" value="${passenger.nacionalidad || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        placeholder="Ej: Peruana, Estadounidense"
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Emisión</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Emisión Pasaporte</label>
                                 <input type="date" id="editFechaEmisionPasaporte" value="${passenger.fecha_emision_pasaporte ? passenger.fecha_emision_pasaporte.split('T')[0] : ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Vencimiento</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Vencimiento Pasaporte</label>
                                 <input type="date" id="editFechaVencimientoPasaporte" value="${passenger.fecha_vencimiento_pasaporte ? passenger.fecha_vencimiento_pasaporte.split('T')[0] : ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Información Médica -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Médica</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
-                                <textarea id="editAlergias" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.alergias || ''}</textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Restricciones Médicas</label>
-                                <textarea id="editRestriccionesMedicas" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.restricciones_medicas || ''}</textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contacto de Emergencia -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Contacto de Emergencia</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Contacto</label>
-                                <input type="text" id="editContactoEmergenciaNombre" value="${passenger.contacto_emergencia_nombre || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono de Emergencia</label>
-                                <input type="tel" id="editContactoEmergenciaTelefono" value="${passenger.contacto_emergencia_telefono || ''}"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gustos y Preferencias -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Gustos y Preferencias</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Gustos (JSON)</label>
-                                <textarea id="editGustos" rows="3" placeholder='{"bebida": "agua mineral", "comida": "vegetariana"}'
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.gustos ? JSON.stringify(passenger.gustos, null, 2) : ''}</textarea>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Preferencias (JSON)</label>
-                                <textarea id="editPreferencias" rows="3" placeholder='{"asiento": "ventana", "servicio": "fast track"}'
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.preferencias ? JSON.stringify(passenger.preferencias, null, 2) : ''}</textarea>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Idiomas (separados por coma)</label>
-                            <input type="text" id="editIdiomas" value="${passenger.idiomas ? passenger.idiomas.join(', ') : ''}"
-                                    placeholder="Español, Inglés, Francés"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        </div>
-                    </div>
-
-                    <!-- Foto -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Foto del Pasajero</h3>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">URL de la Foto</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">URL de Foto</label>
                             <input type="url" id="editFotoUrl" value="${passenger.foto_url || ''}"
                                     placeholder="https://ejemplo.com/foto.jpg"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                         </div>
                     </div>
 
-                    <!-- Notas Especiales -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Notas Especiales</h3>
+                    <!-- Tab: Contacto -->
+                    <div id="edit-tab-contact" class="edit-tab-content space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📱 Teléfono</label>
+                                <input type="tel" id="editTelefono" value="${passenger.telefono || ''}"
+                                        placeholder="+51 999 999 999"
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📧 Email</label>
+                                <input type="email" id="editEmail" value="${passenger.email || ''}"
+                                        placeholder="pasajero@ejemplo.com"
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            </div>
+                        </div>
+                        <div class="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Contacto de Emergencia
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre del Contacto</label>
+                                    <input type="text" id="editContactoEmergenciaNombre" value="${passenger.contacto_emergencia_nombre || ''}"
+                                            placeholder="Nombre completo"
+                                            class="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Teléfono de Emergencia</label>
+                                    <input type="tel" id="editContactoEmergenciaTelefono" value="${passenger.contacto_emergencia_telefono || ''}"
+                                            placeholder="+51 999 999 999"
+                                            class="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Preferencias -->
+                    <div id="edit-tab-preferences" class="edit-tab-content space-y-4">
+                        <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                Gustos del Pasajero
+                            </h4>
+                            <textarea id="editGustos" rows="4"
+                                    placeholder='{"bebida": "vino tinto", "comida": "vegetariana", "entretenimiento": "películas"}'
+                                    class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition font-mono text-sm">${passenger.gustos ? JSON.stringify(passenger.gustos, null, 2) : ''}</textarea>
+                            <p class="text-xs text-gray-500 mt-2">💡 Formato JSON. Ej: {"bebida": "agua mineral", "comida": "vegetariana"}</p>
+                        </div>
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                                </svg>
+                                Preferencias de Servicio
+                            </h4>
+                            <textarea id="editPreferencias" rows="4"
+                                    placeholder='{"asiento": "ventana", "servicio": "fast track", "sala_vip": true}'
+                                    class="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-mono text-sm">${passenger.preferencias ? JSON.stringify(passenger.preferencias, null, 2) : ''}</textarea>
+                            <p class="text-xs text-gray-500 mt-2">💡 Formato JSON. Ej: {"asiento": "ventana", "servicio": "fast track"}</p>
+                        </div>
                         <div>
-                            <textarea id="editNotasEspeciales" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.notas_especiales || ''}</textarea>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">🌐 Idiomas (separados por coma)</label>
+                            <input type="text" id="editIdiomas" value="${passenger.idiomas ? passenger.idiomas.join(', ') : ''}"
+                                    placeholder="Español, Inglés, Francés"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Notas Especiales</label>
+                            <textarea id="editNotasEspeciales" rows="3"
+                                    placeholder="Información adicional relevante sobre el pasajero..."
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">${passenger.notas_especiales || ''}</textarea>
                         </div>
                     </div>
 
-                    <!-- Botones -->
-                    <div class="flex space-x-4 pt-4">
+                    <!-- Tab: Médico -->
+                    <div id="edit-tab-medical" class="edit-tab-content space-y-4">
+                        <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Información Médica Crítica
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">🚨 Alergias</label>
+                                    <textarea id="editAlergias" rows="3"
+                                            placeholder="Ej: Alergia al maní, intolerancia a la lactosa..."
+                                            class="w-full px-4 py-3 border-2 border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition">${passenger.alergias || ''}</textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">⚕️ Restricciones Médicas</label>
+                                    <textarea id="editRestriccionesMedicas" rows="3"
+                                            placeholder="Ej: Requiere silla de ruedas, necesita oxígeno..."
+                                            class="w-full px-4 py-3 border-2 border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition">${passenger.restricciones_medicas || ''}</textarea>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                                <p class="text-xs text-yellow-800 flex items-start gap-2">
+                                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span>Esta información es confidencial y solo se usa para garantizar la seguridad del pasajero durante el viaje.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t-2 border-gray-200 mt-6">
                         <button type="submit"
-                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition font-bold text-lg flex items-center justify-center shadow-lg hover:shadow-xl">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             Guardar Cambios
                         </button>
                         <button type="button" onclick="this.closest('.fixed').remove()"
-                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                                class="flex-1 sm:flex-initial bg-gray-500 text-white px-6 py-4 rounded-xl hover:bg-gray-600 transition font-bold">
                             Cancelar
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     `;
 
     document.body.appendChild(modal);
+
+    // Agregar estilos para tabs
+    const style = document.createElement('style');
+    style.textContent = `
+        .edit-tab-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .edit-tab-btn.active {
+            background-color: white;
+            color: #2563eb;
+            border-color: white;
+        }
+        .edit-tab-btn:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .edit-tab-content {
+            display: none;
+        }
+        .edit-tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Función para cambiar tabs
+    window.switchEditTab = function(tabName) {
+        // Actualizar botones
+        document.querySelectorAll('.edit-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+        // Actualizar contenido
+        document.querySelectorAll('.edit-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`edit-tab-${tabName}`).classList.add('active');
+    };
 
     // Configurar el handler del formulario
     document.getElementById('editPassengerForm').addEventListener('submit', async (e) => {
