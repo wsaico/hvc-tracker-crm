@@ -239,7 +239,8 @@ LEFT JOIN LATERAL (
 
 -- Función para obtener edad de pasajero
 CREATE OR REPLACE FUNCTION get_passenger_age(birth_date DATE)
-RETURNS INTEGER AS $$
+RETURNS INTEGER AS
+$$
 BEGIN
     RETURN EXTRACT(YEAR FROM age(birth_date));
 END;
@@ -247,7 +248,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Función para verificar cumpleaños
 CREATE OR REPLACE FUNCTION is_birthday_today(birth_date DATE)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN AS
+$$
 BEGIN
     RETURN EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM CURRENT_DATE)
        AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM CURRENT_DATE);
@@ -256,7 +258,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Función para verificar pasaportes próximos a vencer (30 días)
 CREATE OR REPLACE FUNCTION is_passport_expiring_soon(expiry_date DATE)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN AS
+$$
 BEGIN
     RETURN expiry_date <= CURRENT_DATE + INTERVAL '30 days';
 END;
@@ -264,7 +267,8 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Función para obtener preferencias de un pasajero por tipo
 CREATE OR REPLACE FUNCTION get_passenger_preferences(passenger_id UUID, pref_type TEXT)
-RETURNS JSONB AS $$
+RETURNS JSONB AS
+$$
 DECLARE
     result JSONB;
 BEGIN
