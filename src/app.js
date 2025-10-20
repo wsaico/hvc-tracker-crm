@@ -3574,8 +3574,18 @@ const renderPassengerTrackingView = async () => {
                 const previousInteraction = interactions[1];
                 const previousRating = previousInteraction.calificacion_medallia;
 
+                // DEBUG: Log para ver qué pasa
+                console.log('DEBUG Pasajero:', passenger.nombre, {
+                    interacciones: interactions.length,
+                    fechas: interactions.map(i => ({ fecha: i.fecha, rating: i.calificacion_medallia })),
+                    calificacionAnterior: previousRating,
+                    calificacionActual: latestRating,
+                    esRecuperado: (previousRating && previousRating <= 6 && latestRating > 6)
+                });
+
                 // RECUPERADO: tenía calificación baja (≤6) y ahora mejoró (>6)
                 if (previousRating && previousRating <= 6 && latestRating > 6) {
+                    console.log('✅ RECUPERADO detectado:', passenger.nombre, previousRating, '→', latestRating);
                     passengersRecovered.push({
                         ...passenger,
                         previousRating: previousRating,
@@ -3628,6 +3638,18 @@ const renderPassengerTrackingView = async () => {
 
         // Ordenar por fecha (más reciente primero)
         recentInteractions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        // DEBUG: Resumen final
+        console.log('📊 RESUMEN TRACKING:', {
+            totalPasajeros: passengers.length,
+            totalInteracciones: interactions.length,
+            enRiesgo: passengersAtRisk.length,
+            recuperados: passengersRecovered.length,
+            cumpleaños: birthdayPassengers.length,
+            recientes24h: recentInteractions.length
+        });
+        console.log('✅ Pasajeros recuperados:', passengersRecovered.map(p => p.nombre));
+        console.log('⚠️ Pasajeros en riesgo:', passengersAtRisk.map(p => p.nombre));
 
         return `
             <div class="max-w-7xl mx-auto p-4 sm:p-6">
