@@ -609,6 +609,283 @@ function showEditPassengerModal(passenger) {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
                                 <input type="text" id="editNombre" required value="${passenger.nombre || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">DNI/Pasaporte *</label>
+                                <input type="text" id="editDniPasaporte" required value="${passenger.dni_pasaporte || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría HVC *</label>
+                                <select id="editCategoria" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">Seleccione categoría...</option>
+                                    <option value="SIGNATURE" ${passenger.categoria === 'SIGNATURE' ? 'selected' : ''}>SIGNATURE</option>
+                                    <option value="TOP" ${passenger.categoria === 'TOP' ? 'selected' : ''}>TOP</option>
+                                    <option value="BLACK" ${passenger.categoria === 'BLACK' ? 'selected' : ''}>BLACK</option>
+                                    <option value="PLATINUM" ${passenger.categoria === 'PLATINUM' ? 'selected' : ''}>PLATINUM</option>
+                                    <option value="GOLD PLUS" ${passenger.categoria === 'GOLD PLUS' ? 'selected' : ''}>GOLD PLUS</option>
+                                    <option value="GOLD" ${passenger.categoria === 'GOLD' ? 'selected' : ''}>GOLD</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+                                <input type="date" id="editFechaNacimiento" value="${passenger.fecha_nacimiento ? passenger.fecha_nacimiento.split('T')[0] : ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Contacto -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Contacto</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                                <input type="tel" id="editTelefono" value="${passenger.telefono || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" id="editEmail" value="${passenger.email || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Pasaporte -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información de Pasaporte</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Número de Pasaporte</label>
+                                <input type="text" id="editNumeroPasaporte" value="${passenger.numero_pasaporte || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidad</label>
+                                <input type="text" id="editNacionalidad" value="${passenger.nacionalidad || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Emisión</label>
+                                <input type="date" id="editFechaEmisionPasaporte" value="${passenger.fecha_emision_pasaporte ? passenger.fecha_emision_pasaporte.split('T')[0] : ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Vencimiento</label>
+                                <input type="date" id="editFechaVencimientoPasaporte" value="${passenger.fecha_vencimiento_pasaporte ? passenger.fecha_vencimiento_pasaporte.split('T')[0] : ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información Médica -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Médica</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
+                                <textarea id="editAlergias" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.alergias || ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Restricciones Médicas</label>
+                                <textarea id="editRestriccionesMedicas" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.restricciones_medicas || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contacto de Emergencia -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Contacto de Emergencia</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Contacto</label>
+                                <input type="text" id="editContactoEmergenciaNombre" value="${passenger.contacto_emergencia_nombre || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono de Emergencia</label>
+                                <input type="tel" id="editContactoEmergenciaTelefono" value="${passenger.contacto_emergencia_telefono || ''}"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gustos y Preferencias -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Gustos y Preferencias</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Gustos (JSON)</label>
+                                <textarea id="editGustos" rows="3" placeholder='{"bebida": "agua mineral", "comida": "vegetariana"}'
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.gustos ? JSON.stringify(passenger.gustos, null, 2) : ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Preferencias (JSON)</label>
+                                <textarea id="editPreferencias" rows="3" placeholder='{"asiento": "ventana", "servicio": "fast track"}'
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">${passenger.preferencias ? JSON.stringify(passenger.preferencias, null, 2) : ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Idiomas (separados por coma)</label>
+                            <input type="text" id="editIdiomas" value="${passenger.idiomas ? passenger.idiomas.join(', ') : ''}"
+                                    placeholder="Español, Inglés, Francés"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Foto -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Foto del Pasajero</h3>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URL de la Foto</label>
+                            <input type="url" id="editFotoUrl" value="${passenger.foto_url || ''}"
+                                    placeholder="https://ejemplo.com/foto.jpg"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Notas Especiales -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Notas Especiales</h3>
+                        <div>
+                            <textarea id="editNotasEspeciales" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${passenger.notas_especiales || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit"
+                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Guardar Cambios
+                        </button>
+                        <button type="button" onclick="this.closest('.fixed').remove()"
+                                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Configurar el handler del formulario
+    document.getElementById('editPassengerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await savePassengerChanges(passenger.id);
+    });
+}
+
+// Función para guardar cambios del pasajero
+async function savePassengerChanges(passengerId) {
+    try {
+        // Recopilar datos del formulario
+        const formData = {
+            nombre: document.getElementById('editNombre').value.trim(),
+            dni_pasaporte: document.getElementById('editDniPasaporte').value.trim(),
+            categoria: document.getElementById('editCategoria').value,
+            fecha_nacimiento: document.getElementById('editFechaNacimiento').value || null,
+            telefono: document.getElementById('editTelefono').value.trim() || null,
+            email: document.getElementById('editEmail').value.trim() || null,
+            numero_pasaporte: document.getElementById('editNumeroPasaporte').value.trim() || null,
+            nacionalidad: document.getElementById('editNacionalidad').value.trim() || null,
+            fecha_emision_pasaporte: document.getElementById('editFechaEmisionPasaporte').value || null,
+            fecha_vencimiento_pasaporte: document.getElementById('editFechaVencimientoPasaporte').value || null,
+            alergias: document.getElementById('editAlergias').value.trim() || null,
+            restricciones_medicas: document.getElementById('editRestriccionesMedicas').value.trim() || null,
+            contacto_emergencia_nombre: document.getElementById('editContactoEmergenciaNombre').value.trim() || null,
+            contacto_emergencia_telefono: document.getElementById('editContactoEmergenciaTelefono').value.trim() || null,
+            foto_url: document.getElementById('editFotoUrl').value.trim() || null,
+            notas_especiales: document.getElementById('editNotasEspeciales').value.trim() || null
+        };
+
+        // Procesar JSON
+        try {
+            const gustosText = document.getElementById('editGustos').value.trim();
+            formData.gustos = gustosText ? JSON.parse(gustosText) : {};
+        } catch (error) {
+            showNotification('Error en formato JSON de gustos', 'error');
+            return;
+        }
+
+        try {
+            const preferenciasText = document.getElementById('editPreferencias').value.trim();
+            formData.preferencias = preferenciasText ? JSON.parse(preferenciasText) : {};
+        } catch (error) {
+            showNotification('Error en formato JSON de preferencias', 'error');
+            return;
+        }
+
+        // Procesar idiomas
+        const idiomasText = document.getElementById('editIdiomas').value.trim();
+        formData.idiomas = idiomasText ? idiomasText.split(',').map(lang => lang.trim()).filter(lang => lang) : [];
+
+        // Importar validaciones
+        const { validatePassengerData } = await import('./utils/validators.js');
+
+        // Validar datos
+        const validation = validatePassengerData(formData);
+        if (!validation.isValid) {
+            showNotification(`Errores de validación: ${validation.errors.join(', ')}`, 'error');
+            return;
+        }
+
+        // Actualizar pasajero
+        await ApiService.updatePassenger(passengerId, formData);
+
+        showNotification('Pasajero actualizado exitosamente', 'success');
+
+        // Cerrar modal y refrescar vista
+        document.querySelector('.fixed').remove();
+
+        // Refrescar la vista actual
+        const state = StateManager.getState();
+        if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
+            render();
+        }
+
+    } catch (error) {
+        console.error('Error saving passenger changes:', error);
+        showNotification('Error al guardar cambios', 'error');
+    }
+}
+
+// Función para mostrar modal de edición de pasajero
+function showEditPassengerModal(passenger) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar Información del Pasajero: ${passenger.nombre}
+                    </h2>
+                    <button onclick="this.closest('.fixed').remove()"
+                            class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="editPassengerForm" class="space-y-6">
+                    <!-- Información Básica -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Información Básica</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
+                                <input type="text" id="editNombre" required value="${passenger.nombre || ''}"
                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             <div>
@@ -867,7 +1144,7 @@ function showPassengerModal(passenger, interactions) {
                     <div class="flex items-center space-x-4">
                         ${passenger.foto_url ? `
                             <img src="${passenger.foto_url}" alt="Foto de ${passenger.nombre}"
-                                 class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
+                                  class="w-16 h-16 rounded-full object-cover border-2 border-gray-200">
                         ` : `
                             <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center">
                                 <span class="text-white font-bold text-xl">${passenger.nombre.charAt(0)}</span>
@@ -894,7 +1171,14 @@ function showPassengerModal(passenger, interactions) {
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
-                            Editar
+                            Editar Información
+                        </button>
+                        <button onclick="startPassengerInteraction('${passenger.id}')"
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            Atención
                         </button>
                         <button onclick="this.closest('.fixed').remove()"
                                 class="text-gray-400 hover:text-gray-600">
