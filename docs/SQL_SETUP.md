@@ -55,8 +55,8 @@ CREATE TABLE flight_passengers (
     UNIQUE(vuelo_id, pasajero_id)
 );
 
--- Tabla de usuarios
-CREATE TABLE users (
+-- Tabla de usuarios (SOLO ESTA TABLA SI LAS DEMÁS YA EXISTEN)
+CREATE TABLE IF NOT EXISTS users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -308,30 +308,25 @@ CREATE POLICY "Only supervisors insert flights" ON flights
 
 ## 🎯 Próximos Pasos
 
-1. ✅ Ejecuta el script SQL completo (incluye tabla users)
-2. ✅ Verifica que las tablas se crearon (6 tablas)
+1. ✅ Ejecuta SOLO la tabla `users` (si ya tienes las otras tablas)
+2. ✅ Verifica que la tabla `users` se creó
 3. ✅ Copia las credenciales de Supabase
 4. ✅ Actualiza `src/config/supabase.js`
-5. ✅ Configura contraseñas reales para usuarios
-6. ✅ Inicia el servidor local
-7. ✅ Abre `index-modular.html`
-8. ✅ ¡Disfruta de tu sistema seguro con autenticación!
+5. ✅ Inicia el servidor local
+6. ✅ Abre `index-modular.html`
+7. ✅ ¡Disfruta de tu sistema seguro con autenticación!
 
 ## 🔐 Usuarios Iniciales
 
-Después de ejecutar el script, configura las contraseñas reales:
-
-```sql
--- Actualizar contraseñas con hash real (usa bcrypt)
-UPDATE users SET password_hash = '$2b$10$TU_HASH_REAL_AQUI' WHERE username = 'supervisor_jau';
-UPDATE users SET password_hash = '$2b$10$TU_HASH_REAL_AQUI' WHERE username = 'agente_jau';
--- Repite para todos los usuarios
-```
+Los usuarios ya están incluidos en el script con contraseña `admin123`:
 
 **Usuarios disponibles:**
-- **JAU (Jauja)**: supervisor_jau / agente_jau
-- **TCQ (Tacna)**: supervisor_tcq / agente_tcq
-- **TYL (Talara)**: supervisor_tyl / agente_tyl
+- **JAU (Jauja)**: supervisor_jau / admin123 → "Supervisor Jauja"
+- **JAU (Jauja)**: agente_jau / admin123 → "Wilber Saico" ✅
+- **TCQ (Tacna)**: supervisor_tcq / admin123 → "Supervisor Tacna"
+- **TCQ (Tacna)**: agente_tcq / admin123 → "Agente Tacna"
+- **TYL (Talara)**: supervisor_tyl / admin123 → "Supervisor Talara"
+- **TYL (Talara)**: agente_tyl / admin123 → "Agente Talara"
 
 ## 📚 Documentación Supabase
 
