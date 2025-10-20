@@ -517,21 +517,123 @@ export const getAirportInteractions = async (aeropuertoId, startDate, endDate) =
 };
 
 /**
- * Obtiene métricas del aeropuerto desde la vista
+ * Calcula métricas del aeropuerto en tiempo real
  * @param {string} aeropuertoId - ID del aeropuerto
- * @returns {Promise<Object>} Métricas del aeropuerto
+ * @returns {Promise<Object>} Métricas calculadas del aeropuerto
  */
 export const getAirportMetrics = async (aeropuertoId) => {
     try {
-        const { data, error } = await client
-            .from('airport_metrics')
-            .select('*')
-            .eq('id', aeropuertoId)
-            .single();
+        // Obtener datos en paralelo para mejor rendimiento
+        const [interactions, passengers] = await Promise.all([
+            getAirportInteractions(aeropuertoId),
+            getAllPassengers(aeropuertoId)
+        ]);
 
-        if (error) throw error;
-        return data;
+        // Calcular métricas básicas
+        const totalInteractions = interactions.length;
+        const totalPassengers = passengers.length;
+
+        // Calcular calificación promedio
+        const withMedallia = interactions.filter(i => i.calificacion_medallia);
+        const avgMedallia = withMedallia.length > 0
+            ? (withMedallia.reduce((sum, i) => sum + i.calificacion_medallia, 0) / withMedallia.length).toFixed(1)
+            : 0;
+
+        // Pasajeros en riesgo (última calificación baja)
+        const passengersAtRisk = withMedallia.filter(i => i.calificacion_medallia < CONSTANTS.MEDALLIA_THRESHOLDS.GOOD).length;
+
+        // Tasa de recuperación
+        const recoveryActions = interactions.filter(i => i.acciones_recuperacion?.trim()).length;
+        const recoveryRate = passengersAtRisk > 0
+            ? ((recoveryActions / passengersAtRisk) * 100).toFixed(1)
+            : 0;
+
+        // Cumpleaños del día
+        const today = new Date();
+        const cumpleanosHoy = passengers.filter(p =>
+            p.fecha_nacimiento &&
+            new Date(p.fecha_nacimiento).getMonth() === today.getMonth() &&
+            new Date(p.fecha_nacimiento).getDate() === today.getDate()
+        ).length;
+
+        // Pasaportes por vencer (próximos 30 días)
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        const pasaportesPorVencer = passengers.filter(p =>
+            p.fecha_vencimiento_pasaporte &&
+            new Date(p.fecha_vencimiento_pasaporte) <= thirtyDaysFromNow &&
+            new Date(p.fecha_vencimiento_pasaporte) >= today
+        ).length;
+
+        // Distribución por categoría
+        const categoryCount = {};
+        passengers.forEach(p => {
+            categoryCount[p.categoria] = (categoryCount[p.categoria] || 0) + 1;
+        });
+
+        // Tendencia de calificaciones (últimos 30 días)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentInteractions = interactions.filter(i =>
+            i.calificacion_medallia && new Date(i.fecha) >= thirtyDaysAgo
+        );
+
+        const trendData = [];
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+
+            const dayInteractions = recentInteractions.filter(i =>
+                i.fecha.startsWith(dateStr)
+            );
+
+            const avg = dayInteractions.length > 0
+                ? (dayInteractions.reduce((sum, i) => sum + i.calificacion_medallia, 0) / dayInteractions.length).toFixed(1)
+                : null;
+
+            trendData.push({
+                date: dateStr,
+                avg: avg,
+                count: dayInteractions.length
+            });
+        }
+
+        // Métricas de servicios utilizados
+        const serviciosCount = {};
+        interactions.forEach(i => {
+            if (i.servicios_utilizados) {
+                i.servicios_utilizados.forEach(s => {
+                    serviciosCount[s] = (serviciosCount[s] || 0) + 1;
+                });
+            }
+        });
+
+        // Motivos de viaje
+        const motivoCount = {};
+        interactions.forEach(i => {
+            if (i.motivo_viaje) {
+                motivoCount[i.motivo_viaje] = (motivoCount[i.motivo_viaje] || 0) + 1;
+            }
+        });
+
+        return {
+            id: aeropuertoId,
+            total_interacciones: totalInteractions,
+            total_pasajeros: totalPassengers,
+            calificacion_promedio: parseFloat(avgMedallia),
+            pasajeros_en_riesgo: passengersAtRisk,
+            tasa_recuperacion: parseFloat(recoveryRate),
+            cumpleanos_hoy: cumpleanosHoy,
+            pasaportes_por_vencer: pasaportesPorVencer,
+            distribucion_categoria: categoryCount,
+            tendencia_calificaciones: trendData,
+            servicios_utilizados: serviciosCount,
+            motivos_viaje: motivoCount,
+            ultima_actualizacion: new Date().toISOString()
+        };
     } catch (error) {
+        console.error('Error calculating airport metrics:', error);
         handleError('getAirportMetrics', error);
         return null;
     }

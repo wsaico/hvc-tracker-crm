@@ -1784,16 +1784,22 @@ const renderDashboardView = async () => {
         totalInteractions: 0,
         totalPassengers: 0,
         avgMedallia: 0,
-        passengersAtRisk: 0
+        passengersAtRisk: 0,
+        recoveryRate: 0,
+        categoryCount: {},
+        motivoCount: {},
+        serviciosCount: {},
+        trendData: []
     };
 
     let airportMetrics = null;
+    let performanceInsights = [];
 
     // Intentar cargar métricas reales si la BD está disponible
     if (window.DB_AVAILABLE) {
         try {
             const state = StateManager.getState();
-            // Usar la nueva función getAirportMetrics para obtener métricas filtradas por aeropuerto
+            // Usar la nueva función getAirportMetrics para obtener métricas calculadas en tiempo real
             airportMetrics = await ApiService.getAirportMetrics(state.currentAirport);
 
             if (airportMetrics) {
@@ -1801,10 +1807,18 @@ const renderDashboardView = async () => {
                     totalInteractions: airportMetrics.total_interacciones || 0,
                     totalPassengers: airportMetrics.total_pasajeros || 0,
                     avgMedallia: airportMetrics.calificacion_promedio || 0,
-                    passengersAtRisk: airportMetrics.pasajeros_en_riesgo || 0
+                    passengersAtRisk: airportMetrics.pasajeros_en_riesgo || 0,
+                    recoveryRate: airportMetrics.tasa_recuperacion || 0,
+                    categoryCount: airportMetrics.distribucion_categoria || {},
+                    motivoCount: airportMetrics.motivos_viaje || {},
+                    serviciosCount: airportMetrics.servicios_utilizados || {},
+                    trendData: airportMetrics.tendencia_calificaciones || []
                 };
+
+                // Generar insights de rendimiento
+                performanceInsights = generatePerformanceInsights(metrics);
             } else {
-                // Fallback a cálculo manual si no hay vista
+                // Fallback a cálculo manual si falla
                 const interactions = await ApiService.getAirportInteractions(state.currentAirport);
                 const passengers = await ApiService.getAllPassengers(state.currentAirport);
                 const businessMetrics = await import('./services/BusinessLogic.js').then(module =>
@@ -1823,13 +1837,106 @@ const renderDashboardView = async () => {
         ? 'Conectado a base de datos Supabase. Datos filtrados por aeropuerto.'
         : 'Las métricas mostradas son datos de ejemplo. Configure Supabase para datos reales.';
 
+    // Función para generar insights de rendimiento
+    function generatePerformanceInsights(metrics) {
+        const insights = [];
+
+        // Análisis de calificación promedio
+        if (metrics.avgMedallia >= 9) {
+            insights.push({
+                type: 'success',
+                icon: '🎉',
+                title: 'Excelente Rendimiento',
+                message: `Calificación promedio de ${metrics.avgMedallia}/10. ¡El aeropuerto está superando las expectativas!`,
+                action: 'Mantener los estándares actuales'
+            });
+        } else if (metrics.avgMedallia >= 7) {
+            insights.push({
+                type: 'warning',
+                icon: '⚠️',
+                title: 'Rendimiento Aceptable',
+                message: `Calificación promedio de ${metrics.avgMedallia}/10. Hay oportunidad de mejora.`,
+                action: 'Implementar programa de capacitación'
+            });
+        } else {
+            insights.push({
+                type: 'danger',
+                icon: '🚨',
+                title: 'Atención Urgente Requerida',
+                message: `Calificación promedio de ${metrics.avgMedallia}/10. Es necesario intervenir inmediatamente.`,
+                action: 'Revisar protocolos de atención al cliente'
+            });
+        }
+
+        // Análisis de pasajeros en riesgo
+        if (metrics.passengersAtRisk > 10) {
+            insights.push({
+                type: 'danger',
+                icon: '🔴',
+                title: 'Alto Número de Pasajeros en Riesgo',
+                message: `${metrics.passengersAtRisk} pasajeros con calificaciones bajas requieren atención inmediata.`,
+                action: 'Priorizar acciones de recuperación'
+            });
+        } else if (metrics.passengersAtRisk > 0) {
+            insights.push({
+                type: 'warning',
+                icon: '🟡',
+                title: 'Pasajeros en Riesgo',
+                message: `${metrics.passengersAtRisk} pasajeros necesitan seguimiento especial.`,
+                action: 'Implementar plan de recuperación'
+            });
+        }
+
+        // Análisis de tasa de recuperación
+        if (metrics.recoveryRate >= 80) {
+            insights.push({
+                type: 'success',
+                icon: '💪',
+                title: 'Excelente Tasa de Recuperación',
+                message: `${metrics.recoveryRate}% de casos de riesgo fueron recuperados exitosamente.`,
+                action: 'Documentar mejores prácticas'
+            });
+        } else if (metrics.recoveryRate < 50) {
+            insights.push({
+                type: 'warning',
+                icon: '📈',
+                title: 'Oportunidad de Mejora',
+                message: `Tasa de recuperación del ${metrics.recoveryRate}%. Se puede mejorar.`,
+                action: 'Revisar estrategias de recuperación'
+            });
+        }
+
+        // Análisis de volumen de interacciones
+        const avgInteractionsPerDay = metrics.totalInteractions / 30;
+        if (avgInteractionsPerDay < 5) {
+            insights.push({
+                type: 'info',
+                icon: '📊',
+                title: 'Bajo Volumen de Atención',
+                message: `Solo ${avgInteractionsPerDay.toFixed(1)} interacciones promedio por día.`,
+                action: 'Considerar estrategias para aumentar engagement'
+            });
+        } else if (avgInteractionsPerDay > 20) {
+            insights.push({
+                type: 'success',
+                icon: '🚀',
+                title: 'Alto Volumen de Atención',
+                message: `${avgInteractionsPerDay.toFixed(1)} interacciones promedio por día.`,
+                action: 'Excelente nivel de servicio al cliente'
+            });
+        }
+
+        return insights.slice(0, 4); // Máximo 4 insights
+    }
+
     return `
         <div class="max-w-7xl mx-auto p-6">
             <div class="mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard HVC Tracker</h2>
-                <p class="text-gray-600">Métricas y estadísticas del aeropuerto</p>
+                <p class="text-gray-600">Métricas inteligentes y análisis de rendimiento</p>
             </div>
 
+            <!-- KPIs Principales -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex items-center">
@@ -1841,6 +1948,7 @@ const renderDashboardView = async () => {
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Total Pasajeros</h3>
                             <p class="text-2xl font-bold text-blue-600">${metrics.totalPassengers || 0}</p>
+                            <p class="text-sm text-gray-500">Registrados en el aeropuerto</p>
                         </div>
                     </div>
                 </div>
@@ -1855,6 +1963,7 @@ const renderDashboardView = async () => {
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Calificación Promedio</h3>
                             <p class="text-2xl font-bold text-green-600">${metrics.avgMedallia || 0}</p>
+                            <p class="text-sm text-gray-500">Escala Medallia (1-10)</p>
                         </div>
                     </div>
                 </div>
@@ -1869,6 +1978,7 @@ const renderDashboardView = async () => {
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Pasajeros en Riesgo</h3>
                             <p class="text-2xl font-bold text-yellow-600">${metrics.passengersAtRisk || 0}</p>
+                            <p class="text-sm text-gray-500">Calificación < 7</p>
                         </div>
                     </div>
                 </div>
@@ -1883,39 +1993,214 @@ const renderDashboardView = async () => {
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-800">Total Interacciones</h3>
                             <p class="text-2xl font-bold text-purple-600">${metrics.totalInteractions || 0}</p>
+                            <p class="text-sm text-gray-500">Atenciones realizadas</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            ${airportMetrics ? `
-                <!-- Métricas adicionales del aeropuerto -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Alertas del Día</h3>
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Cumpleaños del día:</span>
-                                <span class="font-bold text-green-600">${airportMetrics.cumpleanos_hoy || 0}</span>
+            <!-- Insights de Rendimiento -->
+            ${performanceInsights.length > 0 ? `
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                        Insights de Rendimiento
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${performanceInsights.map(insight => `
+                            <div class="p-4 rounded-lg ${insight.type === 'success' ? 'bg-green-50 border-l-4 border-green-400' :
+                                                         insight.type === 'warning' ? 'bg-yellow-50 border-l-4 border-yellow-400' :
+                                                         'bg-blue-50 border-l-4 border-blue-400'}">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        ${insight.icon}
+                                    </div>
+                                    <div class="ml-3">
+                                        <h4 class="text-sm font-medium text-gray-800">${insight.title}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">${insight.message}</p>
+                                        ${insight.action ? `<p class="text-sm font-medium text-blue-600 mt-2">${insight.action}</p>` : ''}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Pasaportes por vencer:</span>
-                                <span class="font-bold text-red-600">${airportMetrics.pasaportes_por_vencer || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Estado del Aeropuerto</h3>
-                        <div class="space-y-2">
-                            <p><strong>Aeropuerto:</strong> ${airportMetrics.nombre || 'N/A'}</p>
-                            <p><strong>Código:</strong> ${airportMetrics.codigo || 'N/A'}</p>
-                            <p><strong>Activo:</strong> <span class="text-green-600">Sí</span></p>
-                        </div>
+                        `).join('')}
                     </div>
                 </div>
             ` : ''}
 
+            <!-- Gráficos y Análisis -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Distribución por Categoría -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Categoría HVC</h3>
+                    <div class="space-y-3">
+                        ${Object.entries(metrics.categoryCount || {}).length > 0 ?
+                            Object.entries(metrics.categoryCount).map(([categoria, count]) => `
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">${categoria}</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-blue-600 h-2 rounded-full" style="width: ${(count / metrics.totalPassengers * 100) || 0}%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-800 w-8 text-right">${count}</span>
+                                    </div>
+                                </div>
+                            `).join('') :
+                            '<p class="text-gray-500 text-sm">No hay datos de categorías disponibles</p>'
+                        }
+                    </div>
+                </div>
+
+                <!-- Servicios Más Utilizados -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Servicios Más Solicitados</h3>
+                    <div class="space-y-3">
+                        ${Object.entries(metrics.serviciosCount || {}).length > 0 ?
+                            Object.entries(metrics.serviciosCount).slice(0, 5).map(([servicio, count]) => `
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">${servicio.replace(/_/g, ' ')}</span>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-green-600 h-2 rounded-full" style="width: ${(count / Math.max(...Object.values(metrics.serviciosCount)) * 100) || 0}%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-800 w-8 text-right">${count}</span>
+                                    </div>
+                                </div>
+                            `).join('') :
+                            '<p class="text-gray-500 text-sm">No hay datos de servicios disponibles</p>'
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tendencia de Calificaciones (últimos 30 días) -->
+            ${metrics.trendData && metrics.trendData.length > 0 ? `
+                <div class="bg-white rounded-lg shadow p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Tendencia de Satisfacción (30 días)</h3>
+                    <div class="h-64">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                    <script>
+                        const ctx = document.getElementById('trendChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
+                                datasets: [{
+                                    label: 'Calificación Promedio',
+                                    data: ${JSON.stringify(metrics.trendData.map(d => d.avg))},
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: false,
+                                        min: 1,
+                                        max: 10,
+                                        ticks: {
+                                            stepSize: 1
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        });
+                    </script>
+                </div>
+            ` : ''}
+
+            <!-- Alertas y Recomendaciones -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Acciones Prioritarias
+                    </h3>
+                    <div class="space-y-3">
+                        ${metrics.passengersAtRisk > 0 ? `
+                            <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-red-800 font-medium">Atender ${metrics.passengersAtRisk} pasajeros en riesgo</span>
+                                    <button onclick="changeView('passenger-tracking')" class="text-red-600 hover:text-red-700 text-sm font-medium">
+                                        Ver lista →
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <span class="text-green-800 font-medium">¡Excelente! No hay pasajeros en riesgo</span>
+                            </div>
+                        `}
+
+                        ${airportMetrics && airportMetrics.cumpleanos_hoy > 0 ? `
+                            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-blue-800 font-medium">${airportMetrics.cumpleanos_hoy} cumpleaños(s) hoy</span>
+                                    <button onclick="changeView('passenger-tracking')" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                        Felicitar →
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${metrics.avgMedallia < 7 ? `
+                            <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <span class="text-yellow-800 font-medium">Mejorar calificación promedio (${metrics.avgMedallia})</span>
+                            </div>
+                        ` : metrics.avgMedallia >= 9 ? `
+                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <span class="text-green-800 font-medium">¡Excelente calificación! (${metrics.avgMedallia})</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Estadísticas del Mes
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tasa de recuperación:</span>
+                            <span class="font-bold ${metrics.recoveryRate >= 70 ? 'text-green-600' : metrics.recoveryRate >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                                ${metrics.recoveryRate}%
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Interacciones promedio/día:</span>
+                            <span class="font-bold text-blue-600">
+                                ${metrics.totalInteractions ? (metrics.totalInteractions / 30).toFixed(1) : 0}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Categoría más frecuente:</span>
+                            <span class="font-bold text-purple-600">
+                                ${Object.entries(metrics.categoryCount || {}).length > 0 ?
+                                    Object.entries(metrics.categoryCount).reduce((a, b) => metrics.categoryCount[a[0]] > metrics.categoryCount[b[0]] ? a : b)[0] :
+                                    'N/A'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado del Sistema -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Estado del Sistema</h3>
                 <div class="bg-${statusColor}-50 border-l-4 border-${statusColor}-400 p-4">
@@ -1932,6 +2217,18 @@ const renderDashboardView = async () => {
                             <p class="text-sm text-${statusColor}-600 mt-1">
                                 ${statusMessage}
                             </p>
+                            ${window.DB_AVAILABLE ? `
+                                <div class="mt-3 grid grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-gray-500">Última actualización:</span>
+                                        <br><span class="font-medium">${airportMetrics ? new Date(airportMetrics.ultima_actualizacion).toLocaleString('es-PE') : 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Datos en tiempo real:</span>
+                                        <br><span class="font-medium text-green-600">✓ Activos</span>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
