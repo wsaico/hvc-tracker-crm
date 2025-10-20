@@ -3575,8 +3575,14 @@ const renderPassengerTrackingView = async () => {
             console.log(`👤 Analizando: ${passenger.nombre} - ${interactions.length} interacción(es)`);
 
             if (hasMultipleInteractions && latestRating) {
-                const previousInteraction = interactions[1];
-                const previousRating = previousInteraction.calificacion_medallia;
+                // Buscar la interacción anterior que tenga calificación (puede no ser la inmediata anterior)
+                let previousRating = null;
+                for (let i = 1; i < interactions.length; i++) {
+                    if (interactions[i].calificacion_medallia !== null && interactions[i].calificacion_medallia !== undefined) {
+                        previousRating = interactions[i].calificacion_medallia;
+                        break; // Encontramos la primera anterior con rating
+                    }
+                }
 
                 // DEBUG: Log para ver qué pasa con stringify para ver todo
                 const debugInfo = {
@@ -3585,17 +3591,17 @@ const renderPassengerTrackingView = async () => {
                     fechas: interactions.map(i => ({ fecha: i.fecha, rating: i.calificacion_medallia })),
                     calificacionAnterior: previousRating,
                     calificacionActual: latestRating,
-                    esRecuperado: (previousRating && previousRating <= 6 && latestRating > 6),
+                    esRecuperado: (previousRating !== null && previousRating <= 6 && latestRating > 6),
                     condiciones: {
-                        previousRatingExiste: !!previousRating,
-                        previousRatingMenorIgual6: previousRating <= 6,
+                        previousRatingExiste: previousRating !== null,
+                        previousRatingMenorIgual6: previousRating !== null && previousRating <= 6,
                         latestRatingMayor6: latestRating > 6
                     }
                 };
                 console.log('🔍 DEBUG Pasajero:', JSON.stringify(debugInfo, null, 2));
 
                 // RECUPERADO: tenía calificación baja (≤6) y ahora mejoró (>6)
-                if (previousRating && previousRating <= 6 && latestRating > 6) {
+                if (previousRating !== null && previousRating <= 6 && latestRating > 6) {
                     console.log('✅ RECUPERADO detectado:', passenger.nombre, previousRating, '→', latestRating);
                     passengersRecovered.push({
                         ...passenger,
