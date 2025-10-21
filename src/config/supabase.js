@@ -32,6 +32,7 @@ export const initSupabase = () => {
         if (typeof window !== 'undefined' && window.supabase) {
             try {
                 const { createClient } = window.supabase;
+                supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
             } catch (error) {
                 console.error('Error initializing Supabase client:', error);
                 throw error;

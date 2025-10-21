@@ -135,16 +135,6 @@ const renderLoginView = () => {
                         ¿No tienes cuenta? Regístrate aquí
                     </button>
                 </div>
-
-                <!-- Información de usuarios de prueba -->
-                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-3">👥 Usuarios de Prueba</h4>
-                    <div class="text-xs text-gray-600 space-y-1">
-                        <div><strong>Jauja (JAU):</strong> supervisor_jau / agente_jau</div>
-                        <div><strong>Tacna (TCQ):</strong> supervisor_tcq / agente_tcq</div>
-                        <div><strong>Talara (TYL):</strong> supervisor_tyl / agente_tyl</div>
-                    </div>
-                </div>
             </div>
         </div>
     `;

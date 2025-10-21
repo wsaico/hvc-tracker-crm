@@ -171,7 +171,7 @@ INSERT INTO airports (nombre, codigo) VALUES
 ('Aeropuerto Cap. FAP Víctor Montes Arias - Talara', 'TYL');
 
 -- Insertar usuarios iniciales con contraseñas hasheadas correctamente
--- Hash de 'admin123' usando SHA-256 con salt 'salt_hvc_tracker'
+-- IMPORTANTE: Cambia estas contraseñas por valores seguros en producción
 INSERT INTO users (username, password_hash, nombre_completo, rol, aeropuerto_id) VALUES
 ('supervisor_jau', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Supervisor Jauja', 'supervisor', (SELECT id FROM airports WHERE codigo = 'JAU')),
 ('agente_jau', 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890', 'Wilber Saico', 'agente', (SELECT id FROM airports WHERE codigo = 'JAU')),
@@ -380,15 +380,17 @@ CREATE POLICY "Only supervisors insert flights" ON flights
 
 ## 🔐 Usuarios Iniciales
 
-Los usuarios ya están incluidos en el script con contraseña `admin123`:
+Los usuarios ya están incluidos en el script con contraseñas temporales.
+
+**IMPORTANTE:** Cambia estas contraseñas por valores seguros en producción.
 
 **Usuarios disponibles:**
-- **JAU (Jauja)**: supervisor_jau / admin123 → "Supervisor Jauja"
-- **JAU (Jauja)**: agente_jau / admin123 → "Wilber Saico" ✅
-- **TCQ (Tacna)**: supervisor_tcq / admin123 → "Supervisor Tacna"
-- **TCQ (Tacna)**: agente_tcq / admin123 → "Agente Tacna"
-- **TYL (Talara)**: supervisor_tyl / admin123 → "Supervisor Talara"
-- **TYL (Talara)**: agente_tyl / admin123 → "Agente Talara"
+- **JAU (Jauja)**: supervisor_jau / [CAMBIAR] → "Supervisor Jauja"
+- **JAU (Jauja)**: agente_jau / [CAMBIAR] → "Wilber Saico" ✅
+- **TCQ (Tacna)**: supervisor_tcq / [CAMBIAR] → "Supervisor Tacna"
+- **TCQ (Tacna)**: agente_tcq / [CAMBIAR] → "Agente Tacna"
+- **TYL (Talara)**: supervisor_tyl / [CAMBIAR] → "Supervisor Talara"
+- **TYL (Talara)**: agente_tyl / [CAMBIAR] → "Agente Talara"
 
 ## 📚 Documentación Supabase
 
