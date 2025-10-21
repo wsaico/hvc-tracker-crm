@@ -9,14 +9,9 @@ import { showNotification } from '../utils/helpers.js';
 
 const client = getSupabaseClient();
 
-// Función para hashear contraseñas (simple hash para demo - en producción usa bcrypt)
+// Función para hashear contraseñas
 const hashPassword = async (password) => {
-    // Para demo, usamos un hash fijo para 'admin123'
-    // En producción, usa bcrypt o similar
-    if (password === 'admin123') {
-        return 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890';
-    }
-    // Para otras contraseñas, hashear normalmente
+    // Hashear normalmente todas las contraseñas
     const encoder = new TextEncoder();
     const data = encoder.encode(password + 'salt_hvc_tracker');
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -26,14 +21,7 @@ const hashPassword = async (password) => {
 
 // Función para verificar contraseñas
 const verifyPassword = async (password, hash) => {
-    console.log('Verifying password:', password, 'against hash:', hash);
-    // Para demo, verificar contra hash fijo
-    if (password === 'admin123' && hash === 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890') {
-        console.log('Password verification successful');
-        return true;
-    }
-    console.log('Password verification failed');
-    // Para otras contraseñas, verificar normalmente
+    // Verificar normalmente todas las contraseñas
     const hashedPassword = await hashPassword(password);
     return hashedPassword === hash;
 };
@@ -650,8 +638,6 @@ export const getAirportMetrics = async (aeropuertoId) => {
  */
 export const authenticateUser = async (username, password) => {
     try {
-        console.log('Authenticating user:', username);
-
         const { data, error } = await client
             .from('users')
             .select(`
@@ -673,27 +659,19 @@ export const authenticateUser = async (username, password) => {
             .eq('activo', true)
             .single();
 
-        console.log('User data from DB:', data);
-        console.log('Query error:', error);
-
         if (error && error.code !== 'PGRST116') throw error;
         if (!data) {
-            console.log('User not found');
             return null;
         }
 
         // Verificar contraseña
-        console.log('Stored hash:', data.password_hash);
         const isValidPassword = await verifyPassword(password, data.password_hash);
-        console.log('Password valid:', isValidPassword);
 
         if (!isValidPassword) {
-            console.log('Invalid password');
             return null;
         }
 
         // Actualizar último login
-        console.log('Updating last login for user:', data.id);
         await client
             .from('users')
             .update({ ultimo_login: new Date().toISOString() })
@@ -708,7 +686,6 @@ export const authenticateUser = async (username, password) => {
             ultimoLogin: data.ultimo_login
         };
 
-        console.log('Authentication successful:', result);
         return result;
     } catch (error) {
         console.error('Authentication error:', error);

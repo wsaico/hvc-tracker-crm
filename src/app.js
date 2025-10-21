@@ -68,7 +68,6 @@ const render = async () => {
             case CONSTANTS.VIEWS.PASSENGER_SEARCH:
                 if (state.selectedPassenger) {
                     // Si hay un pasajero seleccionado, mostrar vista de atención
-                    console.log('Rendering passenger interaction view for:', state.selectedPassenger.nombre);
                     mainContent.innerHTML = renderPassengerInteractionView();
                     // Pequeño delay para asegurar que el DOM esté listo
                     setTimeout(() => {
@@ -76,7 +75,6 @@ const render = async () => {
                     }, 100);
                 } else {
                     // Vista normal de búsqueda
-                    console.log('Rendering passenger search view');
                     renderPassengerSearchView().then(html => mainContent.innerHTML = html);
                 }
                 break;
@@ -145,7 +143,6 @@ const renderLoginView = () => {
                         <div><strong>Jauja (JAU):</strong> supervisor_jau / agente_jau</div>
                         <div><strong>Tacna (TCQ):</strong> supervisor_tcq / agente_tcq</div>
                         <div><strong>Talara (TYL):</strong> supervisor_tyl / agente_tyl</div>
-                        <div class="mt-2 text-yellow-600"><em>Contraseña: admin123 (todos)</em></div>
                     </div>
                 </div>
             </div>
@@ -553,9 +550,7 @@ window.searchPassengers = async function() {
     }
 
     try {
-        console.log('Searching passengers with query:', query, 'airport:', state.currentAirport);
         const results = await ApiService.searchPassengers(query, state.currentAirport);
-        console.log('Search results:', results);
 
         const resultsContainer = document.getElementById('searchResults');
 
@@ -583,7 +578,6 @@ window.searchPassengers = async function() {
         let todayFlights = [];
         try {
             todayFlights = await ApiService.getFlightsByDate(today, state.currentAirport);
-            console.log('Today flights:', todayFlights);
         } catch (error) {
             console.warn('Could not load today flights:', error);
             // Si no hay vuelos, mostrar mensaje alternativo
@@ -826,7 +820,7 @@ window.filterTracking = function() {
         }
     });
 
-    console.log(`Mostrando ${visibleCount} de ${allCards.length} pasajeros`);
+    // Filtros aplicados exitosamente
 };
 
 // Funciones para el Dashboard
@@ -2862,7 +2856,6 @@ const renderPassengerInteractionView = () => {
 
 // Función para cancelar interacción
 window.cancelInteraction = function() {
-    console.log('Cancel interaction called');
     StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
     changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
 };
@@ -2907,13 +2900,9 @@ window.switchInteractionTab = function(tabName) {
 // Función para guardar interacción (llamada desde el botón)
 window.saveInteraction = async function(event) {
     event.preventDefault();
-    console.log('Save interaction triggered');
 
     const state = StateManager.getState();
     const passenger = state.selectedPassenger;
-
-    console.log('Current state:', state);
-    console.log('Selected passenger:', passenger);
 
     if (!passenger) {
         showNotification('No se ha seleccionado un pasajero', 'error');
@@ -2945,17 +2934,12 @@ window.saveInteraction = async function(event) {
         es_cumpleanos: Utils.isBirthday(passenger.fecha_nacimiento)
     };
 
-    console.log('Interaction data to save:', interactionData);
-
     try {
-        console.log('Calling ApiService.createInteraction...');
         const result = await ApiService.createInteraction(interactionData);
-        console.log('Interaction saved successfully:', result);
 
         showNotification(`Interacción guardada exitosamente para ${passenger.nombre}`, 'success');
 
         // Limpiar formulario y volver a búsqueda
-        console.log('Clearing state and changing view...');
         StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
         changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
 
@@ -2967,7 +2951,7 @@ window.saveInteraction = async function(event) {
 
 // Función para configurar handlers del formulario de interacción (ya no usada)
 const setupInteractionFormHandlers = () => {
-    console.log('Setup interaction form handlers - using button click instead');
+    // Handlers configurados directamente en el HTML
 };
 
 /**
@@ -3559,7 +3543,6 @@ const renderPassengerTrackingView = async () => {
         const recentInteractions = [];
         const birthdayPassengers = [];
 
-        console.log('🎯 Total pasajeros con interacciones:', Object.keys(passengerInteractions).length);
 
         Object.keys(passengerInteractions).forEach(passengerId => {
             const passenger = passengerMap[passengerId];
@@ -3572,7 +3555,6 @@ const renderPassengerTrackingView = async () => {
             const hasMultipleInteractions = interactions.length >= 2;
             const latestRating = latestInteraction.calificacion_medallia;
 
-            console.log(`👤 Analizando: ${passenger.nombre} - ${interactions.length} interacción(es)`);
 
             if (hasMultipleInteractions && latestRating) {
                 // Buscar la interacción anterior que tenga calificación (puede no ser la inmediata anterior)
@@ -3584,25 +3566,8 @@ const renderPassengerTrackingView = async () => {
                     }
                 }
 
-                // DEBUG: Log para ver qué pasa con stringify para ver todo
-                const debugInfo = {
-                    nombre: passenger.nombre,
-                    interacciones: interactions.length,
-                    fechas: interactions.map(i => ({ fecha: i.fecha, rating: i.calificacion_medallia })),
-                    calificacionAnterior: previousRating,
-                    calificacionActual: latestRating,
-                    esRecuperado: (previousRating !== null && previousRating <= 6 && latestRating > 6),
-                    condiciones: {
-                        previousRatingExiste: previousRating !== null,
-                        previousRatingMenorIgual6: previousRating !== null && previousRating <= 6,
-                        latestRatingMayor6: latestRating > 6
-                    }
-                };
-                console.log('🔍 DEBUG Pasajero:', JSON.stringify(debugInfo, null, 2));
-
                 // RECUPERADO: tenía calificación baja (≤6) y ahora mejoró (>6)
                 if (previousRating !== null && previousRating <= 6 && latestRating > 6) {
-                    console.log('✅ RECUPERADO detectado:', passenger.nombre, previousRating, '→', latestRating);
                     passengersRecovered.push({
                         ...passenger,
                         previousRating: previousRating,
@@ -3656,17 +3621,6 @@ const renderPassengerTrackingView = async () => {
         // Ordenar por fecha (más reciente primero)
         recentInteractions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        // DEBUG: Resumen final
-        console.log('📊 RESUMEN TRACKING:', {
-            totalPasajeros: passengers.length,
-            totalInteracciones: interactions.length,
-            enRiesgo: passengersAtRisk.length,
-            recuperados: passengersRecovered.length,
-            cumpleaños: birthdayPassengers.length,
-            recientes24h: recentInteractions.length
-        });
-        console.log('✅ Pasajeros recuperados:', passengersRecovered.map(p => p.nombre));
-        console.log('⚠️ Pasajeros en riesgo:', passengersAtRisk.map(p => p.nombre));
 
         return `
             <div class="max-w-7xl mx-auto p-4 sm:p-6">

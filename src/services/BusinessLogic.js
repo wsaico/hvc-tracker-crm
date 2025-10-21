@@ -359,8 +359,6 @@ export const processManifest = async (manifestData, flightDate, aeropuertoId) =>
                         const existingRank = categoryRanks[passenger.categoria] || 0;
 
                         if (manifestRank > existingRank) {
-                            await ApiService.updatePassenger(passenger.id, { categoria: p.categoria });
-                            console.log(`Updated category for ${passenger.nombre}: ${passenger.categoria} → ${p.categoria}`);
                         }
                     }
                 }
