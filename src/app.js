@@ -5914,7 +5914,17 @@ const renderDashboardView = async () => {
             // Generar insights inteligentes
             dashboardInsights = BusinessLogic.generateDashboardInsights(fullMetrics, interactions, passengers);
 
+            // LOG IMPORTANTE: Verificar trendData
+            console.log('🔍 DEBUG - Métricas calculadas:', {
+                trendDataExists: !!metrics.trendData,
+                trendDataLength: metrics.trendData?.length || 0,
+                trendDataSample: metrics.trendData?.slice(0, 3),
+                totalInteractions: interactions.length,
+                interactionsWithMedallia: interactions.filter(i => i.calificacion_medallia).length
+            });
+
         } catch (error) {
+            console.error('❌ Error loading real metrics:', error);
             console.warn('Could not load real metrics:', error);
         }
     }
@@ -6360,15 +6370,29 @@ const renderDashboardView = async () => {
                     </h3>
                     ${metrics.trendData && metrics.trendData.length > 0 ? `
                         <div class="flex gap-2">
-                            <button onclick="toggleChartType('line')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
+                            <button onclick="window.toggleChartType('line')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
                                 Línea
                             </button>
-                            <button onclick="toggleChartType('bar')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            <button onclick="window.toggleChartType('bar')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                                 Barras
                             </button>
                         </div>
                     ` : ''}
                 </div>
+
+                <script>
+                    // Definir función toggleChartType globalmente ANTES de crear el gráfico
+                    window.toggleChartType = function(type) {
+                        if (window.trendChartInstance) {
+                            window.trendChartInstance.config.type = type;
+                            window.trendChartInstance.update();
+                            console.log('Tipo de gráfico cambiado a:', type);
+                        } else {
+                            console.warn('No hay instancia de gráfico para cambiar');
+                        }
+                    };
+                </script>
+
                 ${metrics.trendData && metrics.trendData.length > 0 ? `
                     <div class="h-80">
                         <canvas id="trendChart"></canvas>
@@ -6468,13 +6492,7 @@ const renderDashboardView = async () => {
                                     }
                                 });
 
-                                    // Función para cambiar tipo de gráfico
-                                    window.toggleChartType = function(type) {
-                                        if (window.trendChartInstance) {
-                                            window.trendChartInstance.config.type = type;
-                                            window.trendChartInstance.update();
-                                        }
-                                    };
+                                    console.log('✅ Gráfico de tendencia creado exitosamente');
                                 } else {
                                     console.warn('Canvas #trendChart no encontrado');
                                 }
