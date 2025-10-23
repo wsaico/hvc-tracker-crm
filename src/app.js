@@ -181,29 +181,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -213,39 +251,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -260,7 +309,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },
@@ -437,29 +486,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -469,39 +556,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -516,7 +614,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },
@@ -2224,29 +2322,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -2256,39 +2392,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -2303,7 +2450,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },
@@ -2402,29 +2549,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -2434,39 +2619,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -2481,7 +2677,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },
@@ -4876,29 +5072,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -4908,39 +5142,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -4955,7 +5200,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },
@@ -7169,10 +7414,10 @@ const renderDashboardView = async () => {
             <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border-2 border-gray-100">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                        <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
-                        Tendencia de Satisfacción (Últimos 30 días)
+                        Recuperación de Pasajeros vs Detractores (Últimos 30 días)
                     </h3>
                     ${metrics.trendData && metrics.trendData.length > 0 ? `
                         <div class="flex gap-2">
@@ -7458,29 +7703,67 @@ window.initTrendChart = function(trendData) {
         }
 
         const labels = trendData.map(d => d.date);
-        const data = trendData.map(d => parseFloat(d.avg));
+        const detractorsData = trendData.map(d => d.detractors || 0);
+        const recoveredData = trendData.map(d => d.recovered || 0);
+        const promotersData = trendData.map(d => d.promoters || 0);
 
-        console.log('✅ Creando gráfico con:', { labels, data });
+        console.log('✅ Creando gráfico de Recuperación vs Detractores:', {
+            labels,
+            detractors: detractorsData,
+            recovered: recoveredData,
+            promoters: promotersData
+        });
 
         try {
             window.trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'Calificación Promedio',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Pasajeros Recuperados 😊',
+                            data: recoveredData,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(34, 197, 94)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Detractores 😞',
+                            data: detractorsData,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgb(239, 68, 68)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Promotores 🎉',
+                            data: promotersData,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            borderDash: [5, 5]
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -7490,39 +7773,50 @@ window.initTrendChart = function(trendData) {
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 14, weight: 'bold' },
-                                padding: 15
+                                font: { size: 13, weight: 'bold' },
+                                padding: 15,
+                                usePointStyle: true,
+                                boxWidth: 8
                             }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            padding: 14,
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
+                            bodySpacing: 8,
                             cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Calificación: ${context.parsed.y}/10`;
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return ` ${label}: ${value} pasajero${value !== 1 ? 's' : ''}`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const dataPoint = trendData[index];
+                                    return `\nTotal: ${dataPoint.total || 0} pasajero${dataPoint.total !== 1 ? 's' : ''}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
-                            min: 0,
-                            max: 10,
+                            beginAtZero: true,
                             ticks: {
                                 stepSize: 1,
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' },
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             title: {
                                 display: true,
-                                text: 'Calificación (0-10)',
-                                font: { size: 12, weight: 'bold' }
+                                text: 'Cantidad de Pasajeros',
+                                font: { size: 13, weight: 'bold' }
                             }
                         },
                         x: {
@@ -7537,7 +7831,7 @@ window.initTrendChart = function(trendData) {
                             title: {
                                 display: true,
                                 text: 'Fecha',
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 13, weight: 'bold' }
                             }
                         }
                     },

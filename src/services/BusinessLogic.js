@@ -491,27 +491,66 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
         }
     });
 
-    // Tendencia últimos 30 días
-    const last30Days = {};
+    // Tendencia de Recuperación vs Detractores (últimos 30 días)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    interactions
-        .filter(i => i.calificacion_medallia && new Date(i.fecha) >= thirtyDaysAgo)
-        .forEach(i => {
-            const date = new Date(i.fecha).toISOString().split('T')[0];
-            if (!last30Days[date]) {
-                last30Days[date] = { sum: 0, count: 0 };
-            }
-            last30Days[date].sum += i.calificacion_medallia;
-            last30Days[date].count++;
-        });
+    // Agrupar pasajeros por fecha de última interacción
+    const passengersByDate = {};
 
-    const trendData = Object.entries(last30Days)
+    passengers.forEach(passenger => {
+        // Obtener todas las interacciones del pasajero con calificación
+        const passengerInteractions = interactions
+            .filter(i => i.pasajero_id === passenger.id && i.calificacion_medallia && new Date(i.fecha) >= thirtyDaysAgo)
+            .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        if (passengerInteractions.length === 0) return;
+
+        // Por cada interacción del pasajero en los últimos 30 días
+        passengerInteractions.forEach((interaction, index) => {
+            const date = new Date(interaction.fecha).toISOString().split('T')[0];
+
+            if (!passengersByDate[date]) {
+                passengersByDate[date] = {
+                    detractors: new Set(),
+                    recovered: new Set(),
+                    promoters: new Set(),
+                    passives: new Set()
+                };
+            }
+
+            const score = interaction.calificacion_medallia;
+
+            // Clasificar según score actual
+            if (score <= 6) {
+                // Es detractor en esta fecha
+                passengersByDate[date].detractors.add(passenger.id);
+            } else if (score <= 8) {
+                passengersByDate[date].passives.add(passenger.id);
+            } else {
+                passengersByDate[date].promoters.add(passenger.id);
+            }
+
+            // Verificar si fue recuperado (tenía score ≤6 antes y ahora tiene >6)
+            if (index < passengerInteractions.length - 1) {
+                const previousInteraction = passengerInteractions[index + 1];
+                if (previousInteraction.calificacion_medallia <= 6 && score > 6) {
+                    passengersByDate[date].recovered.add(passenger.id);
+                }
+            }
+        });
+    });
+
+    // Convertir a array ordenado
+    const trendData = Object.entries(passengersByDate)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, data]) => ({
             date,
-            avg: (data.sum / data.count).toFixed(1)
+            detractors: data.detractors.size,
+            recovered: data.recovered.size,
+            promoters: data.promoters.size,
+            passives: data.passives.size,
+            total: data.detractors.size + data.recovered.size + data.promoters.size + data.passives.size
         }));
 
     // Métricas adicionales con nuevos campos
