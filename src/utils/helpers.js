@@ -16,7 +16,8 @@ export const formatDate = (date) => {
     return new Date(date).toLocaleDateString('es-PE', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'America/Lima'
     });
 };
 
@@ -32,7 +33,8 @@ export const formatDateTime = (date) => {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'America/Lima'
     });
 };
 
@@ -88,8 +90,13 @@ export const isBirthday = (fechaNacimiento) => {
     if (!fechaNacimiento) return false;
     const today = new Date();
     const birthday = new Date(fechaNacimiento);
-    return today.getMonth() === birthday.getMonth() &&
-           today.getDate() === birthday.getDate();
+
+    // Ajustar a zona horaria de Perú
+    const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
+    const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
+
+    return todayPeru.getMonth() === birthdayPeru.getMonth() &&
+           todayPeru.getDate() === birthdayPeru.getDate();
 };
 
 /**
@@ -101,9 +108,14 @@ export const calculateAge = (fechaNacimiento) => {
     if (!fechaNacimiento) return null;
     const today = new Date();
     const birthday = new Date(fechaNacimiento);
-    let age = today.getFullYear() - birthday.getFullYear();
-    const monthDiff = today.getMonth() - birthday.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+
+    // Ajustar a zona horaria de Perú
+    const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
+    const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
+
+    let age = todayPeru.getFullYear() - birthdayPeru.getFullYear();
+    const monthDiff = todayPeru.getMonth() - birthdayPeru.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && todayPeru.getDate() < birthdayPeru.getDate())) {
         age--;
     }
     return age;

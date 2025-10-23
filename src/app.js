@@ -80,7 +80,14 @@ const render = async () => {
                 }
                 break;
             case CONSTANTS.VIEWS.DASHBOARD:
-                renderDashboardView().then(html => mainContent.innerHTML = html);
+                renderDashboardView().then(html => {
+                    mainContent.innerHTML = html;
+                    // Inicializar gráfico si hay datos
+                    if (window.dashboardTrendData && window.dashboardTrendData.length > 0) {
+                        console.log('🎯 Llamando a initTrendChart con datos:', window.dashboardTrendData);
+                        window.initTrendChart(window.dashboardTrendData);
+                    }
+                });
                 break;
             case 'passenger-tracking':
                 renderPassengerTrackingView().then(html => mainContent.innerHTML = html);
@@ -139,6 +146,165 @@ const renderLoginView = () => {
             </div>
         </div>
     `;
+};
+
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
 };
 
 /**
@@ -236,6 +402,165 @@ const renderRegisterView = () => {
             </div>
         </div>
     `;
+};
+
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
 };
 
 /**
@@ -1866,6 +2191,165 @@ window.filterByCategory = function(categoryId) {
     `;
 };
 
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
+};
+
 // Función para mostrar solo favoritos
 window.showFavoritesOnly = function() {
     const favorites = recommendationManager.getFavorites();
@@ -1883,6 +2367,165 @@ window.showFavoritesOnly = function() {
             ${renderRecommendationsList(favoriteRecs)}
         </div>
     `;
+};
+
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
 };
 
 // Función para filtrar recomendaciones con optimizaciones de rendimiento
@@ -4200,6 +4843,165 @@ const renderPassengerInteractionView = () => {
     `;
 };
 
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
+};
+
 // Función para cancelar interacción
 window.cancelInteraction = function() {
     StateManager.setState({ selectedPassenger: null, passengerInteractions: null });
@@ -5929,6 +6731,10 @@ const renderDashboardView = async () => {
         }
     }
 
+    // Guardar trendData en window para que esté disponible después del renderizado
+    window.dashboardTrendData = metrics.trendData || [];
+    console.log('💾 Guardando trendData en window:', window.dashboardTrendData);
+
     const statusColor = window.DB_AVAILABLE ? 'green' : 'yellow';
     const statusText = window.DB_AVAILABLE ? 'Sistema Conectado' : 'Modo Demo Activo';
     const statusMessage = window.DB_AVAILABLE
@@ -6370,137 +7176,20 @@ const renderDashboardView = async () => {
                     </h3>
                     ${metrics.trendData && metrics.trendData.length > 0 ? `
                         <div class="flex gap-2">
-                            <button onclick="window.toggleChartType('line')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
+                            <button id="btnChartLine" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
                                 Línea
                             </button>
-                            <button onclick="window.toggleChartType('bar')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                            <button id="btnChartBar" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                                 Barras
                             </button>
                         </div>
                     ` : ''}
                 </div>
 
-                <script>
-                    // Definir función toggleChartType globalmente ANTES de crear el gráfico
-                    window.toggleChartType = function(type) {
-                        if (window.trendChartInstance) {
-                            window.trendChartInstance.config.type = type;
-                            window.trendChartInstance.update();
-                            console.log('Tipo de gráfico cambiado a:', type);
-                        } else {
-                            console.warn('No hay instancia de gráfico para cambiar');
-                        }
-                    };
-                </script>
-
                 ${metrics.trendData && metrics.trendData.length > 0 ? `
                     <div class="h-80">
                         <canvas id="trendChart"></canvas>
                     </div>
-                    <script>
-                        // Esperar a que el DOM esté listo
-                        setTimeout(() => {
-                            console.log('📊 Tendencia de Satisfacción - Datos:', {
-                                trendDataLength: ${metrics.trendData.length},
-                                trendData: ${JSON.stringify(metrics.trendData)},
-                                chartJsLoaded: typeof Chart !== 'undefined'
-                            });
-
-                            if (typeof Chart !== 'undefined') {
-                                // Destruir instancia anterior si existe
-                                if (window.trendChartInstance) {
-                                    console.log('Destruyendo gráfico anterior');
-                                    window.trendChartInstance.destroy();
-                                    window.trendChartInstance = null;
-                                }
-
-                                const ctx = document.getElementById('trendChart');
-                                if (ctx) {
-                                    const chartData = {
-                                        labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
-                                        data: ${JSON.stringify(metrics.trendData.map(d => d.avg))}
-                                    };
-                                    console.log('Creando gráfico con datos:', chartData);
-
-                                    window.trendChartInstance = new Chart(ctx.getContext('2d'), {
-                                    type: 'line',
-                                    data: {
-                                        labels: chartData.labels,
-                                        datasets: [{
-                                            label: 'Calificación Promedio',
-                                            data: chartData.data,
-                                            borderColor: 'rgb(59, 130, 246)',
-                                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                            tension: 0.4,
-                                            fill: true,
-                                            borderWidth: 3,
-                                            pointRadius: 4,
-                                            pointHoverRadius: 6,
-                                            pointBackgroundColor: 'rgb(59, 130, 246)',
-                                            pointBorderColor: '#fff',
-                                            pointBorderWidth: 2
-                                        }]
-                                    },
-                                    options: {
-                                        responsive: true,
-                                        maintainAspectRatio: false,
-                                        plugins: {
-                                            legend: {
-                                                display: true,
-                                                position: 'top',
-                                                labels: {
-                                                    font: { size: 14, weight: 'bold' },
-                                                    padding: 15
-                                                }
-                                            },
-                                            tooltip: {
-                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                                padding: 12,
-                                                titleFont: { size: 14, weight: 'bold' },
-                                                bodyFont: { size: 13 },
-                                                cornerRadius: 8
-                                            }
-                                        },
-                                        scales: {
-                                            y: {
-                                                beginAtZero: false,
-                                                min: 0,
-                                                max: 10,
-                                                ticks: {
-                                                    stepSize: 1,
-                                                    font: { size: 12, weight: 'bold' }
-                                                },
-                                                grid: {
-                                                    color: 'rgba(0, 0, 0, 0.05)'
-                                                }
-                                            },
-                                            x: {
-                                                ticks: {
-                                                    font: { size: 11 },
-                                                    maxRotation: 45,
-                                                    minRotation: 45
-                                                },
-                                                grid: {
-                                                    display: false
-                                                }
-                                            }
-                                        },
-                                        interaction: {
-                                            mode: 'index',
-                                            intersect: false
-                                        }
-                                    }
-                                });
-
-                                    console.log('✅ Gráfico de tendencia creado exitosamente');
-                                } else {
-                                    console.warn('Canvas #trendChart no encontrado');
-                                }
-                            } else {
-                                console.warn('Chart.js no está cargado');
-                            }
-                        }, 100);
-                    </script>
                 ` : `
                     <div class="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300">
                         <svg class="w-20 h-20 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6734,4 +7423,163 @@ const renderDashboardView = async () => {
             </div>
         </div>
     `;
+};
+
+// Función para inicializar el gráfico de tendencia DESPUÉS de renderizar
+window.initTrendChart = function(trendData) {
+    console.log('📊 Inicializando gráfico de tendencia...', {
+        trendDataLength: trendData?.length || 0,
+        trendData: trendData
+    });
+
+    if (!trendData || trendData.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia para mostrar');
+        return;
+    }
+
+    // Esperar a que el DOM esté listo
+    setTimeout(() => {
+        if (typeof Chart === 'undefined') {
+            console.error('❌ Chart.js no está cargado');
+            return;
+        }
+
+        // Destruir instancia anterior si existe
+        if (window.trendChartInstance) {
+            console.log('🗑️ Destruyendo gráfico anterior');
+            window.trendChartInstance.destroy();
+            window.trendChartInstance = null;
+        }
+
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error('❌ Canvas #trendChart no encontrado');
+            return;
+        }
+
+        const labels = trendData.map(d => d.date);
+        const data = trendData.map(d => parseFloat(d.avg));
+
+        console.log('✅ Creando gráfico con:', { labels, data });
+
+        try {
+            window.trendChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Calificación Promedio',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 14, weight: 'bold' },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Calificación: ${context.parsed.y}/10`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Calificación (0-10)',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fecha',
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+
+            console.log('✅ Gráfico creado exitosamente');
+
+            // Configurar botones
+            const btnLine = document.getElementById('btnChartLine');
+            const btnBar = document.getElementById('btnChartBar');
+
+            if (btnLine) {
+                btnLine.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'line';
+                        window.trendChartInstance.update();
+                        btnLine.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnBar.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📈 Cambiado a gráfico de líneas');
+                    }
+                });
+            }
+
+            if (btnBar) {
+                btnBar.addEventListener('click', () => {
+                    if (window.trendChartInstance) {
+                        window.trendChartInstance.config.type = 'bar';
+                        window.trendChartInstance.update();
+                        btnBar.className = 'px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition';
+                        btnLine.className = 'px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition';
+                        console.log('📊 Cambiado a gráfico de barras');
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error al crear gráfico:', error);
+        }
+    }, 200);
 };

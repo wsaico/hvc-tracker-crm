@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Herramientas de Recomendaciones HVC - Jauja Airport</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HVC Recomendaciones">
+    
+    <!-- Tailwind CSS - CDN optimizado para móviles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase CDN -->
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: 'https://lujzsozkykmfbqhzgkel.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1anpzb3preWttZmJxaHpna2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NjA0MjEsImV4cCI6MjA3NjQzNjQyMX0.a_-8nWKflLdFZxmC3uUcM75fcdTd3kWZaOmjB4adrko'
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Estilos optimizados para móviles -->
+    <style>
+        /* Optimizaciones para móviles */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        
+        body {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+        }
+        
+        /* Animaciones suaves */
+        .animate-slideIn {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* Scroll personalizado */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        
+        /* Touch optimizations */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        /* Safe area para dispositivos con notch */
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen safe-area-top safe-area-bottom">
+    <!-- Header fijo optimizado para móviles -->
+    <header class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Botón de regreso -->
+                <button onclick="goBack()" class="touch-target flex items-center gap-2 text-gray-600 hover:text-gray-800 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    <span class="font-medium">Atrás</span>
+                </button>
+                
+                <!-- Título -->
+                <h1 class="text-lg font-bold text-gray-900 truncate flex-1 mx-3">
+                    🧠 Herramientas HVC
+                </h1>
+                
+                <!-- Menú de acciones -->
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleFavorites()" id="favoritesBtn" class="touch-target p-2 text-gray-600 hover:text-red-500 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </button>
+                    <button onclick="showSearch()" class="touch-target p-2 text-gray-600 hover:text-blue-500 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Barra de búsqueda (oculta por defecto) -->
+        <div id="searchBar" class="px-4 pb-3 hidden">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="Buscar recomendaciones..."
+                       class="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                <svg class="w-5 h-5 absolute left-3 top-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="flex-1 overflow-hidden">
+        <!-- Filtros de categoría -->
+        <div class="bg-white border-b border-gray-200 px-4 py-3">
+            <div class="flex gap-2 overflow-x-auto pb-2">
+                <button onclick="filterByCategory('all')" class="category-btn flex-shrink-0 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                    Todas
+                </button>
+                <button onclick="filterByCategory('pre_flight')" class="category-btn flex-shrink-0 px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium border border-transparent">
+                    🛫 Pre-Vuelo
+                </button>
+                <button onclick="filterByCategory('during_flight')" class="category-btn flex-shrink-0 px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium border border-transparent">
+                    ✈️ Durante
+                </button>
+                <button onclick="filterByCategory('post_flight')" class="category-btn flex-shrink-0 px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium border border-transparent">
+                    🛬 Post-Vuelo
+                </button>
+                <button onclick="filterByCategory('crisis_management')" class="category-btn flex-shrink-0 px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium border border-transparent">
+                    🚨 Crisis
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido de recomendaciones -->
+        <div id="recommendationsContent" class="flex-1 overflow-y-auto custom-scrollbar p-4">
+            <!-- Se carga dinámicamente -->
+        </div>
+    </main>
+
+    <!-- Footer con estadísticas -->
+    <footer class="bg-white border-t border-gray-200 px-4 py-3">
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <div class="flex items-center gap-4">
+                <span id="resultsCount">0</span> recomendaciones
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-green-600 font-medium" id="todayUsage">0</span> usadas hoy
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Cargando recomendaciones...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        // Importar módulos
+        import { ENHANCED_RECOMMENDATIONS, RecommendationManager } from './src/data/EnhancedRecommendations.js';
+        
+        // Hacer disponible globalmente
+        window.ENHANCED_RECOMMENDATIONS = ENHANCED_RECOMMENDATIONS;
+        window.recommendationManager = new RecommendationManager();
+        
+        // Inicializar aplicación
+        initializeRecommendationsPage();
+    </script>
+    
+    <script>
+        // Variables globales
+        let currentFilter = 'all';
+        let isFavoritesOnly = false;
+        let searchTerm = '';
+        
+        // Inicializar página de recomendaciones
+        function initializeRecommendationsPage() {
+            console.log('🚀 Inicializando página de recomendaciones HVC...');
+            
+            // Ocultar loading
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                loadRecommendations();
+            }, 1000);
+        }
+        
+        // Cargar recomendaciones
+        function loadRecommendations() {
+            const content = renderRecommendationsList();
+            document.getElementById('recommendationsContent').innerHTML = content;
+            updateStats();
+        }
+        
+        // Renderizar lista de recomendaciones
+        function renderRecommendationsList() {
+            let recommendations = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS);
+            
+            // Filtrar por categoría
+            if (currentFilter !== 'all') {
+                recommendations = recommendations.filter(rec => rec.category === currentFilter);
+            }
+            
+            // Filtrar por favoritos
+            if (isFavoritesOnly) {
+                const favorites = recommendationManager.getFavorites();
+                recommendations = recommendations.filter(rec => favorites.includes(rec.id));
+            }
+            
+            // Filtrar por búsqueda
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                recommendations = recommendations.filter(rec => 
+                    rec.title.toLowerCase().includes(term) ||
+                    rec.quickActions.some(action => action.toLowerCase().includes(term)) ||
+                    rec.keyPhrases.some(phrase => phrase.toLowerCase().includes(term))
+                );
+            }
+            
+            return `
+                <div class="space-y-4">
+                    ${recommendations.map(rec => renderRecommendationCard(rec)).join('')}
+                </div>
+            `;
+        }
+        
+        // Renderizar tarjeta de recomendación
+        function renderRecommendationCard(rec) {
+            const category = ENHANCED_RECOMMENDATIONS.CATEGORIES[rec.category];
+            const isFavorite = recommendationManager.isFavorite(rec.id);
+            const progress = recommendationManager.getChecklistProgress(rec.id);
+            
+            return `
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer animate-slideIn"
+                     onclick="showDetailedRecommendation('${rec.id}')">
+                    <div class="p-4">
+                        <div class="flex items-start gap-3 mb-3">
+                            <span class="text-2xl flex-shrink-0">${rec.icon}</span>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-gray-900 text-base mb-1 break-words">${rec.title}</h3>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs px-2 py-1 ${category.color} text-white rounded-full">${category.icon} ${category.name}</span>
+                                    <span class="text-xs text-gray-500">${rec.estimatedTime}</span>
+                                </div>
+                            </div>
+                            <button onclick="event.stopPropagation(); toggleFavorite('${rec.id}')"
+                                    class="touch-target p-1 text-gray-400 hover:text-red-500 transition">
+                                <svg class="w-5 h-5 ${isFavorite ? 'fill-current text-red-500' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">${rec.description || 'Recomendación basada en el Manual HVC Jauja'}</p>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-medium text-green-600">${rec.impact}</span>
+                                ${rec.priority === 'critical' ? '<span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">🔴 Crítico</span>' : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-16 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">${progress}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Mostrar recomendación detallada
+        function showDetailedRecommendation(recId) {
+            const rec = ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS[recId];
+            if (!rec) return;
+            
+            const category = ENHANCED_RECOMMENDATIONS.CATEGORIES[rec.category];
+            const isFavorite = recommendationManager.isFavorite(recId);
+            
+            const detailedContent = `
+                <div class="max-w-4xl mx-auto" data-recommendation-id="${recId}">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-r ${category.color} rounded-xl p-6 text-white mb-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <span class="text-4xl">${rec.icon}</span>
+                                <div class="min-w-0">
+                                    <h2 class="text-2xl font-bold mb-1 break-words">${rec.title}</h2>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-3 py-1 bg-white/20 rounded-full text-sm">${category.icon} ${category.name}</span>
+                                        <span class="text-sm opacity-90">${rec.estimatedTime}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="goBack()" class="text-white hover:bg-white/20 rounded-lg p-2 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-white/90">${rec.description || 'Recomendación basada en el Manual HVC Jauja'}</p>
+                    </div>
+                    
+                    <!-- Métricas -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                                <span class="font-semibold text-green-800">Impacto</span>
+                            </div>
+                            <p class="text-green-700 font-bold text-sm">${rec.impact}</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="font-semibold text-blue-800">Prioridad</span>
+                            </div>
+                            <p class="text-blue-700 font-bold text-sm capitalize">${rec.priority}</p>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                                <span class="font-semibold text-purple-800">Referencia</span>
+                            </div>
+                            <p class="text-purple-700 text-xs">${rec.manualReference}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Acciones rápidas -->
+                    <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Acciones Rápidas
+                        </h3>
+                        <div class="space-y-2">
+                            ${rec.quickActions.map((action, index) => `
+                                <div class="flex items-start gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                                    <span class="text-green-600 font-bold flex-shrink-0 text-sm">${index + 1}.</span>
+                                    <p class="text-sm text-gray-700">${action}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Pasos detallados -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Guía Paso a Paso
+                        </h3>
+                        <div class="space-y-4">
+                            ${rec.detailedSteps.map((step, index) => `
+                                <div class="border-l-4 border-blue-400 pl-4 py-2">
+                                    <h4 class="font-semibold text-gray-800 mb-2">${step.phase}</h4>
+                                    <ul class="text-gray-600 text-sm mb-2 list-disc list-inside space-y-1">
+                                        ${step.actions.map(action => `<li>${action}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Checklist interactivo -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Checklist de Ejecución
+                        </h3>
+                        <div class="space-y-3">
+                            ${rec.checklist.map((item, index) => `
+                                <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                                    <input type="checkbox"
+                                           onchange="updateChecklist('${recId}', ${index}, this.checked)"
+                                           class="mt-1 w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                                           ${recommendationManager.getChecklistState(recId)[index]?.completed ? 'checked' : ''}>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-800">${item.item}</p>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600">Progreso:</span>
+                                <span class="font-semibold text-green-600 checklist-progress-text">
+                                    ${recommendationManager.getChecklistProgress(recId)}% completado
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div class="bg-green-600 h-2 rounded-full transition-all duration-300 checklist-progress-bar"
+                                     style="width: ${recommendationManager.getChecklistProgress(recId)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ejemplos prácticos -->
+                    ${rec.examples && rec.examples.length > 0 ? `
+                        <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                                Ejemplos Prácticos
+                            </h3>
+                            <div class="space-y-4">
+                                ${rec.examples.map(example => `
+                                    <div class="border-l-4 border-gray-300 pl-4 py-2">
+                                        <h4 class="font-semibold text-gray-800 mb-2">Escenario: ${example.scenario}</h4>
+                                        <div class="bg-red-50 p-2 rounded-lg mb-2">
+                                            <p class="text-sm text-red-800">${example.bad}</p>
+                                        </div>
+                                        <div class="bg-green-50 p-2 rounded-lg">
+                                            <p class="text-sm text-green-800">${example.good}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('recommendationsContent').innerHTML = detailedContent;
+            recommendationManager.trackUsage(recId);
+        }
+        
+        // Funciones de navegación
+        function goBack() {
+            if (document.querySelector('[data-recommendation-id]')) {
+                loadRecommendations();
+            } else {
+                window.close();
+            }
+        }
+        
+        // Funciones de filtrado
+        function filterByCategory(category) {
+            currentFilter = category;
+            
+            // Actualizar botones
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700', 'border-blue-200');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'border-transparent');
+            });
+            
+            const activeBtn = event.target;
+            activeBtn.classList.remove('bg-gray-100', 'text-gray-700', 'border-transparent');
+            activeBtn.classList.add('bg-blue-100', 'text-blue-700', 'border-blue-200');
+            
+            loadRecommendations();
+        }
+        
+        function toggleFavorites() {
+            isFavoritesOnly = !isFavoritesOnly;
+            const btn = document.getElementById('favoritesBtn');
+            
+            if (isFavoritesOnly) {
+                btn.classList.add('text-red-500');
+            } else {
+                btn.classList.remove('text-red-500');
+            }
+            
+            loadRecommendations();
+        }
+        
+        function showSearch() {
+            const searchBar = document.getElementById('searchBar');
+            const searchInput = document.getElementById('searchInput');
+            
+            if (searchBar.classList.contains('hidden')) {
+                searchBar.classList.remove('hidden');
+                searchInput.focus();
+            } else {
+                searchBar.classList.add('hidden');
+                searchInput.value = '';
+                searchTerm = '';
+                loadRecommendations();
+            }
+        }
+        
+        // Función para actualizar checklist
+        function updateChecklist(recId, index, checked) {
+            recommendationManager.updateChecklistState(recId, index, checked);
+            
+            const progressText = document.querySelector(`[data-recommendation-id="${recId}"] .checklist-progress-text`);
+            const progressBar = document.querySelector(`[data-recommendation-id="${recId}"] .checklist-progress-bar`);
+            
+            if (progressText && progressBar) {
+                const progress = recommendationManager.getChecklistProgress(recId);
+                progressText.textContent = `${progress}% completado`;
+                progressBar.style.width = `${progress}%`;
+            }
+        }
+        
+        // Función para alternar favoritos
+        function toggleFavorite(recId) {
+            recommendationManager.toggleFavorite(recId);
+            loadRecommendations();
+        }
+        
+        // Actualizar estadísticas
+        function updateStats() {
+            const recommendations = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS);
+            let filteredCount = recommendations.length;
+            
+            if (currentFilter !== 'all') {
+                filteredCount = recommendations.filter(rec => rec.category === currentFilter).length;
+            }
+            
+            if (isFavoritesOnly) {
+                const favorites = recommendationManager.getFavorites();
+                filteredCount = recommendations.filter(rec => favorites.includes(rec.id)).length;
+            }
+            
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filteredCount = recommendations.filter(rec => 
+                    rec.title.toLowerCase().includes(term) ||
+                    rec.quickActions.some(action => action.toLowerCase().includes(term)) ||
+                    rec.keyPhrases.some(phrase => phrase.toLowerCase().includes(term))
+                ).length;
+            }
+            
+            document.getElementById('resultsCount').textContent = filteredCount;
+            document.getElementById('todayUsage').textContent = recommendationManager.getTodayUsage();
+        }
+        
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            loadRecommendations();
+        });
+        
+        // Prevenir zoom en doble tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
