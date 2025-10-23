@@ -5874,31 +5874,32 @@ const renderDashboardView = async () => {
             // Usar la nueva función getAirportMetrics para obtener métricas calculadas en tiempo real
             airportMetrics = await ApiService.getAirportMetrics(state.currentAirport);
 
+            // Calcular métricas usando BusinessLogic (incluye trendData y todas las métricas avanzadas)
+            const BusinessLogic = await import('./services/BusinessLogic.js');
+            const fullMetrics = BusinessLogic.calculateDashboardMetrics(interactions, passengers);
+
+            // Si tenemos airportMetrics de la BD, usar algunos valores básicos de ahí
+            // pero SIEMPRE usar fullMetrics de BusinessLogic para datos calculados como trendData
             if (airportMetrics) {
                 metrics = {
-                    totalInteractions: airportMetrics.total_interacciones || 0,
-                    totalPassengers: airportMetrics.total_pasajeros || 0,
-                    avgMedallia: airportMetrics.calificacion_promedio || 0,
-                    passengersAtRisk: airportMetrics.pasajeros_en_riesgo || 0,
-                    recoveryRate: airportMetrics.tasa_recuperacion || 0,
-                    categoryCount: airportMetrics.distribucion_categoria || {},
-                    motivoCount: airportMetrics.motivos_viaje || {},
-                    serviciosCount: airportMetrics.servicios_utilizados || {},
-                    trendData: airportMetrics.tendencia_calificaciones || []
+                    totalInteractions: airportMetrics.total_interacciones || fullMetrics.totalInteractions,
+                    totalPassengers: airportMetrics.total_pasajeros || fullMetrics.totalPassengers,
+                    avgMedallia: airportMetrics.calificacion_promedio || fullMetrics.avgMedallia,
+                    passengersAtRisk: airportMetrics.pasajeros_en_riesgo || fullMetrics.passengersAtRisk,
+                    recoveryRate: airportMetrics.tasa_recuperacion || fullMetrics.recoveryRate,
+                    categoryCount: airportMetrics.distribucion_categoria || fullMetrics.categoryCount,
+                    motivoCount: airportMetrics.motivos_viaje || fullMetrics.motivoCount,
+                    serviciosCount: airportMetrics.servicios_utilizados || fullMetrics.serviciosCount,
+                    // IMPORTANTE: Siempre usar trendData de BusinessLogic porque se calcula en tiempo real
+                    trendData: fullMetrics.trendData || []
                 };
 
                 // Generar insights de rendimiento
                 performanceInsights = generatePerformanceInsights(metrics);
             } else {
-                // Fallback a cálculo manual si falla
-                const BusinessLogic = await import('./services/BusinessLogic.js');
-                const businessMetrics = BusinessLogic.calculateDashboardMetrics(interactions, passengers);
-                metrics = businessMetrics;
+                // Si no hay airportMetrics, usar directamente fullMetrics
+                metrics = fullMetrics;
             }
-
-            // Calcular métricas de recuperación avanzadas usando BusinessLogic
-            const BusinessLogic = await import('./services/BusinessLogic.js');
-            const fullMetrics = BusinessLogic.calculateDashboardMetrics(interactions, passengers);
 
             // Extraer métricas de recuperación específicas
             recoveryMetrics = {
@@ -6349,15 +6350,15 @@ const renderDashboardView = async () => {
             </div>
 
             <!-- 5. TENDENCIA DE SATISFACCIÓN (Gráfico Interactivo) -->
-            ${metrics.trendData && metrics.trendData.length > 0 ? `
-                <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border-2 border-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                            </svg>
-                            Tendencia de Satisfacción (Últimos 30 días)
-                        </h3>
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border-2 border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                        </svg>
+                        Tendencia de Satisfacción (Últimos 30 días)
+                    </h3>
+                    ${metrics.trendData && metrics.trendData.length > 0 ? `
                         <div class="flex gap-2">
                             <button onclick="toggleChartType('line')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
                                 Línea
@@ -6366,21 +6367,44 @@ const renderDashboardView = async () => {
                                 Barras
                             </button>
                         </div>
-                    </div>
+                    ` : ''}
+                </div>
+                ${metrics.trendData && metrics.trendData.length > 0 ? `
                     <div class="h-80">
                         <canvas id="trendChart"></canvas>
                     </div>
                     <script>
-                        if (typeof Chart !== 'undefined') {
-                            const ctx = document.getElementById('trendChart');
-                            if (ctx && !window.trendChartInstance) {
-                                window.trendChartInstance = new Chart(ctx.getContext('2d'), {
+                        // Esperar a que el DOM esté listo
+                        setTimeout(() => {
+                            console.log('📊 Tendencia de Satisfacción - Datos:', {
+                                trendDataLength: ${metrics.trendData.length},
+                                trendData: ${JSON.stringify(metrics.trendData)},
+                                chartJsLoaded: typeof Chart !== 'undefined'
+                            });
+
+                            if (typeof Chart !== 'undefined') {
+                                // Destruir instancia anterior si existe
+                                if (window.trendChartInstance) {
+                                    console.log('Destruyendo gráfico anterior');
+                                    window.trendChartInstance.destroy();
+                                    window.trendChartInstance = null;
+                                }
+
+                                const ctx = document.getElementById('trendChart');
+                                if (ctx) {
+                                    const chartData = {
+                                        labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
+                                        data: ${JSON.stringify(metrics.trendData.map(d => d.avg))}
+                                    };
+                                    console.log('Creando gráfico con datos:', chartData);
+
+                                    window.trendChartInstance = new Chart(ctx.getContext('2d'), {
                                     type: 'line',
                                     data: {
-                                        labels: ${JSON.stringify(metrics.trendData.map(d => d.date))},
+                                        labels: chartData.labels,
                                         datasets: [{
                                             label: 'Calificación Promedio',
-                                            data: ${JSON.stringify(metrics.trendData.map(d => d.avg))},
+                                            data: chartData.data,
                                             borderColor: 'rgb(59, 130, 246)',
                                             backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                             tension: 0.4,
@@ -6444,18 +6468,37 @@ const renderDashboardView = async () => {
                                     }
                                 });
 
-                                // Función para cambiar tipo de gráfico
-                                window.toggleChartType = function(type) {
-                                    if (window.trendChartInstance) {
-                                        window.trendChartInstance.config.type = type;
-                                        window.trendChartInstance.update();
-                                    }
-                                };
+                                    // Función para cambiar tipo de gráfico
+                                    window.toggleChartType = function(type) {
+                                        if (window.trendChartInstance) {
+                                            window.trendChartInstance.config.type = type;
+                                            window.trendChartInstance.update();
+                                        }
+                                    };
+                                } else {
+                                    console.warn('Canvas #trendChart no encontrado');
+                                }
+                            } else {
+                                console.warn('Chart.js no está cargado');
                             }
-                        }
+                        }, 100);
                     </script>
-                </div>
-            ` : ''}
+                ` : `
+                    <div class="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300">
+                        <svg class="w-20 h-20 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <h4 class="text-xl font-bold text-gray-700 mb-2">No hay datos de tendencia disponibles</h4>
+                        <p class="text-gray-500 mb-4">Se necesitan interacciones con calificaciones de los últimos 30 días</p>
+                        <div class="flex items-center justify-center gap-2 text-sm text-gray-600">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Registra atenciones con calificaciones para ver la tendencia</span>
+                        </div>
+                    </div>
+                `}
+            </div>
 
             <!-- 6. ACCIONES PRIORITARIAS (con enlaces a manual) -->
             <div class="mb-8">
