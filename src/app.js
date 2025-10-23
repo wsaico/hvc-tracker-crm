@@ -1346,22 +1346,33 @@ window.searchPassengers = async function() {
 // Función para cambiar entre pestañas de pasajeros
 window.switchPassengerTab = function(tab) {
     const todayTab = document.getElementById('tab-today');
+    const attendedTab = document.getElementById('tab-attended');
     const searchTab = document.getElementById('tab-search');
     const todayContent = document.getElementById('today-passengers-tab');
+    const attendedContent = document.getElementById('attended-passengers-tab');
     const searchContent = document.getElementById('search-passengers-tab');
 
+    const activeClass = 'tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+    const inactiveClass = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+
+    // Resetear todos
+    todayTab.className = inactiveClass;
+    attendedTab.className = inactiveClass;
+    searchTab.className = inactiveClass;
+    todayContent.classList.add('hidden');
+    attendedContent.classList.add('hidden');
+    searchContent.classList.add('hidden');
+
+    // Activar la pestaña seleccionada
     if (tab === 'today') {
-        // Activar pestaña "Pasajeros de Hoy"
-        todayTab.className = 'tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
-        searchTab.className = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+        todayTab.className = activeClass;
         todayContent.classList.remove('hidden');
-        searchContent.classList.add('hidden');
-    } else {
-        // Activar pestaña "Búsqueda Manual"
-        searchTab.className = 'tab-button border-b-2 border-blue-600 text-blue-600 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
-        todayTab.className = 'tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center';
+    } else if (tab === 'attended') {
+        attendedTab.className = activeClass;
+        attendedContent.classList.remove('hidden');
+    } else if (tab === 'search') {
+        searchTab.className = activeClass;
         searchContent.classList.remove('hidden');
-        todayContent.classList.add('hidden');
     }
 };
 
@@ -6080,8 +6091,10 @@ const renderPassengerSearchView = async () => {
     // Cargar pasajeros del día automáticamente
     let todayPassengers = [];
     let totalFlights = 0;
+    let attendedPassengers = [];
 
     try {
+        // Cargar vuelos del día
         const flights = await ApiService.getFlightsByDate(today, state.currentAirport);
         totalFlights = flights.length;
 
@@ -6092,6 +6105,80 @@ const renderPassengerSearchView = async () => {
                 flight.flight_passengers.forEach(fp => passengerIds.add(fp.pasajero_id));
             }
         });
+
+        // Cargar pasajeros atendidos (con interacciones) del aeropuerto actual
+        const allInteractions = await ApiService.getAirportInteractions(state.currentAirport);
+        const passengersWithInteractions = new Map();
+
+        // Agrupar interacciones por pasajero
+        allInteractions.forEach(interaction => {
+            const pid = interaction.pasajero_id;
+            if (!passengersWithInteractions.has(pid)) {
+                passengersWithInteractions.set(pid, []);
+            }
+            passengersWithInteractions.get(pid).push(interaction);
+        });
+
+        // Cargar detalles de pasajeros atendidos
+        for (const [passengerId, interactions] of passengersWithInteractions.entries()) {
+            try {
+                const passenger = await ApiService.getPassengerById(passengerId);
+                if (passenger) {
+                    // Calcular métricas del pasajero
+                    const sortedInteractions = interactions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                    const latestInteraction = sortedInteractions[0];
+                    const latestScore = latestInteraction.calificacion_medallia;
+
+                    // Determinar acción necesaria
+                    let action = null;
+                    if (latestScore !== null && latestScore !== undefined) {
+                        if (latestScore <= 6) {
+                            action = {
+                                type: 'urgent',
+                                label: 'Requiere Recuperación Urgente',
+                                icon: '🚨',
+                                color: 'red'
+                            };
+                        } else if (latestScore <= 8) {
+                            action = {
+                                type: 'follow',
+                                label: 'Seguimiento Recomendado',
+                                icon: '📋',
+                                color: 'yellow'
+                            };
+                        } else {
+                            action = {
+                                type: 'maintain',
+                                label: 'Mantener Excelencia',
+                                icon: '⭐',
+                                color: 'green'
+                            };
+                        }
+                    } else {
+                        action = {
+                            type: 'pending',
+                            label: 'Pendiente Calificación',
+                            icon: '⏳',
+                            color: 'gray'
+                        };
+                    }
+
+                    attendedPassengers.push({
+                        ...passenger,
+                        totalInteractions: interactions.length,
+                        latestInteractionDate: latestInteraction.fecha,
+                        latestScore: latestScore,
+                        action: action,
+                        interactions: sortedInteractions
+                    });
+                }
+            } catch (err) {
+                console.error(`Error loading passenger ${passengerId}:`, err);
+            }
+        }
+
+        // Ordenar por fecha de última interacción (más reciente primero)
+        attendedPassengers.sort((a, b) => new Date(b.latestInteractionDate) - new Date(a.latestInteractionDate));
 
         // Obtener detalles de cada pasajero
         if (passengerIds.size > 0) {
@@ -6217,6 +6304,14 @@ const renderPassengerSearchView = async () => {
                             Pasajeros de Hoy
                             ${todayPassengers.length > 0 ? `<span class="ml-2 bg-blue-100 text-blue-800 py-1 px-2 rounded-full text-xs font-bold">${todayPassengers.length}</span>` : ''}
                         </button>
+                        <button onclick="switchPassengerTab('attended')" id="tab-attended"
+                                class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                            Pasajeros Atendidos
+                            ${attendedPassengers.length > 0 ? `<span class="ml-2 bg-purple-100 text-purple-800 py-1 px-2 rounded-full text-xs font-bold">${attendedPassengers.length}</span>` : ''}
+                        </button>
                         <button onclick="switchPassengerTab('search')" id="tab-search"
                                 class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 font-medium text-sm flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6258,6 +6353,152 @@ const renderPassengerSearchView = async () => {
 
                     <div class="space-y-4">
                         ${todayPassengersHTML}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Pasajeros Atendidos -->
+            <div id="attended-passengers-tab" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                                <svg class="w-7 h-7 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                </svg>
+                                Historial de Pasajeros Atendidos
+                            </h2>
+                            <p class="text-gray-600 mt-1">
+                                ${attendedPassengers.length} pasajero${attendedPassengers.length !== 1 ? 's' : ''} con interacciones registradas
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-500">Filtrado por:</span>
+                            <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
+                                ${state.currentAirport || 'Todos'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        ${attendedPassengers.length > 0 ? attendedPassengers.map(passenger => {
+                            // Determinar colores según categoría
+                            const categoryColors = {
+                                'BLACK': { badge: 'bg-gray-900 text-white' },
+                                'SIGNATURE': { badge: 'bg-purple-600 text-white' },
+                                'PLATINUM': { badge: 'bg-blue-600 text-white' },
+                                'GOLD PLUS': { badge: 'bg-yellow-600 text-white' },
+                                'GOLD': { badge: 'bg-yellow-500 text-white' },
+                                'SILVER': { badge: 'bg-gray-400 text-white' },
+                                'TOP': { badge: 'bg-red-600 text-white' }
+                            };
+                            const colors = categoryColors[passenger.categoria] || { badge: 'bg-gray-600 text-white' };
+                            const actionColors = {
+                                'red': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+                                'yellow': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+                                'green': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
+                                'gray': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300' }
+                            };
+                            const actionStyle = actionColors[passenger.action.color];
+
+                            return `
+                            <div class="bg-gradient-to-r from-white to-gray-50 rounded-xl border-2 border-gray-200 p-4 hover:shadow-lg transition-all duration-300 hover:border-purple-300">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                    <!-- Avatar y Info Principal -->
+                                    <div class="flex items-center gap-4 flex-1">
+                                        ${passenger.foto_url ? `
+                                            <img src="${passenger.foto_url}" alt="${passenger.nombre}" class="w-16 h-16 rounded-full object-cover shadow-md">
+                                        ` : `
+                                            <div class="relative">
+                                                <div class="w-16 h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-md border-3 border-white">
+                                                    <span class="text-white font-bold text-2xl">${passenger.nombre.charAt(0)}</span>
+                                                </div>
+                                                <div class="absolute -bottom-1 -right-1 ${colors.badge} rounded-full px-2 py-0.5 text-xs font-bold shadow">
+                                                    ${passenger.categoria.substring(0, 3)}
+                                                </div>
+                                            </div>
+                                        `}
+
+                                        <div class="flex-1">
+                                            <h3 class="font-bold text-gray-900 text-lg mb-1">${passenger.nombre}</h3>
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-white border border-gray-200 text-xs text-gray-700">
+                                                    <svg class="w-3.5 h-3.5 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                                                    </svg>
+                                                    ${passenger.dni_pasaporte}
+                                                </span>
+                                                <span class="${colors.badge} inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold">
+                                                    ${passenger.categoria}
+                                                </span>
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                                    </svg>
+                                                    ${passenger.totalInteractions} interaccion${passenger.totalInteractions !== 1 ? 'es' : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Última Calificación y Fecha -->
+                                    <div class="flex items-center gap-4">
+                                        <div class="text-center">
+                                            <p class="text-xs text-gray-500 mb-1">Última Calificación</p>
+                                            ${passenger.latestScore !== null && passenger.latestScore !== undefined ? `
+                                                <div class="px-3 py-2 ${Utils.getMedalliaColor(passenger.latestScore)} rounded-lg font-bold text-lg">
+                                                    ${passenger.latestScore}/10
+                                                </div>
+                                            ` : `
+                                                <div class="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-xs">
+                                                    Sin calificar
+                                                </div>
+                                            `}
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                ${Utils.formatDateTime(passenger.latestInteractionDate)}
+                                            </p>
+                                        </div>
+
+                                        <!-- Acción Necesaria -->
+                                        <div class="min-w-[200px]">
+                                            <div class="${actionStyle.bg} ${actionStyle.border} border-2 rounded-lg p-3 text-center">
+                                                <div class="text-2xl mb-1">${passenger.action.icon}</div>
+                                                <p class="${actionStyle.text} text-xs font-bold">
+                                                    ${passenger.action.label}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Botones de Acción -->
+                                    <div class="flex gap-2">
+                                        <button onclick="viewPassengerDetails('${passenger.id}')"
+                                                class="bg-blue-50 border-2 border-blue-300 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition text-sm font-semibold flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            Ver
+                                        </button>
+                                        <button onclick="startPassengerInteraction('${passenger.id}')"
+                                                class="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition text-sm font-semibold flex items-center gap-2 shadow-md">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                            </svg>
+                                            Atender
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `}).join('') : `
+                            <div class="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                <svg class="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                </svg>
+                                <p class="text-gray-500 text-lg font-medium">No hay pasajeros atendidos aún</p>
+                                <p class="text-gray-400 text-sm mt-2">Comienza a registrar interacciones para ver el historial aquí</p>
+                            </div>
+                        `}
                     </div>
                 </div>
             </div>
