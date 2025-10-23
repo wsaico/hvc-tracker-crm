@@ -9,6 +9,7 @@ import * as StateManager from './modules/StateManager.js';
 import { showNotification } from './utils/helpers.js';
 import * as Utils from './utils/helpers.js';
 import * as ApiService from './services/ApiService.js';
+import { ENHANCED_RECOMMENDATIONS, recommendationManager } from './data/EnhancedRecommendations.js';
 
 /**
  * Inicializa la aplicación
@@ -389,6 +390,278 @@ const renderNavbar = () => {
                     min-height: 44px;
                 }
             }
+
+            /* Sistema de etiquetas tipo WordPress */
+            .tag-input-container {
+                position: relative;
+            }
+
+            .tag-display {
+                min-height: 2.5rem;
+            }
+
+            .tag {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.25rem 0.5rem;
+                border-radius: 1rem;
+                font-size: 0.875rem;
+                font-weight: 500;
+                cursor: default;
+                border: 1px solid;
+                transition: all 0.2s ease;
+            }
+
+            .tag-purple {
+                background-color: rgb(243 232 255);
+                color: rgb(107 33 168);
+                border-color: rgb(196 181 253);
+            }
+
+            .tag-green {
+                background-color: rgb(220 252 231);
+                color: rgb(20 83 45);
+                border-color: rgb(187 247 208);
+            }
+
+            .tag-blue {
+                background-color: rgb(219 234 254);
+                color: rgb(30 64 175);
+                border-color: rgb(191 219 254);
+            }
+
+            .tag-orange {
+                background-color: rgb(255 237 213);
+                color: rgb(154 52 18);
+                border-color: rgb(254 215 170);
+            }
+
+            .tag-remove {
+                background: none;
+                border: none;
+                color: inherit;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                padding: 0;
+                margin-left: 0.25rem;
+                opacity: 0.7;
+                transition: opacity 0.2s ease;
+            }
+
+            .tag-remove:hover {
+                opacity: 1;
+            }
+
+            .tag-input {
+                width: 100%;
+                padding: 0.5rem 0.75rem;
+                border: 2px solid rgb(229 231 235);
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                background-color: white;
+            }
+
+            .tag-input:focus {
+                outline: none;
+                border-color: rgb(59 130 246);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            /* Sugerencias de autocompletado */
+            .tag-suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid rgb(229 231 235);
+                border-radius: 0.5rem;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                z-index: 50;
+                max-height: 200px;
+                overflow-y: auto;
+                display: none;
+            }
+
+            .tag-suggestion {
+                padding: 0.5rem 0.75rem;
+                cursor: pointer;
+                border-bottom: 1px solid rgb(243 244 246);
+                font-size: 0.875rem;
+                transition: background-color 0.2s ease;
+            }
+
+            .tag-suggestion:hover {
+                background-color: rgb(243 244 246);
+            }
+
+            .tag-suggestion:last-child {
+                border-bottom: none;
+            }
+
+            /* Nuevos estilos para etiquetas mejoradas */
+            .tag-input-container {
+                position: relative;
+            }
+
+            .tag-display {
+                min-height: 2.5rem;
+                position: relative;
+            }
+
+            .tag {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.5rem 0.75rem;
+                border-radius: 1.5rem;
+                font-size: 0.875rem;
+                font-weight: 500;
+                cursor: default;
+                border: 1px solid;
+                transition: all 0.2s ease;
+                margin: 0.125rem;
+            }
+
+            .tag:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .tag-purple {
+                background-color: rgb(243 232 255);
+                color: rgb(107 33 168);
+                border-color: rgb(196 181 253);
+            }
+
+            .tag-green {
+                background-color: rgb(220 252 231);
+                color: rgb(20 83 45);
+                border-color: rgb(187 247 208);
+            }
+
+            .tag-blue {
+                background-color: rgb(219 234 254);
+                color: rgb(30 64 175);
+                border-color: rgb(191 219 254);
+            }
+
+            .tag-orange {
+                background-color: rgb(255 237 213);
+                color: rgb(154 52 18);
+                border-color: rgb(254 215 170);
+            }
+
+            .tag-red {
+                background-color: rgb(254 226 226);
+                color: rgb(153 27 27);
+                border-color: rgb(252 165 165);
+            }
+
+            .tag-gray {
+                background-color: rgb(243 244 246);
+                color: rgb(31 41 55);
+                border-color: rgb(209 213 219);
+            }
+
+            .tag-red {
+                background-color: rgb(254 226 226);
+                color: rgb(153 27 27);
+                border-color: rgb(252 165 165);
+            }
+
+            .tag-gray {
+                background-color: rgb(243 244 246);
+                color: rgb(31 41 55);
+                border-color: rgb(209 213 219);
+            }
+
+            .tag-remove {
+                background: none;
+                border: none;
+                color: inherit;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+                padding: 0;
+                margin-left: 0.25rem;
+                opacity: 0.7;
+                transition: all 0.2s ease;
+                border-radius: 50%;
+                width: 1.25rem;
+                height: 1.25rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .tag-remove:hover {
+                opacity: 1;
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+
+            .tag-input {
+                width: 100%;
+                padding: 0.75rem;
+                border: 2px solid rgb(229 231 235);
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                background-color: white;
+            }
+
+            .tag-input:focus {
+                outline: none;
+                border-color: rgb(59 130 246);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            /* Sugerencias mejoradas */
+            .tag-suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid rgb(229 231 235);
+                border-radius: 0.5rem;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                z-index: 50;
+                max-height: 200px;
+                overflow-y: auto;
+                display: none;
+            }
+
+            .tag-suggestion {
+                padding: 0.75rem;
+                cursor: pointer;
+                border-bottom: 1px solid rgb(243 244 246);
+                font-size: 0.875rem;
+                transition: background-color 0.2s ease;
+            }
+
+            .tag-suggestion:hover {
+                background-color: rgb(243 244 246);
+            }
+
+            .tag-suggestion:last-child {
+                border-bottom: none;
+            }
+
+            /* Hacer que las sugerencias sean más clickeables */
+            .tag-suggestion {
+                padding: 0.75rem;
+                cursor: pointer;
+                border-bottom: 1px solid rgb(243 244 246);
+                font-size: 0.875rem;
+                transition: background-color 0.2s ease;
+                user-select: none;
+            }
+
+            .tag-suggestion:hover {
+                background-color: rgb(243 244 246);
+            }
         </style>
     `;
 };
@@ -506,6 +779,14 @@ window.processManifest = async function() {
         document.getElementById('manifestResults').classList.remove('hidden');
         showNotification('Manifiesto procesado exitosamente', 'success');
 
+        // Refrescar automáticamente la lista de pasajeros del día
+        setTimeout(() => {
+            const state = StateManager.getState();
+            if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
+                render();
+            }
+        }, 1000);
+
     } catch (error) {
         console.error('Error processing manifest:', error);
         document.getElementById('manifestOutput').innerHTML = `
@@ -563,7 +844,7 @@ window.searchPassengers = async function() {
             return;
         }
 
-        // Obtener vuelos de hoy para sugerencias
+        // Obtener vuelos de hoy para sugerencias - Fecha actual del sistema
         const today = new Date().toISOString().split('T')[0];
         let todayFlights = [];
         try {
@@ -735,28 +1016,17 @@ window.startPassengerInteraction = async function(passengerId) {
 // Función para ver timeline completo de un pasajero
 window.viewPassengerTimeline = async function(passengerId) {
     try {
+        showNotification('Cargando historial completo...', 'info');
+
         const passenger = await ApiService.getPassengerById(passengerId);
         const interactions = await ApiService.getPassengerInteractions(passengerId);
 
-        // Cambiar a vista de búsqueda para mostrar el timeline
-        StateManager.setState({
-            selectedPassenger: passenger,
-            passengerInteractions: interactions
-        });
-
-        // Re-renderizar la vista de passenger search que ahora tiene el modal de timeline
-        changeView(CONSTANTS.VIEWS.PASSENGER_SEARCH);
-
-        // Esperar un poco para que el DOM se actualice
-        setTimeout(() => {
-            showPassengerModal(passenger.id);
-        }, 200);
-
-        showNotification(`Cargando historial de ${passenger.nombre}`, 'info');
+        // Mostrar el modal directamente con el timeline completo
+        await showPassengerModal(passenger, interactions);
 
     } catch (error) {
         console.error('Error loading passenger timeline:', error);
-        showNotification('Error al cargar historial', 'error');
+        showNotification('Error al cargar historial del pasajero', 'error');
     }
 };
 
@@ -815,202 +1085,860 @@ window.filterTracking = function() {
 
 // Funciones para el Dashboard
 
-// Mostrar modal con recomendaciones basadas en ciencia y mejores prácticas
-window.showManualRecommendations = function() {
-    const scientificRecommendations = [
-        {
-            id: 'science_proactive',
-            title: 'Comunicación Proactiva',
-            icon: '💬',
-            gradient: 'from-blue-500 to-cyan-500',
-            impact: '+40% mejora en percepción del servicio',
-            science: 'La incertidumbre genera más estrés que el problema en sí (Psicología del estrés)',
-            keyPoints: [
-                'Informar ANTES de que pregunten: monitoreo constante de cambios',
-                'Estructura 4W: QUÉ pasa, POR QUÉ, QUÉ hacemos, QUÉ puede hacer el pasajero',
-                'Actualizaciones cada 15-20 min aunque no haya novedades',
-                'Cuando TÚ informas primero, el pasajero siente CONTROL'
-            ]
-        },
-        {
-            id: 'science_personalization',
-            title: 'Personalización de Experiencia',
-            icon: '✨',
-            gradient: 'from-purple-500 to-pink-500',
-            impact: '+60% aumento en lealtad del cliente',
-            science: 'Efecto "Cheers": Las personas valoran lugares donde las conocen por su nombre',
-            keyPoints: [
-                'Revisar perfil ANTES de atender (30 seg = gran diferencia)',
-                'Usar info sutilmente: actúa como si lo recordaras naturalmente',
-                'Sorpresas basadas en datos: ventana/pasillo, cumpleaños, historial',
-                'Registrar nueva info en cada interacción para próxima vez'
-            ]
-        },
-        {
-            id: 'science_empathy',
-            title: 'Empatía y Escucha Activa',
-            icon: '💚',
-            gradient: 'from-green-500 to-emerald-500',
-            impact: '-70% en escalamiento de conflictos',
-            science: 'Neurociencia: La validación emocional activa centros de recompensa social en el cerebro',
-            keyPoints: [
-                'Escucha PRIMERO, soluciona DESPUÉS',
-                'Valida emociones (NO el problema): "Entiendo su frustración"',
-                'Técnica del espejo: Repetir con tus palabras lo que dijeron',
-                'Cambiar "Pero" por "Y": mantiene conexión emocional'
-            ]
-        },
-        {
-            id: 'science_memorable',
-            title: 'Momentos Memorables',
-            icon: '🎂',
-            gradient: 'from-orange-500 to-red-500',
-            impact: '+300% viralidad en redes sociales',
-            science: 'Peak-End Rule: Recordamos momentos picos y el final, no el promedio',
-            keyPoints: [
-                'Detectar oportunidades: cumpleaños, primera vez, luna de miel',
-                'Sorpresas simples: tarjeta escrita a mano > regalo caro',
-                'Hacerlo personal: usar nombre, involucrar equipo',
-                'Invitar a compartir: facilitar fotos sin pedirlo directamente'
-            ]
-        },
-        {
-            id: 'science_followup',
-            title: 'Seguimiento Post-Vuelo',
-            icon: '📞',
-            gradient: 'from-indigo-500 to-blue-500',
-            impact: '+25% recuperación de NPS negativo',
-            science: 'ROI: Retener un cliente cuesta 5x menos que conseguir uno nuevo',
-            keyPoints: [
-                'SIEMPRE para detractores, incidentes, pasajeros TOP/SIGNATURE',
-                'Timing perfecto: 24-48h después del vuelo (sweet spot)',
-                '7 pasos: saludo → pregunta abierta → escucha → disculpa → acción → compromiso → cierre',
-                'Registrar inmediatamente feedback para mejora continua'
-            ]
-        },
-        {
-            id: 'science_recovery',
-            title: 'Recuperación de Servicio',
-            icon: '🔧',
-            gradient: 'from-yellow-500 to-amber-500',
-            impact: '+150% satisfacción vs no actuar',
-            science: 'Paradoja de Recuperación: Un problema bien resuelto crea más lealtad que no tener problemas',
-            keyPoints: [
-                'Reconocer INMEDIATAMENTE el problema sin excusas',
-                'Ofrecer opciones (dar control reduce agresividad)',
-                'Superar expectativas: dar más de lo esperado',
-                'Hacer seguimiento: confirmar que la solución funcionó'
-            ]
-        }
-    ];
+// Función para limpiar modales duplicados
+function cleanupDuplicateModals() {
+    // Eliminar cualquier modal de recomendaciones existente
+    const existingModals = document.querySelectorAll('#enhancedRecommendationsModal');
+    existingModals.forEach(modal => modal.remove());
+    
+    // Limpiar event listeners duplicados
+    const searchInput = document.getElementById('recommendationsSearch');
+    if (searchInput) {
+        searchInput.removeEventListener('input', filterRecommendations);
+    }
+    
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.removeEventListener('change', filterRecommendations);
+    }
+}
 
-    const modalHTML = `
-        <div id="manualModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 text-white sticky top-0 z-10">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h2 class="text-3xl font-bold flex items-center gap-3 mb-2">
+// Mostrar recomendaciones HVC - SIEMPRE en página estándar
+window.showManualRecommendations = function() {
+    // Limpiar cualquier modal existente
+    cleanupDuplicateModals();
+    
+    // SIEMPRE abrir en nueva pestaña/página (no más popup)
+    window.open('/recommendations.html', '_blank');
+};
+
+// Función para renderizar el modal principal
+function renderModal() {
+    return `
+        <div id="enhancedRecommendationsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
+                <!-- Header Mejorado -->
+                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-4 sm:p-6 text-white">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex-1 min-w-0">
+                            <h2 class="text-2xl sm:text-3xl font-bold flex items-center gap-3 mb-2">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                                 </svg>
-                                Recomendaciones Basadas en Ciencia
+                                <span class="truncate" id="modal-title">Herramienta de Recomendaciones HVC</span>
                             </h2>
-                            <p class="text-indigo-100 text-sm">Principios universales respaldados por investigación y estudios</p>
+                            <p class="text-indigo-100 text-sm sm:text-base">Basado en el Manual de Excelencia HVC - Aeropuerto de Jauja</p>
                         </div>
-                        <button onclick="closeModal('manualModal')" class="text-white hover:bg-white/20 rounded-lg p-2 transition">
+                        <button onclick="closeModal('enhancedRecommendationsModal')" class="text-white hover:bg-white/20 rounded-lg p-2 transition flex-shrink-0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                     </div>
 
-                    <!-- Disclaimer importante -->
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <div class="flex gap-2 items-start">
-                            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <div class="text-sm">
-                                <p class="font-semibold mb-1">📚 Importante: Esta guía complementa el manual de tu aerolínea</p>
-                                <p class="text-indigo-100">
-                                    Estas recomendaciones están basadas en ciencia, estudios y mejores prácticas universales sobre <strong>qué funciona</strong> para crear experiencias únicas.
-                                    Para casos específicos, compensaciones y políticas particulares, <strong>siempre consulta el manual oficial de tu aerolínea</strong>.
-                                </p>
+                    <!-- Barra de búsqueda y filtros -->
+                    <div class="mt-4 space-y-3">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1">
+                                <div class="relative">
+                                    <input type="text" id="recommendationsSearch" placeholder="Buscar recomendaciones..."
+                                           class="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/30 focus:border-white/50 transition">
+                                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="categoryFilter" class="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-white/30 focus:border-white/50 transition">
+                                    <option value="all" class="text-gray-800">Todas las categorías</option>
+                                    ${Object.values(ENHANCED_RECOMMENDATIONS.CATEGORIES).map(cat => `
+                                        <option value="${cat.id}" class="text-gray-800">${cat.icon} ${cat.name}</option>
+                                    `).join('')}
+                                </select>
+                                <button id="favoritesBtn" class="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    <span class="hidden sm:inline">Favoritos</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Contenido -->
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        ${scientificRecommendations.map(rec => `
-                            <div class="bg-gradient-to-br ${rec.gradient} p-[2px] rounded-2xl shadow-lg hover:shadow-2xl transition-all cursor-pointer"
-                                 onclick="showScientificDetail('${rec.id}')">
-                                <div class="bg-white rounded-2xl p-5 h-full">
-                                    <div class="flex items-center gap-3 mb-3">
-                                        <span class="text-4xl">${rec.icon}</span>
-                                        <h3 class="font-bold text-xl text-gray-800">${rec.title}</h3>
+                <!-- Contenido del modal -->
+                <div class="flex flex-col lg:flex-row max-h-[calc(95vh-200px)]">
+                    <!-- Panel lateral de navegación -->
+                    <div class="lg:w-80 border-r border-gray-200 bg-gray-50 p-4 overflow-y-auto">
+                        <div class="space-y-2">
+                            <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
+                                Categorías
+                            </h3>
+                            ${Object.values(ENHANCED_RECOMMENDATIONS.CATEGORIES).map(cat => `
+                                <button onclick="filterByCategory('${cat.id}')" class="category-btn w-full text-left p-3 rounded-lg hover:bg-white transition border border-transparent hover:border-gray-200" data-category="${cat.id}">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">${cat.icon}</span>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-semibold text-gray-800 truncate">${cat.name}</h4>
+                                            <p class="text-sm text-gray-600 truncate">${cat.description}</p>
+                                        </div>
                                     </div>
+                                </button>
+                            `).join('')}
+                        </div>
 
-                                    <div class="mb-3 p-3 bg-gradient-to-r ${rec.gradient} bg-opacity-10 rounded-lg">
-                                        <p class="text-sm font-semibold text-gray-800">${rec.impact}</p>
-                                    </div>
-
-                                    <div class="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                                        <p class="text-xs text-gray-600"><strong>🧠 Base Científica:</strong></p>
-                                        <p class="text-sm text-gray-700 mt-1">${rec.science}</p>
-                                    </div>
-
-                                    <div class="space-y-2 mb-4">
-                                        ${rec.keyPoints.slice(0, 2).map(point => `
-                                            <div class="flex gap-2 items-start">
-                                                <span class="text-green-600 font-bold flex-shrink-0">✓</span>
-                                                <p class="text-sm text-gray-700">${point}</p>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-
-                                    <button class="w-full bg-gradient-to-r ${rec.gradient} text-white py-2 rounded-lg font-medium text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                                        Ver guía completa
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </button>
+                        <!-- Estadísticas rápidas -->
+                        <div class="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                            <h4 class="font-semibold text-gray-800 mb-3">📊 Tu Progreso</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Favoritos:</span>
+                                    <span class="font-semibold text-indigo-600">${recommendationManager.getFavorites().length}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Usadas hoy:</span>
+                                    <span class="font-semibold text-green-600">${recommendationManager.getTodayUsage()}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Más útil:</span>
+                                    <span class="font-semibold text-purple-600 truncate text-xs">${recommendationManager.getMostUsed()[0]?.title || 'Ninguna'}</span>
                                 </div>
                             </div>
-                        `).join('')}
+                        </div>
                     </div>
 
-                    <!-- Footer con CTA -->
-                    <div class="mt-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                        <div class="flex items-start gap-4">
-                            <div class="bg-indigo-600 rounded-full p-3">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-bold text-lg text-gray-800 mb-2">¿Necesitas información específica de políticas?</h4>
-                                <p class="text-gray-600 mb-3">
-                                    Para compensaciones específicas, límites de autorización, códigos de vouchers y procesos particulares de tu aerolínea,
-                                    <strong>consulta siempre el manual oficial de servicio de tu compañía</strong>.
-                                </p>
-                                <p class="text-sm text-gray-500 italic">
-                                    💡 Esta guía se enfoca en el "cómo" (acciones y comportamientos que funcionan),
-                                    mientras que el manual de tu aerolínea define el "qué" (compensaciones y políticas específicas).
-                                </p>
-                            </div>
+                    <!-- Panel principal de contenido -->
+                    <div class="flex-1 p-4 overflow-y-auto">
+                        <div id="recommendationsContent">
+                            ${renderContent()}
                         </div>
+                    </div>
+                </div>
+
+                <!-- Footer con acciones -->
+                <div class="border-t border-gray-200 p-4 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <div class="text-sm text-gray-600">
+                        📚 <strong>${Object.keys(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS).length}</strong> recomendaciones disponibles
+                        • Basado en investigación científica y mejores prácticas
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportRecommendations()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Exportar
+                        </button>
+                        <button onclick="showTutorial()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Tutorial
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     `;
+}
 
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+// Función para renderizar el contenido principal
+function renderContent() {
+    return `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">Todas las Recomendaciones</h3>
+                <div class="text-sm text-gray-500">
+                    <span id="resultsCount">${Object.keys(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS).length}</span> resultados
+                </div>
+            </div>
+            ${renderRecommendationsList()}
+        </div>
+    `;
+}
+
+// Función para renderizar la lista de recomendaciones
+function renderRecommendationsList(filteredRecs = null) {
+    const recommendations = filteredRecs || Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS);
+    const favorites = recommendationManager.getFavorites();
+
+    return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${recommendations.map(rec => {
+                const category = ENHANCED_RECOMMENDATIONS.CATEGORIES[rec.category];
+                const isFavorite = favorites.includes(rec.id);
+                const priorityColors = {
+                    'critical': 'border-red-300 bg-red-50',
+                    'high': 'border-orange-300 bg-orange-50',
+                    'medium': 'border-yellow-300 bg-yellow-50',
+                    'low': 'border-gray-300 bg-gray-50'
+                };
+
+                return `
+                    <div class="bg-white border-2 ${priorityColors[rec.priority]} rounded-xl p-4 hover:shadow-lg transition-all cursor-pointer group"
+                         onclick="showDetailedRecommendation('${rec.id}')">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">${rec.icon}</span>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-gray-900 text-sm sm:text-base truncate break-words">${rec.title}</h4>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs px-2 py-1 ${category.color} text-white rounded-full">${category.icon} ${category.name}</span>
+                                        <span class="text-xs text-gray-500">${rec.estimatedTime}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="event.stopPropagation(); toggleFavorite('${rec.id}')"
+                                    class="text-gray-400 hover:text-red-500 transition p-1">
+                                <svg class="w-5 h-5 ${isFavorite ? 'fill-current text-red-500' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">${rec.description}</p>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-green-600">${rec.impact}</span>
+                                ${rec.priority === 'critical' ? '<span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">🔴 Crítico</span>' : ''}
+                            </div>
+                            <div class="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition">
+                                Ver detalles →
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// Función para renderizar recomendación detallada
+function renderDetailedRecommendation(recId) {
+    const rec = ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS[recId];
+    if (!rec) return '';
+
+    const category = ENHANCED_RECOMMENDATIONS.CATEGORIES[rec.category];
+    const isFavorite = recommendationManager.getFavorites().includes(recId);
+
+    return `
+        <div class="max-w-4xl mx-auto" data-recommendation-id="${recId}">
+            <!-- Header de la recomendación -->
+            <div class="bg-gradient-to-r ${category.color} rounded-xl p-6 text-white mb-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <span class="text-4xl">${rec.icon}</span>
+                        <div class="min-w-0">
+                            <h2 class="text-2xl font-bold mb-1 truncate">${rec.title}</h2>
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 bg-white/20 rounded-full text-sm">${category.icon} ${category.name}</span>
+                                <span class="text-sm opacity-90">${rec.estimatedTime}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="toggleFavorite('${recId}')"
+                            class="text-white hover:text-red-300 transition p-2">
+                        <svg class="w-6 h-6 ${isFavorite ? 'fill-current text-red-300' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-white/90 mt-3">${rec.description}</p>
+            </div>
+
+            <!-- Métricas y acciones rápidas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        <span class="font-semibold text-green-800">Impacto</span>
+                    </div>
+                    <p class="text-green-700 font-bold">${rec.impact}</p>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-blue-800">Prioridad</span>
+                    </div>
+                    <p class="text-blue-700 font-bold capitalize">${rec.priority}</p>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <span class="font-semibold text-purple-800">Referencia</span>
+                    </div>
+                    <p class="text-purple-700 text-sm">${rec.manualReference}</p>
+                </div>
+            </div>
+
+            <!-- Acciones rápidas -->
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Acciones Rápidas
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${rec.quickActions.map((action, index) => `
+                        <div class="flex items-start gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                            <span class="text-green-600 font-bold flex-shrink-0">${index + 1}.</span>
+                            <p class="text-sm text-gray-700">${action}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Pasos detallados -->
+            <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Guía Paso a Paso
+                </h3>
+                <div class="space-y-4">
+                    ${rec.detailedSteps.map((step, index) => `
+                        <div class="border-l-4 border-blue-400 pl-4 py-2">
+                            <h4 class="font-semibold text-gray-800 mb-2">${step.phase}</h4>
+                            <ul class="text-gray-600 text-sm mb-2 list-disc list-inside space-y-1">
+                                ${step.actions.map(action => `<li>${action}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Checklist interactivo -->
+            <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Checklist de Ejecución
+                </h3>
+                <div class="space-y-3">
+                    ${rec.checklist.map((item, index) => `
+                        <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                            <input type="checkbox"
+                                   onchange="updateChecklist('${recId}', ${index}, this.checked)"
+                                   class="mt-1 w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                                   ${recommendationManager.getChecklistState(recId)[index]?.completed ? 'checked' : ''}>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">${item.item}</p>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">Progreso:</span>
+                        <span class="font-semibold text-green-600 checklist-progress-text">
+                            ${recommendationManager.getChecklistProgress(recId)}% completado
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="bg-green-600 h-2 rounded-full transition-all duration-300 checklist-progress-bar"
+                             style="width: ${recommendationManager.getChecklistProgress(recId)}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ejemplos prácticos -->
+            ${rec.examples && rec.examples.length > 0 ? `
+                <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                        Ejemplos Prácticos
+                    </h3>
+                    <div class="space-y-4">
+                        ${rec.examples.map(example => `
+                            <div class="border-l-4 border-gray-300 pl-4 py-2">
+                                <h4 class="font-semibold text-gray-800 mb-2">Escenario: ${example.scenario}</h4>
+                                <div class="bg-red-50 p-2 rounded-lg mb-2">
+                                    <p class="text-sm text-red-800">${example.bad}</p>
+                                </div>
+                                <div class="bg-green-50 p-2 rounded-lg">
+                                    <p class="text-sm text-green-800">${example.good}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Frases clave y errores comunes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                ${rec.keyPhrases ? `
+                    <div class="bg-white border border-gray-200 rounded-xl p-6">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            </svg>
+                            Frases Clave
+                        </h3>
+                        <div class="space-y-2">
+                            ${rec.keyPhrases.map(phrase => `
+                                <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                                    <p class="text-sm text-blue-800 italic">"${phrase}"</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${rec.commonPitfalls ? `
+                    <div class="bg-white border border-gray-200 rounded-xl p-6">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L4.082 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            Errores Comunes
+                        </h3>
+                        <div class="space-y-2">
+                            ${rec.commonPitfalls.map(pitfall => `
+                                <div class="p-3 bg-red-50 rounded-lg border-l-4 border-red-400">
+                                    <p class="text-sm text-red-800">❌ ${pitfall}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- Acciones finales -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="shareRecommendation('${recId}')" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+                    </svg>
+                    Compartir con colegas
+                </button>
+                <button onclick="closeDetailedView()" class="flex-1 sm:flex-initial bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition font-medium">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Función para configurar los handlers del modal mejorado
+function setupEnhancedRecommendationsHandlers() {
+    // Handler de búsqueda con debounce para mejor rendimiento
+    const searchInput = document.getElementById('recommendationsSearch');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRecommendations, 300);
+        });
+    }
+
+    // Handler de filtro de categoría
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterRecommendations);
+    }
+
+    // Handler de botón favoritos
+    const favoritesBtn = document.getElementById('favoritesBtn');
+    if (favoritesBtn) {
+        favoritesBtn.addEventListener('click', () => {
+            const isActive = favoritesBtn.classList.contains('active');
+            if (isActive) {
+                favoritesBtn.classList.remove('active', 'bg-white/30');
+                favoritesBtn.classList.add('bg-white/10');
+                filterRecommendations();
+            } else {
+                favoritesBtn.classList.add('active', 'bg-white/30');
+                favoritesBtn.classList.remove('bg-white/10');
+                showFavoritesOnly();
+            }
+        });
+    }
+
+    // Agregar navegación por teclado
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal('enhancedRecommendationsModal');
+        }
+    });
+}
+
+// Función para filtrar recomendaciones con optimizaciones de rendimiento
+function filterRecommendations() {
+    const searchTerm = document.getElementById('recommendationsSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const isFavoritesOnly = document.getElementById('favoritesBtn').classList.contains('active');
+
+    // Usar requestAnimationFrame para optimizar el rendimiento
+    requestAnimationFrame(() => {
+        let filteredRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS);
+
+        // Filtrar por favoritos si está activo
+        if (isFavoritesOnly) {
+            const favorites = recommendationManager.getFavorites();
+            filteredRecs = filteredRecs.filter(rec => favorites.includes(rec.id));
+        }
+
+        // Filtrar por categoría
+        if (categoryFilter !== 'all') {
+            filteredRecs = filteredRecs.filter(rec => rec.category === categoryFilter);
+        }
+
+        // Filtrar por búsqueda
+        if (searchTerm) {
+            filteredRecs = filteredRecs.filter(rec =>
+                rec.title.toLowerCase().includes(searchTerm) ||
+                rec.description.toLowerCase().includes(searchTerm) ||
+                rec.quickActions.some(action => action.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        // Actualizar contador
+        const resultsCount = document.getElementById('resultsCount');
+        if (resultsCount) {
+            resultsCount.textContent = filteredRecs.length;
+        }
+
+        // Renderizar lista filtrada
+        const content = document.getElementById('recommendationsContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">
+                            ${isFavoritesOnly ? 'Recomendaciones Favoritas' : 'Recomendaciones Filtradas'}
+                        </h3>
+                        <div class="text-sm text-gray-500">
+                            <span id="resultsCount">${filteredRecs.length}</span> resultados
+                        </div>
+                    </div>
+                    ${renderRecommendationsList(filteredRecs)}
+                </div>
+            `;
+        }
+    });
+}
+
+// Función para mostrar solo favoritos
+function showFavoritesOnly() {
+    const favorites = recommendationManager.getFavorites();
+    const favoriteRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS)
+        .filter(rec => favorites.includes(rec.id));
+
+    document.getElementById('recommendationsContent').innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">Recomendaciones Favoritas</h3>
+                <div class="text-sm text-gray-500">
+                    <span id="resultsCount">${favoriteRecs.length}</span> favoritos
+                </div>
+            </div>
+            ${renderRecommendationsList(favoriteRecs)}
+        </div>
+    `;
+}
+
+// Función para filtrar por categoría
+function filterByCategory(categoryId) {
+    // Actualizar botón activo
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'border-blue-300');
+        btn.classList.add('border-transparent');
+    });
+
+    const activeBtn = document.querySelector(`[data-category="${categoryId}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('bg-blue-50', 'border-blue-300');
+        activeBtn.classList.remove('border-transparent');
+    }
+
+    // Filtrar recomendaciones
+    const categoryRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS)
+        .filter(rec => rec.category === categoryId);
+
+    document.getElementById('recommendationsContent').innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">
+                    ${ENHANCED_RECOMMENDATIONS.CATEGORIES[categoryId]?.icon || '📋'} ${ENHANCED_RECOMMENDATIONS.CATEGORIES[categoryId]?.name || 'General'}
+                </h3>
+                <div class="text-sm text-gray-500">
+                    <span id="resultsCount">${categoryRecs.length}</span> recomendaciones
+                </div>
+            </div>
+            ${renderRecommendationsList(categoryRecs)}
+        </div>
+    `;
+}
+
+// Función para mostrar recomendación detallada
+function showDetailedRecommendation(recId) {
+    const content = renderDetailedRecommendation(recId);
+    document.getElementById('recommendationsContent').innerHTML = content;
+
+    // Track usage
+    recommendationManager.trackUsage(recId);
+}
+
+// Función para cerrar vista detallada
+function closeDetailedView() {
+    document.getElementById('recommendationsContent').innerHTML = renderContent();
+}
+
+// Función para alternar favoritos
+function toggleFavorite(recId) {
+    recommendationManager.toggleFavorite(recId);
+    // Re-renderizar si estamos en vista detallada
+    const detailedView = document.querySelector('[data-recommendation-id]');
+    if (detailedView) {
+        showDetailedRecommendation(recId);
+    } else {
+        filterRecommendations();
+    }
+}
+
+
+// Función para compartir recomendación
+function shareRecommendation(recId) {
+    const rec = ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS[recId];
+    if (navigator.share) {
+        navigator.share({
+            title: rec.title,
+            text: rec.description,
+            url: window.location.href
+        });
+    } else {
+        // Fallback: copiar al portapapeles
+        navigator.clipboard.writeText(`${rec.title}\n${rec.description}\n${window.location.href}`);
+        showNotification('Recomendación copiada al portapapeles', 'success');
+    }
+}
+
+// Función para exportar recomendaciones
+function exportRecommendations() {
+    const data = {
+        recommendations: ENHANCED_RECOMMENDATIONS,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recomendaciones-hvc-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('Recomendaciones exportadas exitosamente', 'success');
+}
+
+// Funciones globales para el modal de recomendaciones mejorado
+
+// Función para mostrar recomendación detallada
+window.showDetailedRecommendation = function(recId) {
+    const content = renderDetailedRecommendation(recId);
+    document.getElementById('recommendationsContent').innerHTML = content;
+
+    // Track usage
+    recommendationManager.trackUsage(recId);
+};
+
+// Función para cerrar vista detallada
+window.closeDetailedView = function() {
+    document.getElementById('recommendationsContent').innerHTML = renderContent();
+};
+
+// Función para alternar favoritos
+window.toggleFavorite = function(recId) {
+    recommendationManager.toggleFavorite(recId);
+    // Re-renderizar si estamos en vista detallada
+    const detailedView = document.querySelector('[data-recommendation-id]');
+    if (detailedView) {
+        showDetailedRecommendation(recId);
+    } else {
+        filterRecommendations();
+    }
+};
+
+// Función para actualizar checklist
+window.updateChecklist = function(recId, index, checked) {
+    recommendationManager.updateChecklistState(recId, index, checked);
+    
+    // Actualizar progreso en vista detallada
+    const progressText = document.querySelector(`[data-recommendation-id="${recId}"] .checklist-progress-text`);
+    const progressBar = document.querySelector(`[data-recommendation-id="${recId}"] .checklist-progress-bar`);
+    
+    if (progressText && progressBar) {
+        const progress = recommendationManager.getChecklistProgress(recId);
+        progressText.textContent = `${progress}% completado`;
+        progressBar.style.width = `${progress}%`;
+    }
+};
+
+// Función para compartir recomendación
+window.shareRecommendation = function(recId) {
+    const rec = ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS[recId];
+    if (navigator.share) {
+        navigator.share({
+            title: rec.title,
+            text: rec.description,
+            url: window.location.href
+        });
+    } else {
+        // Fallback: copiar al portapapeles
+        navigator.clipboard.writeText(`${rec.title}\n${rec.description}\n${window.location.href}`);
+        showNotification('Recomendación copiada al portapapeles', 'success');
+    }
+};
+
+// Función para exportar recomendaciones
+window.exportRecommendations = function() {
+    const data = {
+        recommendations: ENHANCED_RECOMMENDATIONS,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recomendaciones-hvc-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('Recomendaciones exportadas exitosamente', 'success');
+};
+
+// Función para mostrar tutorial
+window.showTutorial = function() {
+    showNotification('Tutorial próximamente disponible', 'info');
+};
+
+// Función para filtrar por categoría
+window.filterByCategory = function(categoryId) {
+    // Actualizar botón activo
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'border-blue-300');
+        btn.classList.add('border-transparent');
+    });
+
+    const activeBtn = document.querySelector(`[data-category="${categoryId}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('bg-blue-50', 'border-blue-300');
+        activeBtn.classList.remove('border-transparent');
+    }
+
+    // Filtrar recomendaciones
+    const categoryRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS)
+        .filter(rec => rec.category === categoryId);
+
+    document.getElementById('recommendationsContent').innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">
+                    ${ENHANCED_RECOMMENDATIONS.CATEGORIES[categoryId]?.icon} ${ENHANCED_RECOMMENDATIONS.CATEGORIES[categoryId]?.name}
+                </h3>
+                <div class="text-sm text-gray-500">
+                    <span id="resultsCount">${categoryRecs.length}</span> recomendaciones
+                </div>
+            </div>
+            ${renderRecommendationsList(categoryRecs)}
+        </div>
+    `;
+};
+
+// Función para mostrar solo favoritos
+window.showFavoritesOnly = function() {
+    const favorites = recommendationManager.getFavorites();
+    const favoriteRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS)
+        .filter(rec => favorites.includes(rec.id));
+
+    document.getElementById('recommendationsContent').innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">Recomendaciones Favoritas</h3>
+                <div class="text-sm text-gray-500">
+                    <span id="resultsCount">${favoriteRecs.length}</span> favoritos
+                </div>
+            </div>
+            ${renderRecommendationsList(favoriteRecs)}
+        </div>
+    `;
+};
+
+// Función para filtrar recomendaciones con optimizaciones de rendimiento
+window.filterRecommendations = function() {
+    const searchTerm = document.getElementById('recommendationsSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const isFavoritesOnly = document.getElementById('favoritesBtn').classList.contains('active');
+
+    // Usar requestAnimationFrame para optimizar el rendimiento
+    requestAnimationFrame(() => {
+        let filteredRecs = Object.values(ENHANCED_RECOMMENDATIONS.RECOMMENDATIONS);
+
+        // Filtrar por favoritos si está activo
+        if (isFavoritesOnly) {
+            const favorites = recommendationManager.getFavorites();
+            filteredRecs = filteredRecs.filter(rec => favorites.includes(rec.id));
+        }
+
+        // Filtrar por categoría
+        if (categoryFilter !== 'all') {
+            filteredRecs = filteredRecs.filter(rec => rec.category === categoryFilter);
+        }
+
+        // Filtrar por búsqueda
+        if (searchTerm) {
+            filteredRecs = filteredRecs.filter(rec =>
+                rec.title.toLowerCase().includes(searchTerm) ||
+                rec.description.toLowerCase().includes(searchTerm) ||
+                rec.quickActions.some(action => action.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        // Actualizar contador
+        const resultsCount = document.getElementById('resultsCount');
+        if (resultsCount) {
+            resultsCount.textContent = filteredRecs.length;
+        }
+
+        // Renderizar lista filtrada
+        const content = document.getElementById('recommendationsContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">
+                            ${isFavoritesOnly ? 'Recomendaciones Favoritas' : 'Recomendaciones Filtradas'}
+                        </h3>
+                        <div class="text-sm text-gray-500">
+                            <span id="resultsCount">${filteredRecs.length}</span> resultados
+                        </div>
+                    </div>
+                    ${renderRecommendationsList(filteredRecs)}
+                </div>
+            `;
+        }
+    });
 };
 
 // Mostrar detalle científico completo de cada recomendación
@@ -1029,7 +1957,7 @@ window.showScientificDetail = function(detailId) {
                 },
                 {
                     subtitle: '2️⃣ Estructura 4W (What, Why, What we do, What you can do)',
-                    content: '• QUÉ está pasando: "Retraso de 30 minutos"\n• POR QUÉ: "Condiciones climáticas en destino"\n• QUÉ hacemos: "Priorizamos su despegue apenas mejore"\n• QUÉ puede hacer: "Puede usar sala VIP mientras espera"'
+                    content: '• QUÉ está pasando: "Retraso de 30 minutos"\n• POR QUÉ: "Condiciones climáticas en destino"\n• QUÉ hacemos: "Priorizamos su despegue apenas mejore"\n• QUÉ puede hacer: "Permíteme acompañarle y traerle un café"'
                 },
                 {
                     subtitle: '3️⃣ Actualizaciones Regulares',
@@ -1042,7 +1970,7 @@ window.showScientificDetail = function(detailId) {
             ],
             examples: [
                 { bad: '❌ Esperar a que el pasajero pregunte por el retraso', good: '✅ Acercarse proactivamente: "Sr. López, quiero informarle que tenemos 20 min de retraso por tráfico aéreo"' },
-                { bad: '❌ "Hay un retraso" (sin más contexto)', good: '✅ "Retraso de 30 min por clima. Estamos priorizando despegue. Puede usar sala VIP o le traigo un café"' }
+                { bad: '❌ "Hay un retraso" (sin más contexto)', good: '✅ "Retraso de 30 min por clima. Estamos priorizando despegue. Permíteme acompañarle y traerle un café"' }
             ]
         },
         science_personalization: {
@@ -1326,7 +2254,7 @@ window.showManualSection = function(sectionKey) {
                         'QUÉ está pasando (ej: retraso de 30 min)',
                         'POR QUÉ está pasando (ej: condiciones climáticas)',
                         'QUÉ estamos haciendo al respecto (ej: priorizando despegue)',
-                        'QUÉ pueden hacer ellos (ej: usar sala VIP mientras esperan)'
+                        'QUÉ pueden hacer ellos (ej: acompañamiento personal mientras esperan)'
                     ]
                 },
                 {
@@ -1848,10 +2776,46 @@ function showEditPassengerModal(passenger) {
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">URL de Foto</label>
-                            <input type="url" id="editFotoUrl" value="${passenger.foto_url || ''}"
-                                    placeholder="https://ejemplo.com/foto.jpg"
-                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Foto del Pasajero</label>
+                            <div class="space-y-3">
+                                <!-- Área de preview de imagen -->
+                                <div id="fotoPreview" class="relative">
+                                    ${passenger.foto_url ? `
+                                        <img src="${passenger.foto_url}" alt="Foto actual de ${passenger.nombre}"
+                                             class="w-32 h-32 object-cover rounded-xl border-2 border-gray-300 shadow-md mx-auto">
+                                        <button type="button" onclick="removeCurrentPhoto()"
+                                                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition">
+                                            ×
+                                        </button>
+                                    ` : `
+                                        <div class="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center mx-auto">
+                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                    `}
+                                </div>
+
+                                <!-- Input de URL (mantenido por compatibilidad) -->
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">O pegar URL de imagen:</label>
+                                    <input type="url" id="editFotoUrl" value="${passenger.foto_url || ''}"
+                                            placeholder="https://ejemplo.com/foto.jpg"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm">
+                                </div>
+
+                                <!-- Botón para subir archivo -->
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">O subir nueva imagen:</label>
+                                    <input type="file" id="fotoFile" accept="image/*"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                </div>
+
+                                <!-- Información de ayuda -->
+                                <p class="text-xs text-gray-500">
+                                    💡 Formatos admitidos: JPG, PNG, GIF. Tamaño máximo: 5MB
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -1897,6 +2861,7 @@ function showEditPassengerModal(passenger) {
 
                     <!-- Tab: Preferencias -->
                     <div id="edit-tab-preferences" class="edit-tab-content space-y-4">
+                        <!-- Gustos del Pasajero -->
                         <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
                             <h4 class="font-bold text-gray-800 mb-3 flex items-center">
                                 <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1904,11 +2869,26 @@ function showEditPassengerModal(passenger) {
                                 </svg>
                                 Gustos del Pasajero
                             </h4>
-                            <textarea id="editGustos" rows="4"
-                                    placeholder='{"bebida": "vino tinto", "comida": "vegetariana", "entretenimiento": "películas"}'
-                                    class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition font-mono text-sm">${passenger.gustos ? JSON.stringify(passenger.gustos, null, 2) : ''}</textarea>
-                            <p class="text-xs text-gray-500 mt-2">💡 Formato JSON. Ej: {"bebida": "agua mineral", "comida": "vegetariana"}</p>
+
+                            <!-- Sistema de etiquetas para gustos mejorado -->
+                            <div class="space-y-6">
+                                ${renderTagField('bebida', 'Bebidas Preferidas', ['agua', 'café', 'té', 'jugo', 'vino', 'cerveza', 'refresco', 'agua mineral', 'zumo'], passenger.gustos?.bebida || [], '🥤')}
+
+                                ${renderTagField('comida', 'Preferencias Alimentarias', ['vegetariana', 'vegana', 'sin gluten', 'sin lactosa', 'halal', 'kosher', 'baja en sodio', 'diabética', 'hipocalórica'], passenger.gustos?.comida || [], '🍽️')}
+
+                                ${renderTagField('entretenimiento', 'Entretenimiento', ['películas', 'música', 'libros', 'revistas', 'juegos', 'periódicos', 'podcasts', 'series'], passenger.gustos?.entretenimiento || [], '🎬')}
+
+                                <!-- Otros gustos -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Otros Gustos</label>
+                                    <textarea id="editOtrosGustos" rows="2"
+                                            placeholder="Ej: Prefiere silencio, necesita espacio extra, etc."
+                                            class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">${passenger.gustos?.otros || ''}</textarea>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Preferencias de Servicio -->
                         <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                             <h4 class="font-bold text-gray-800 mb-3 flex items-center">
                                 <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1916,17 +2896,35 @@ function showEditPassengerModal(passenger) {
                                 </svg>
                                 Preferencias de Servicio
                             </h4>
-                            <textarea id="editPreferencias" rows="4"
-                                    placeholder='{"asiento": "ventana", "servicio": "fast track", "sala_vip": true}'
-                                    class="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-mono text-sm">${passenger.preferencias ? JSON.stringify(passenger.preferencias, null, 2) : ''}</textarea>
-                            <p class="text-xs text-gray-500 mt-2">💡 Formato JSON. Ej: {"asiento": "ventana", "servicio": "fast track"}</p>
+
+                            <!-- Preferencias de Servicio mejoradas -->
+                            <div class="space-y-6">
+                                ${renderTagField('asiento', 'Preferencia de Asiento', ['ventana', 'pasillo', 'indiferente'], passenger.preferencias?.asiento ? [passenger.preferencias.asiento] : [], '💺')}
+
+                                ${renderTagField('servicios', 'Servicios Preferidos', ['sala vip', 'fast track', 'upgrade', 'transporte', 'concierge', 'wifi premium', 'comida especial'], passenger.preferencias?.servicios || [], '⭐')}
+
+                                ${renderTagField('contacto', 'Método de Contacto Preferido', ['email', 'teléfono', 'whatsapp', 'sms'], passenger.preferencias?.contacto ? [passenger.preferencias.contacto] : [], '📱')}
+                            </div>
+
+                            <!-- Notificación de cambios -->
+                            <div class="mb-4">
+                                <label class="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition"
+                                       onclick="toggleNotificationPreference()">
+                                    <input type="checkbox" id="editNotificarCambios" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" ${passenger.preferencias?.notificar_cambios !== false ? 'checked' : ''}>
+                                    <span class="text-sm font-medium text-blue-800">🔔 Notificarme sobre cambios de vuelo</span>
+                                </label>
+                            </div>
                         </div>
+
+                        <!-- Idiomas -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">🌐 Idiomas (separados por coma)</label>
                             <input type="text" id="editIdiomas" value="${passenger.idiomas ? passenger.idiomas.join(', ') : ''}"
                                     placeholder="Español, Inglés, Francés"
                                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                         </div>
+
+                        <!-- Notas Especiales -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Notas Especiales</label>
                             <textarea id="editNotasEspeciales" rows="3"
@@ -2072,51 +3070,97 @@ async function savePassengerChanges(passengerId) {
             notas_especiales: document.getElementById('editNotasEspeciales').value.trim() || null
         };
 
-        // Procesar JSON
-        try {
-            const gustosText = document.getElementById('editGustos').value.trim();
-            formData.gustos = gustosText ? JSON.parse(gustosText) : {};
-        } catch (error) {
-            showNotification('Error en formato JSON de gustos', 'error');
-            return;
+        // Manejar subida de nueva foto si existe
+        const fileInput = document.getElementById('fotoFile');
+        if (fileInput && fileInput.files[0]) {
+            try {
+                showNotification('Subiendo imagen...', 'info');
+
+                // Crear FormData para subir el archivo
+                const uploadData = new FormData();
+                uploadData.append('foto', fileInput.files[0]);
+                uploadData.append('pasajero_id', passengerId);
+
+                // Aquí iría la lógica para subir a Supabase Storage
+                // Por ahora, usar la URL de preview como placeholder
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    formData.foto_url = e.target.result;
+                    proceedWithSave();
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+
+                return; // Salir y esperar la subida
+            } catch (error) {
+                console.error('Error uploading photo:', error);
+                showNotification('Error al subir la imagen', 'error');
+                return;
+            }
+        } else {
+            proceedWithSave();
         }
 
-        try {
-            const preferenciasText = document.getElementById('editPreferencias').value.trim();
-            formData.preferencias = preferenciasText ? JSON.parse(preferenciasText) : {};
-        } catch (error) {
-            showNotification('Error en formato JSON de preferencias', 'error');
-            return;
+        async function proceedWithSave() {
+            try {
+                // Procesar gustos desde etiquetas
+                const bebidasTags = Array.from(document.querySelectorAll('[data-type="bebida"]')).map(tag => tag.getAttribute('data-value'));
+                const comidasTags = Array.from(document.querySelectorAll('[data-type="comida"]')).map(tag => tag.getAttribute('data-value'));
+                const entretenimientoTags = Array.from(document.querySelectorAll('[data-type="entretenimiento"]')).map(tag => tag.getAttribute('data-value'));
+                const otrosGustos = document.getElementById('editOtrosGustos').value.trim();
+
+                formData.gustos = {
+                    bebida: bebidasTags.length > 0 ? bebidasTags : undefined,
+                    comida: comidasTags.length > 0 ? comidasTags : undefined,
+                    entretenimiento: entretenimientoTags.length > 0 ? entretenimientoTags : undefined,
+                    otros: otrosGustos || undefined
+                };
+
+                // Procesar preferencias desde etiquetas
+                const asientoTag = document.querySelector('[data-type="asiento"]')?.getAttribute('data-value');
+                const serviciosTags = Array.from(document.querySelectorAll('[data-type="servicios"]')).map(tag => tag.getAttribute('data-value'));
+                const contactoTag = document.querySelector('[data-type="contacto"]')?.getAttribute('data-value');
+                const notificarCambios = document.getElementById('editNotificarCambios').checked;
+
+                formData.preferencias = {
+                    asiento: asientoTag || undefined,
+                    servicios: serviciosTags.length > 0 ? serviciosTags : undefined,
+                    contacto: contactoTag || undefined,
+                    notificar_cambios: notificarCambios
+                };
+
+                // Procesar idiomas
+                const idiomasText = document.getElementById('editIdiomas').value.trim();
+                formData.idiomas = idiomasText ? idiomasText.split(',').map(lang => lang.trim()).filter(lang => lang) : [];
+
+                // Importar validaciones
+                const { validatePassengerData } = await import('./utils/validators.js');
+
+                // Validar datos
+                const validation = validatePassengerData(formData);
+                if (!validation.isValid) {
+                    showNotification(`Errores de validación: ${validation.errors.join(', ')}`, 'error');
+                    return;
+                }
+
+                // Actualizar pasajero
+                await ApiService.updatePassenger(passengerId, formData);
+
+                showNotification('Pasajero actualizado exitosamente', 'success');
+
+                // Cerrar modal y refrescar vista
+                document.querySelector('.fixed').remove();
+
+                // Refrescar la vista actual
+                const state = StateManager.getState();
+                if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
+                    render();
+                }
+
+            } catch (error) {
+                console.error('Error saving passenger changes:', error);
+                showNotification('Error al guardar cambios', 'error');
+            }
         }
-
-        // Procesar idiomas
-        const idiomasText = document.getElementById('editIdiomas').value.trim();
-        formData.idiomas = idiomasText ? idiomasText.split(',').map(lang => lang.trim()).filter(lang => lang) : [];
-
-        // Importar validaciones
-        const { validatePassengerData } = await import('./utils/validators.js');
-
-        // Validar datos
-        const validation = validatePassengerData(formData);
-        if (!validation.isValid) {
-            showNotification(`Errores de validación: ${validation.errors.join(', ')}`, 'error');
-            return;
-        }
-
-        // Actualizar pasajero
-        await ApiService.updatePassenger(passengerId, formData);
-
-        showNotification('Pasajero actualizado exitosamente', 'success');
-
-        // Cerrar modal y refrescar vista
-        document.querySelector('.fixed').remove();
-
-        // Refrescar la vista actual
-        const state = StateManager.getState();
-        if (state.currentView === CONSTANTS.VIEWS.PASSENGER_SEARCH) {
-            render();
-        }
-
     } catch (error) {
         console.error('Error saving passenger changes:', error);
         showNotification('Error al guardar cambios', 'error');
@@ -2251,28 +3295,58 @@ async function showPassengerModal(passenger, interactions) {
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">Preferencias y Gustos</h3>
                         <div class="space-y-3">
-                            ${passenger.gustos && Object.keys(passenger.gustos).length > 0 ? `
+                            ${passenger.gustos && (passenger.gustos.bebida?.length > 0 || passenger.gustos.comida?.length > 0 || passenger.gustos.entretenimiento?.length > 0 || passenger.gustos.otros) ? `
                                 <div>
                                     <p class="font-medium text-gray-700">Gustos:</p>
                                     <div class="flex flex-wrap gap-1 mt-1">
-                                        ${Object.entries(passenger.gustos).map(([key, value]) => `
+                                        ${passenger.gustos.bebida?.length > 0 ? passenger.gustos.bebida.map(bebida => `
                                             <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                ${key}: ${value}
+                                                🥤 ${bebida.charAt(0).toUpperCase() + bebida.slice(1)}
                                             </span>
-                                        `).join('')}
+                                        `).join('') : ''}
+                                        ${passenger.gustos.comida?.length > 0 ? passenger.gustos.comida.map(comida => `
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                                🍽️ ${comida.charAt(0).toUpperCase() + comida.slice(1).replace('_', ' ')}
+                                            </span>
+                                        `).join('') : ''}
+                                        ${passenger.gustos.entretenimiento?.length > 0 ? passenger.gustos.entretenimiento.map(ent => `
+                                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                                🎬 ${ent.charAt(0).toUpperCase() + ent.slice(1)}
+                                            </span>
+                                        `).join('') : ''}
+                                        ${passenger.gustos.otros ? `
+                                            <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                                                📝 ${passenger.gustos.otros}
+                                            </span>
+                                        ` : ''}
                                     </div>
                                 </div>
                             ` : '<p class="text-gray-500 text-sm">No hay gustos registrados</p>'}
 
-                            ${passenger.preferencias && Object.keys(passenger.preferencias).length > 0 ? `
+                            ${passenger.preferencias && (passenger.preferencias.asiento || passenger.preferencias.servicios?.length > 0 || passenger.preferencias.contacto || passenger.preferencias.notificar_cambios !== undefined) ? `
                                 <div>
                                     <p class="font-medium text-gray-700">Preferencias:</p>
                                     <div class="flex flex-wrap gap-1 mt-1">
-                                        ${Object.entries(passenger.preferencias).map(([key, value]) => `
+                                        ${passenger.preferencias.asiento ? `
                                             <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                                ${key}: ${value}
+                                                💺 ${passenger.preferencias.asiento.charAt(0).toUpperCase() + passenger.preferencias.asiento.slice(1)}
                                             </span>
-                                        `).join('')}
+                                        ` : ''}
+                                        ${passenger.preferencias.servicios?.length > 0 ? passenger.preferencias.servicios.map(servicio => `
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                ⭐ ${servicio.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </span>
+                                        `).join('') : ''}
+                                        ${passenger.preferencias.contacto ? `
+                                            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                                                📱 ${passenger.preferencias.contacto.charAt(0).toUpperCase() + passenger.preferencias.contacto.slice(1)}
+                                            </span>
+                                        ` : ''}
+                                        ${passenger.preferencias.notificar_cambios !== undefined ? `
+                                            <span class="px-2 py-1 ${passenger.preferencias.notificar_cambios ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs rounded-full">
+                                                🔔 ${passenger.preferencias.notificar_cambios ? 'Notificaciones ON' : 'Notificaciones OFF'}
+                                            </span>
+                                        ` : ''}
                                     </div>
                                 </div>
                             ` : '<p class="text-gray-500 text-sm">No hay preferencias registradas</p>'}
@@ -2458,7 +3532,7 @@ async function showPassengerModal(passenger, interactions) {
                                                             <span class="text-2xl font-bold ${config.text}">${item.score}/10</span>
                                                         </div>
                                                         <span class="text-xs text-gray-500 font-medium">
-                                                            ${new Date(item.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            ${new Date(item.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })}
                                                         </span>
                                                     </div>
 
@@ -2680,10 +3754,45 @@ const renderPassengerInteractionView = () => {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Preferencias Observadas</label>
-                                <textarea id="preferencias" rows="3"
-                                        placeholder="Ej: Asiento ventana, comida vegetariana, bebida agua sin gas..."
-                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></textarea>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">📝 Preferencias Observadas</label>
+                                <div class="space-y-3">
+                                    <!-- Sistema de etiquetas para preferencias rápidas mejorado -->
+                                    <div class="tag-input-container">
+                                        <div class="tag-display mb-2 flex flex-wrap gap-2 min-h-[2.5rem] p-2 border-2 border-gray-200 rounded-lg bg-gray-50">
+                                            <!-- Las etiquetas se agregarán aquí dinámicamente -->
+                                        </div>
+                                        <div class="relative">
+                                            <input type="text" id="preferencias" class="tag-input w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+                                                   placeholder="Escribe para buscar o crear preferencias (bebidas, comida, asiento, etc.)..."
+                                                   list="preferencias-rapidas-list"
+                                                   oninput="showTagSuggestions(this, 'preferencias-rapidas')"
+                                                   onkeydown="handleTagInput(event, 'preferencias-rapidas')">
+                                            <datalist id="preferencias-rapidas-list">
+                                                <option value="agua">
+                                                <option value="café">
+                                                <option value="té">
+                                                <option value="jugo">
+                                                <option value="vino">
+                                                <option value="cerveza">
+                                                <option value="refresco">
+                                                <option value="vegetariana">
+                                                <option value="vegana">
+                                                <option value="sin gluten">
+                                                <option value="sin lactosa">
+                                                <option value="ventana">
+                                                <option value="pasillo">
+                                                <option value="indiferente">
+                                                <option value="sala vip">
+                                                <option value="fast track">
+                                                <option value="upgrade">
+                                                <option value="transporte">
+                                                <option value="concierge">
+                                                <option value="wifi premium">
+                                                <option value="comida especial">
+                                            </datalist>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -2856,6 +3965,394 @@ window.cancelInteraction = function() {
     render();
 };
 
+// Función para alternar preferencias rápidas en el formulario de interacción
+window.togglePreferenciaRapida = function(preferencia) {
+    const textarea = document.getElementById('preferencias');
+    if (!textarea) return;
+
+    const textoActual = textarea.value.trim();
+    const palabras = textoActual ? textoActual.split(', ') : [];
+
+    // Mapeo de preferencias a texto legible
+    const preferenciasMap = {
+        'agua': 'agua',
+        'cafe': 'café',
+        'te': 'té',
+        'jugo': 'jugo',
+        'vegetariana': 'comida vegetariana',
+        'vegana': 'comida vegana',
+        'sin_gluten': 'sin gluten',
+        'ventana': 'asiento ventana',
+        'pasillo': 'asiento pasillo'
+    };
+
+    const textoPreferencia = preferenciasMap[preferencia] || preferencia;
+    const index = palabras.indexOf(textoPreferencia);
+
+    if (index === -1) {
+        // Agregar preferencia
+        palabras.push(textoPreferencia);
+    } else {
+        // Remover preferencia
+        palabras.splice(index, 1);
+    }
+
+    // Actualizar textarea
+    textarea.value = palabras.join(', ');
+
+    // Agregar efecto visual al botón clickeado
+    const buttons = document.querySelectorAll('button[onclick*="togglePreferenciaRapida"]');
+    buttons.forEach(btn => {
+        if (btn.onclick.toString().includes(`'${preferencia}'`)) {
+            btn.classList.toggle('ring-2');
+            btn.classList.toggle('ring-green-500');
+            btn.classList.toggle('bg-green-200');
+        }
+    });
+
+    // Remover efecto después de 1 segundo
+    setTimeout(() => {
+        buttons.forEach(btn => {
+            if (btn.onclick.toString().includes(`'${preferencia}'`)) {
+                btn.classList.remove('ring-2', 'ring-green-500', 'bg-green-200');
+            }
+        });
+    }, 1000);
+};
+
+// Sistema de etiquetas mejorado con UI moderna
+let currentSuggestions = null;
+
+// Función genérica para renderizar un campo de etiquetas
+function renderTagField(type, label, options, existingTags = [], icon = '🏷️') {
+    const tagDisplay = existingTags.map(tag => `
+        <span class="tag tag-${getTagColor(type)}" data-type="${type}" data-value="${tag}">
+            ${icon} ${tag.charAt(0).toUpperCase() + tag.slice(1).replace(/_/g, ' ')}
+            <button type="button" class="tag-remove ml-1" onclick="removeTag('${type}', '${tag.replace(/'/g, "\\'")}')">×</button>
+        </span>
+    `).join('');
+
+    return `
+        <div class="tag-input-container">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">${icon} ${label}</label>
+            <div class="tag-display mb-2 flex flex-wrap gap-2 min-h-[2.5rem] p-2 border-2 border-gray-200 rounded-lg bg-gray-50">
+                ${tagDisplay}
+            </div>
+            <div class="relative">
+                <input type="text" class="tag-input w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                       placeholder="Escribe para buscar o crear nueva etiqueta..."
+                       list="${type}-list"
+                       oninput="showTagSuggestions(this, '${type}')"
+                       onkeydown="handleTagInput(event, '${type}')">
+                <datalist id="${type}-list">
+                    ${options.map(option => `<option value="${option}">`).join('')}
+                </datalist>
+            </div>
+        </div>
+    `;
+}
+
+// Mostrar sugerencias de etiquetas mejoradas
+window.showTagSuggestions = function(input, type) {
+    const value = input.value.toLowerCase().trim();
+    if (value.length < 1) {
+        hideTagSuggestions();
+        return;
+    }
+
+    const datalist = document.getElementById(`${type}-list`);
+    if (!datalist) return;
+
+    const suggestions = Array.from(datalist.options)
+        .map(option => option.value)
+        .filter(option => option.toLowerCase().includes(value));
+
+    if (suggestions.length === 0) {
+        hideTagSuggestions();
+        return;
+    }
+
+    // Crear o actualizar contenedor de sugerencias con mejor diseño
+    let suggestionsContainer = input.parentNode.querySelector('.tag-suggestions');
+    if (!suggestionsContainer) {
+        suggestionsContainer = document.createElement('div');
+        suggestionsContainer.className = 'tag-suggestions absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto';
+        input.parentNode.appendChild(suggestionsContainer);
+    }
+
+    suggestionsContainer.innerHTML = suggestions.map(suggestion => `
+        <div class="tag-suggestion" data-suggestion="${suggestion}" onclick="handleSuggestionClick(event, '${type}', '${suggestion.replace(/'/g, "\\'")}')">
+            ${suggestion}
+        </div>
+    `).join('');
+
+    suggestionsContainer.style.display = 'block';
+    currentSuggestions = { input, type, container: suggestionsContainer };
+};
+
+// Ocultar sugerencias
+function hideTagSuggestions() {
+    if (currentSuggestions) {
+        currentSuggestions.container.style.display = 'none';
+        currentSuggestions = null;
+    }
+}
+
+// Manejar click en sugerencia
+window.handleSuggestionClick = function(event, type, value) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Buscar el input activo más cercano
+    const suggestionsContainer = event.target.closest('.tag-suggestions');
+    const inputContainer = suggestionsContainer?.parentNode;
+    const input = inputContainer?.querySelector('.tag-input');
+
+    if (input) {
+        // Verificar si la etiqueta ya existe
+        const tagDisplay = input.closest('.tag-input-container').querySelector('.tag-display');
+        const existingTags = Array.from(tagDisplay.querySelectorAll('.tag'))
+            .filter(tag => tag.getAttribute('data-type') === type)
+            .map(tag => tag.getAttribute('data-value'));
+
+        if (!existingTags.includes(value)) {
+            addTag(type, value);
+        }
+
+        input.value = '';
+        hideTagSuggestions();
+    }
+};
+
+// Seleccionar sugerencia de etiqueta (mantenida por compatibilidad)
+window.selectTagSuggestion = function(type, value) {
+    if (currentSuggestions && currentSuggestions.input) {
+        const input = currentSuggestions.input;
+
+        // Verificar si la etiqueta ya existe
+        const tagDisplay = input.parentNode.parentNode.querySelector('.tag-display');
+        const existingTags = Array.from(tagDisplay.querySelectorAll('.tag'))
+            .filter(tag => tag.getAttribute('data-type') === type)
+            .map(tag => tag.getAttribute('data-value'));
+
+        if (!existingTags.includes(value)) {
+            addTag(type, value);
+        }
+
+        input.value = '';
+        hideTagSuggestions();
+    }
+};
+
+// Manejar input de etiquetas mejorado
+window.handleTagInput = function(event, type) {
+    const input = event.target;
+
+    if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        const value = input.value.trim();
+        if (value) {
+            addTag(type, value);
+            input.value = '';
+            hideTagSuggestions();
+        }
+    } else if (event.key === 'Backspace' && input.value === '') {
+        // Remover última etiqueta con backspace
+        const tagDisplay = input.parentNode.parentNode.querySelector('.tag-display');
+        if (tagDisplay) {
+            const lastTag = tagDisplay.lastElementChild;
+            if (lastTag && lastTag.classList.contains('tag')) {
+                const tagValue = lastTag.getAttribute('data-value');
+                const tagType = lastTag.getAttribute('data-type');
+                removeTag(tagType, tagValue);
+            }
+        }
+    }
+};
+
+// Agregar etiqueta mejorada
+function addTag(type, value) {
+    // Para preferencias rápidas, determinar automáticamente el tipo real
+    let actualType = type;
+    let actualValue = value.toLowerCase().trim();
+
+    if (type === 'preferencias-rapidas') {
+        // Categorizar automáticamente según el valor
+        if (['agua', 'café', 'té', 'jugo', 'vino', 'cerveza', 'refresco', 'agua mineral', 'zumo'].includes(actualValue)) {
+            actualType = 'bebida';
+        } else if (['vegetariana', 'vegana', 'sin gluten', 'sin lactosa', 'halal', 'kosher', 'baja en sodio', 'diabética', 'hipocalórica'].includes(actualValue)) {
+            actualType = 'comida';
+        } else if (['ventana', 'pasillo', 'indiferente'].includes(actualValue)) {
+            actualType = 'asiento';
+        } else if (['sala vip', 'fast track', 'upgrade', 'transporte', 'concierge', 'wifi premium', 'comida especial'].includes(actualValue)) {
+            actualType = 'servicios';
+        } else if (['email', 'teléfono', 'whatsapp', 'sms'].includes(actualValue)) {
+            actualType = 'contacto';
+        } else if (['películas', 'música', 'libros', 'revistas', 'juegos', 'periódicos', 'podcasts', 'series'].includes(actualValue)) {
+            actualType = 'entretenimiento';
+        } else {
+            actualType = 'otros';
+        }
+    }
+
+    // Buscar todos los tag-display en la página
+    const tagDisplays = document.querySelectorAll('.tag-display');
+    let tagDisplay = null;
+
+    // Encontrar el tag-display correcto basado en el contexto
+    for (let display of tagDisplays) {
+        const container = display.closest('.tag-input-container');
+        const input = container?.querySelector('.tag-input');
+        if (input && input.getAttribute('list') === `${type}-list`) {
+            tagDisplay = display;
+            break;
+        }
+    }
+
+    if (!tagDisplay) {
+        console.error('Tag display not found for type:', type);
+        return;
+    }
+
+    const existingTags = tagDisplay.querySelectorAll(`[data-type="${actualType}"][data-value="${actualValue}"]`);
+    if (existingTags.length > 0) return; // Evitar duplicados
+
+    const tagElement = document.createElement('span');
+    tagElement.className = `tag tag-${getTagColor(actualType)} px-3 py-1 rounded-full text-sm font-medium cursor-default border`;
+    tagElement.setAttribute('data-type', actualType);
+    tagElement.setAttribute('data-value', actualValue);
+    tagElement.innerHTML = `
+        ${getTagIcon(actualType)} ${actualValue.charAt(0).toUpperCase() + actualValue.slice(1).replace(/_/g, ' ')}
+        <button type="button" class="tag-remove ml-1 hover:bg-red-200 rounded-full w-4 h-4 flex items-center justify-center text-xs" onclick="removeTag('${actualType}', '${actualValue.replace(/'/g, "\\'")}')">×</button>
+    `;
+
+    tagDisplay.appendChild(tagElement);
+}
+
+// Obtener icono según tipo de etiqueta
+function getTagIcon(type) {
+    const icons = {
+        'bebida': '🥤',
+        'comida': '🍽️',
+        'entretenimiento': '🎬',
+        'asiento': '💺',
+        'servicios': '⭐',
+        'contacto': '📱',
+        'otros': '📝'
+    };
+    return icons[type] || '🏷️';
+}
+
+// Remover etiqueta
+window.removeTag = function(type, value) {
+    const tag = document.querySelector(`[data-type="${type}"][data-value="${value}"]`);
+    if (tag) {
+        tag.remove();
+    }
+};
+
+// Obtener color de etiqueta según tipo
+function getTagColor(type) {
+    const colors = {
+        'bebida': 'purple',
+        'comida': 'green',
+        'entretenimiento': 'purple',
+        'asiento': 'green',
+        'servicios': 'blue',
+        'contacto': 'orange',
+        'otros': 'gray'
+    };
+    return colors[type] || 'blue';
+}
+
+// Alternar preferencia de notificaciones
+window.toggleNotificationPreference = function() {
+    const checkbox = document.getElementById('editNotificarCambios');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+    }
+};
+
+// Manejar subida de foto
+window.handlePhotoUpload = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+        showNotification('Por favor selecciona un archivo de imagen válido', 'error');
+        return;
+    }
+
+    // Validar tamaño (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification('La imagen es demasiado grande. Máximo 5MB permitido', 'error');
+        return;
+    }
+
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('fotoPreview');
+        preview.innerHTML = `
+            <img src="${e.target.result}" alt="Preview de nueva foto"
+                 class="w-32 h-32 object-cover rounded-xl border-2 border-gray-300 shadow-md mx-auto">
+            <button type="button" onclick="removeNewPhoto()"
+                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition">
+                ×
+            </button>
+        `;
+
+        // Limpiar el input de URL
+        const urlInput = document.getElementById('editFotoUrl');
+        if (urlInput) {
+            urlInput.value = '';
+        }
+
+        showNotification('Foto cargada correctamente. Se subirá cuando guardes los cambios.', 'success');
+    };
+
+    reader.onerror = function() {
+        showNotification('Error al leer el archivo de imagen', 'error');
+    };
+
+    reader.readAsDataURL(file);
+};
+
+// Remover foto actual
+window.removeCurrentPhoto = function() {
+    const preview = document.getElementById('fotoPreview');
+    const urlInput = document.getElementById('editFotoUrl');
+
+    preview.innerHTML = `
+        <div class="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center mx-auto">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+        </div>
+    `;
+
+    if (urlInput) {
+        urlInput.value = '';
+    }
+};
+
+// Remover nueva foto subida
+window.removeNewPhoto = function() {
+    const fileInput = document.getElementById('fotoFile');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    removeCurrentPhoto();
+};
+
+// Ocultar sugerencias al hacer clic fuera
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.tag-input-container')) {
+        hideTagSuggestions();
+    }
+});
+
 // Función para cambiar entre tabs del formulario de interacción
 window.switchInteractionTab = function(tabName) {
     // Remover clase active de todos los botones de tabs
@@ -2909,6 +4406,36 @@ window.saveInteraction = async function(event) {
     const serviciosUtilizados = Array.from(document.querySelectorAll('.servicio-checkbox:checked'))
         .map(cb => cb.value);
 
+    // Procesar preferencias desde etiquetas
+    const allTags = document.querySelectorAll('.tag-display .tag');
+    const preferenciasTags = [];
+
+    for (let i = 0; i < allTags.length; i++) {
+        const tag = allTags[i];
+        preferenciasTags.push({
+            type: tag.getAttribute('data-type'),
+            value: tag.getAttribute('data-value')
+        });
+    }
+
+    // Organizar preferencias por tipo
+    const preferenciasData = {
+        bebida: preferenciasTags.filter(function(t) { return t.type === 'bebida'; }).map(function(t) { return t.value; }),
+        comida: preferenciasTags.filter(function(t) { return t.type === 'comida'; }).map(function(t) { return t.value; }),
+        asiento: preferenciasTags.filter(function(t) { return t.type === 'asiento'; }).map(function(t) { return t.value; }),
+        servicios: preferenciasTags.filter(function(t) { return t.type === 'servicios'; }).map(function(t) { return t.value; }),
+        otros: preferenciasTags.filter(function(t) { return t.type === 'otros'; }).map(function(t) { return t.value; })
+    };
+
+    // Aplanar arrays de un solo elemento
+    Object.keys(preferenciasData).forEach(function(key) {
+        if (preferenciasData[key].length === 0) {
+            delete preferenciasData[key];
+        } else if (preferenciasData[key].length === 1) {
+            preferenciasData[key] = preferenciasData[key][0];
+        }
+    });
+
     const interactionData = {
         pasajero_id: passenger.id,
         agente_nombre: state.currentUser,
@@ -2917,7 +4444,7 @@ window.saveInteraction = async function(event) {
         feedback: document.getElementById('feedback').value.trim() || null,
         calificacion_medallia: parseInt(document.getElementById('calificacionMedallia').value) || null,
         servicios_utilizados: serviciosUtilizados.length > 0 ? serviciosUtilizados : null,
-        preferencias: document.getElementById('preferencias').value.trim() || null,
+        preferencias: Object.keys(preferenciasData).length > 0 ? preferenciasData : null,
         incidentes: document.getElementById('incidentes').value.trim() || null,
         acciones_recuperacion: document.getElementById('accionesRecuperacion').value.trim() || null,
         notas: document.getElementById('notas').value.trim() || null,
@@ -3094,7 +4621,7 @@ const renderManifestView = async () => {
     const airport = state.airports.find(a => a.id === currentAirport);
     const airportName = airport ? airport.nombre : '';
 
-    // Establecer fecha de hoy por defecto
+    // Establecer fecha de hoy por defecto - Fecha actual del sistema
     const today = new Date().toISOString().split('T')[0];
 
     return `
@@ -3594,8 +5121,8 @@ const renderPassengerTrackingView = async () => {
             }
         });
 
-        // Interacciones recientes (últimas 24 horas)
-        const oneDayAgo = new Date();
+        // Interacciones recientes (últimas 24 horas) - Zona horaria Perú
+        const oneDayAgo = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Lima"}));
         oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
         interactions.forEach(interaction => {
@@ -4247,8 +5774,9 @@ const renderDashboardView = async () => {
         ((recoveryMetrics.promoters - recoveryMetrics.detractors) / Math.max(1, (recoveryMetrics.promoters + recoveryMetrics.passives + recoveryMetrics.detractors)) * 100).toFixed(0) : 0;
 
     // Calcular estadísticas del mes
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
     const monthInteractions = interactions.filter(i => {
         const date = new Date(i.fecha);
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
@@ -4825,7 +6353,7 @@ const renderDashboardView = async () => {
                     <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    Estadísticas del Mes - ${new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                    Estadísticas del Mes - ${now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}
                 </h2>
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-5 border-2 border-blue-200 hover:shadow-lg transition cursor-pointer">
@@ -4888,11 +6416,11 @@ const renderDashboardView = async () => {
                 <div class="mt-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
                     <div class="flex justify-between items-center mb-3">
                         <span class="text-sm font-bold text-gray-700">Progreso del Mes</span>
-                        <span class="text-sm font-bold text-indigo-600">${new Date().getDate()} / ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} días</span>
+                        <span class="text-sm font-bold text-indigo-600">${now.getDate()} / ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()} días</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
                         <div class="bg-gradient-to-r from-indigo-600 to-purple-600 h-4 rounded-full transition-all duration-500"
-                             style="width: ${((new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()) * 100).toFixed(1)}%"></div>
+                             style="width: ${((now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()) * 100).toFixed(1)}%"></div>
                     </div>
                 </div>
             </div>
