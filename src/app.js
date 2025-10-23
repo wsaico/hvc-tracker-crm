@@ -4051,26 +4051,148 @@ const renderPassengerInteractionView = () => {
                 </form>
 
                 ${interactions.length > 0 ? `
-                    <div class="mt-8 border-t pt-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Interacciones Anteriores</h3>
-                        <div class="space-y-3 max-h-60 overflow-y-auto">
-                            ${interactions.slice(0, 3).map(interaction => `
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p class="font-medium">${Utils.formatDateTime(interaction.fecha)}</p>
-                                            <p class="text-sm text-gray-600">Agente: ${interaction.agente_nombre}</p>
-                                        </div>
-                                        ${interaction.calificacion_medallia ? `
-                                            <span class="px-2 py-1 rounded text-sm ${Utils.getMedalliaColor(interaction.calificacion_medallia)}">
-                                                ${interaction.calificacion_medallia}/10
-                                            </span>
-                                        ` : ''}
-                                    </div>
-                                    ${interaction.feedback ? `<p class="text-sm text-gray-700">${interaction.feedback}</p>` : ''}
-                                </div>
-                            `).join('')}
+                    <div class="mt-8 border-t pt-6 px-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Historial de Interacciones Anteriores
+                            </h3>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                                ${interactions.length} total
+                            </span>
                         </div>
+                        <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                            ${interactions.slice(0, 5).map((interaction, index) => {
+                                const score = interaction.calificacion_medallia;
+                                const hasScore = score !== null && score !== undefined;
+                                const scoreStatus = hasScore ? (score <= 6 ? 'detractor' : score <= 8 ? 'passive' : 'promoter') : null;
+                                const scoreConfig = {
+                                    'detractor': { bg: 'bg-red-100', text: 'text-red-800', icon: '😞', label: 'Detractor', border: 'border-red-300' },
+                                    'passive': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '😐', label: 'Pasivo', border: 'border-yellow-300' },
+                                    'promoter': { bg: 'bg-green-100', text: 'text-green-800', icon: '😊', label: 'Promotor', border: 'border-green-300' }
+                                };
+                                const config = scoreStatus ? scoreConfig[scoreStatus] : null;
+
+                                return `
+                                <div class="relative bg-gradient-to-br from-white to-gray-50 border-2 ${config ? config.border : 'border-gray-200'} rounded-xl p-5 hover:shadow-lg transition-all duration-300 group">
+                                    <!-- Número de interacción -->
+                                    <div class="absolute top-3 left-3 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                                        ${index + 1}
+                                    </div>
+
+                                    <!-- Header con fecha y calificación -->
+                                    <div class="flex justify-between items-start mb-4 pl-10">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                <p class="text-sm font-bold text-gray-800">${Utils.formatDateTime(interaction.fecha)}</p>
+                                            </div>
+                                            ${interaction.motivo_viaje ? `
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                                    </svg>
+                                                    <span class="text-xs text-gray-600">Motivo: <span class="font-semibold text-gray-800">${interaction.motivo_viaje}</span></span>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                        ${hasScore ? `
+                                            <div class="flex flex-col items-end gap-1">
+                                                <div class="flex items-center gap-2 px-3 py-2 ${config.bg} rounded-lg border-2 ${config.border}">
+                                                    <span class="text-2xl">${config.icon}</span>
+                                                    <div class="text-right">
+                                                        <p class="text-2xl font-bold ${config.text}">${score}<span class="text-sm">/10</span></p>
+                                                        <p class="text-xs font-medium ${config.text}">${config.label}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div class="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg border-2 border-gray-300">
+                                                <p class="text-xs font-medium">Sin calificación</p>
+                                            </div>
+                                        `}
+                                    </div>
+
+                                    <!-- Información del agente -->
+                                    <div class="flex items-center gap-2 mb-3 pl-10 pb-3 border-b border-gray-200">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow">
+                                            ${interaction.agente_nombre ? interaction.agente_nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'AG'}
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-500">Atendido por</p>
+                                            <p class="text-sm font-bold text-gray-800">${interaction.agente_nombre || 'No registrado'}</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Feedback del pasajero -->
+                                    ${interaction.feedback ? `
+                                        <div class="pl-10 mb-3">
+                                            <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                                    </svg>
+                                                    <div>
+                                                        <p class="text-xs font-bold text-blue-800 mb-1">Comentario del pasajero:</p>
+                                                        <p class="text-sm text-gray-700 leading-relaxed">${interaction.feedback}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    <!-- Incidentes -->
+                                    ${interaction.incidentes ? `
+                                        <div class="pl-10 mb-3">
+                                            <div class="bg-orange-50 border-l-4 border-orange-400 rounded-r-lg p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.964-1.333-3.732 0L3.082 16c-.77 1.333.192 3 1.732 3z"/>
+                                                    </svg>
+                                                    <div>
+                                                        <p class="text-xs font-bold text-orange-800 mb-1">Incidente reportado:</p>
+                                                        <p class="text-sm text-gray-700 leading-relaxed">${interaction.incidentes}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    <!-- Acciones de recuperación -->
+                                    ${interaction.acciones_recuperacion ? `
+                                        <div class="pl-10">
+                                            <div class="bg-green-50 border-l-4 border-green-400 rounded-r-lg p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                    <div>
+                                                        <p class="text-xs font-bold text-green-800 mb-1">Acciones de recuperación:</p>
+                                                        <p class="text-sm text-gray-700 leading-relaxed">${interaction.acciones_recuperacion}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+
+                                    <!-- Badge de antigüedad -->
+                                    <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span class="text-xs text-gray-400 font-medium bg-white px-2 py-1 rounded shadow">
+                                            Hace ${Math.ceil((new Date() - new Date(interaction.fecha)) / (1000 * 60 * 60 * 24))} días
+                                        </span>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                        ${interactions.length > 5 ? `
+                            <div class="mt-4 text-center">
+                                <p class="text-sm text-gray-500">Mostrando las 5 interacciones más recientes de ${interactions.length} totales</p>
+                            </div>
+                        ` : ''}
                     </div>
                 ` : ''}
             </div>
