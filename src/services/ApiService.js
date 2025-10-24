@@ -5,7 +5,7 @@
 
 import { getSupabaseClient } from '../config/supabase.js';
 import { CONSTANTS } from '../config/constants.js';
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, getTodayInPeru } from '../utils/helpers.js';
 
 const client = getSupabaseClient();
 
@@ -405,7 +405,7 @@ export const addPassengerToFlight = async (vueloId, pasajeroId, asiento, estatus
  */
 export const getPassengerCurrentFlight = async (pasajeroId) => {
     try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayInPeru();
         const { data, error } = await client
             .from('flight_passengers')
             .select('*, flights(*)')
@@ -536,12 +536,17 @@ export const getAirportMetrics = async (aeropuertoId) => {
             ? ((recoveryActions / passengersAtRisk) * 100).toFixed(1)
             : 0;
 
-        // Cumpleaños del día
+        // Cumpleaños del día (ajustado a zona horaria de Perú)
         const today = new Date();
+        const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
         const cumpleanosHoy = passengers.filter(p =>
             p.fecha_nacimiento &&
-            new Date(p.fecha_nacimiento).getMonth() === today.getMonth() &&
-            new Date(p.fecha_nacimiento).getDate() === today.getDate()
+            (() => {
+                const birthday = new Date(p.fecha_nacimiento);
+                const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
+                return birthdayPeru.getMonth() === todayPeru.getMonth() &&
+                       birthdayPeru.getDate() === todayPeru.getDate();
+            })()
         ).length;
 
         // Pasaportes por vencer (próximos 30 días)

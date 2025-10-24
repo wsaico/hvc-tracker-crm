@@ -7,6 +7,19 @@ import { CONSTANTS } from '../config/constants.js';
 import { sanitizeText } from './validators.js';
 
 /**
+ * Obtiene la fecha actual en formato YYYY-MM-DD en zona horaria de Perú
+ * @returns {string} Fecha actual en formato YYYY-MM-DD
+ */
+export const getTodayInPeru = () => {
+    const now = new Date();
+    const peruDate = new Date(now.toLocaleString("en-US", {timeZone: "America/Lima"}));
+    const year = peruDate.getFullYear();
+    const month = String(peruDate.getMonth() + 1).padStart(2, '0');
+    const day = String(peruDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+/**
  * Formatea una fecha
  * @param {string|Date} date - Fecha a formatear
  * @returns {string} Fecha formateada
@@ -88,13 +101,16 @@ export const getMedalliaText = (score) => {
  */
 export const isBirthday = (fechaNacimiento) => {
     if (!fechaNacimiento) return false;
-    const today = new Date();
-    const birthday = new Date(fechaNacimiento);
 
-    // Ajustar a zona horaria de Perú
+    // Obtener fecha actual en zona horaria de Perú
+    const today = new Date();
     const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
+
+    // Convertir fecha de nacimiento a zona horaria de Perú
+    const birthday = new Date(fechaNacimiento);
     const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
 
+    // Comparar solo mes y día (ignorar año y hora)
     return todayPeru.getMonth() === birthdayPeru.getMonth() &&
            todayPeru.getDate() === birthdayPeru.getDate();
 };
@@ -106,11 +122,13 @@ export const isBirthday = (fechaNacimiento) => {
  */
 export const calculateAge = (fechaNacimiento) => {
     if (!fechaNacimiento) return null;
-    const today = new Date();
-    const birthday = new Date(fechaNacimiento);
 
-    // Ajustar a zona horaria de Perú
+    // Obtener fecha actual en zona horaria de Perú
+    const today = new Date();
     const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
+
+    // Convertir fecha de nacimiento a zona horaria de Perú
+    const birthday = new Date(fechaNacimiento);
     const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
 
     let age = todayPeru.getFullYear() - birthdayPeru.getFullYear();

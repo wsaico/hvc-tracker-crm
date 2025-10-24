@@ -1267,8 +1267,8 @@ window.searchPassengers = async function() {
             return;
         }
 
-        // Obtener vuelos de hoy para sugerencias - Fecha actual del sistema
-        const today = new Date().toISOString().split('T')[0];
+        // Obtener vuelos de hoy para sugerencias - Fecha actual en zona horaria de Perú
+        const today = Utils.getTodayInPeru();
         let todayFlights = [];
         try {
             todayFlights = await ApiService.getFlightsByDate(today, state.currentAirport);
@@ -2227,7 +2227,7 @@ function exportRecommendations() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `recomendaciones-hvc-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `recomendaciones-hvc-${Utils.getTodayInPeru()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -2307,7 +2307,7 @@ window.exportRecommendations = function() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `recomendaciones-hvc-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `recomendaciones-hvc-${Utils.getTodayInPeru()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -5984,8 +5984,8 @@ const renderManifestView = async () => {
     const airport = state.airports.find(a => a.id === currentAirport);
     const airportName = airport ? airport.nombre : '';
 
-    // Establecer fecha de hoy por defecto - Fecha actual del sistema
-    const today = new Date().toISOString().split('T')[0];
+    // Establecer fecha de hoy por defecto - Fecha actual en zona horaria de Perú
+    const today = Utils.getTodayInPeru();
 
     return `
         <div class="max-w-6xl mx-auto p-6">
@@ -6144,7 +6144,7 @@ LA2002,CUZ,Patricia Gomez,TOP,BOARDING,2C\`;
  */
 const renderPassengerSearchView = async () => {
     const state = StateManager.getState();
-    const today = new Date().toISOString().split('T')[0];
+    const today = Utils.getTodayInPeru();
 
     // Cargar pasajeros del día automáticamente
     let todayPassengers = [];

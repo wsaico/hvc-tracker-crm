@@ -4,6 +4,8 @@
  * @module EnhancedRecommendations
  */
 
+import { getTodayInPeru } from '../utils/helpers.js';
+
 export const ENHANCED_RECOMMENDATIONS = {
     // Categorías principales organizadas por fases del viaje
     CATEGORIES: {
@@ -950,7 +952,7 @@ export class RecommendationManager {
     }
 
     getTodayUsage() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayInPeru();
         let todayCount = 0;
 
         Object.entries(this.usageStats).forEach(([id, stats]) => {
