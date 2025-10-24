@@ -5877,12 +5877,16 @@ const setupLoginHandlers = async () => {
             // Login exitoso
             showNotification(`Bienvenido, ${user.nombreCompleto}!`, CONSTANTS.NOTIFICATION_TYPES.SUCCESS);
 
+            // Cargar lista de aeropuertos para el estado
+            const airports = await ApiService.getAirports();
+
             StateManager.setState({
                 currentUser: user.nombreCompleto,
                 currentUserId: user.id,
                 currentRole: user.rol,
                 currentAirport: user.aeropuerto.id,
                 currentAirportData: user.aeropuerto,
+                airports: airports, // Cargar la lista de aeropuertos
                 currentView: user.rol === CONSTANTS.ROLES.SUPERVISOR ? CONSTANTS.VIEWS.DASHBOARD : CONSTANTS.VIEWS.PASSENGER_SEARCH
             });
 
@@ -6467,7 +6471,10 @@ const renderPassengerSearchView = async () => {
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-medium text-gray-500">Aeropuerto:</span>
                             <span class="px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-bold">
-                                ${state.currentAirport || 'Todos'}
+                                ${(() => {
+                                    const airport = state.airports.find(a => a.id === state.currentAirport);
+                                    return airport ? airport.nombre : 'Todos';
+                                })()}
                             </span>
                         </div>
                     </div>
