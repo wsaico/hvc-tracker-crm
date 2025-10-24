@@ -561,10 +561,17 @@ export const calculateDashboardMetrics = (interactions, passengers) => {
 
     // Cumpleaños del día
     const today = new Date();
+    // Ajustar fecha actual a zona horaria de Perú
+    const todayPeru = new Date(today.toLocaleString("en-US", {timeZone: "America/Lima"}));
+
     const birthdayPassengers = passengers.filter(p =>
         p.fecha_nacimiento &&
-        new Date(p.fecha_nacimiento).getMonth() === today.getMonth() &&
-        new Date(p.fecha_nacimiento).getDate() === today.getDate()
+        (() => {
+            const birthday = new Date(p.fecha_nacimiento);
+            const birthdayPeru = new Date(birthday.toLocaleString("en-US", {timeZone: "America/Lima"}));
+            return birthdayPeru.getMonth() === todayPeru.getMonth() &&
+                   birthdayPeru.getDate() === todayPeru.getDate();
+        })()
     ).length;
 
     // Pasaportes por vencer (próximos 90 días)
