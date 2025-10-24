@@ -1436,6 +1436,115 @@ window.clearAllPassengersFilters = function() {
     filterAllPassengers();
 };
 
+// Variables globales para paginación
+let currentPage = 1;
+const itemsPerPage = 20;
+let allPassengersGlobal = [];
+
+// Función para cambiar de página
+window.changePage = function(direction) {
+    const totalPages = Math.ceil(allPassengersGlobal.length / itemsPerPage);
+    currentPage += direction;
+
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    renderPaginatedList();
+};
+
+// Función para renderizar lista paginada
+function renderPaginatedList() {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginatedPassengers = allPassengersGlobal.slice(start, end);
+
+    const passengersList = document.getElementById('passengers-list');
+    if (!passengersList) return;
+
+    // Actualizar contador
+    document.getElementById('page-start').textContent = start + 1;
+    document.getElementById('page-end').textContent = Math.min(end, allPassengersGlobal.length);
+
+    // Actualizar botones
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const totalPages = Math.ceil(allPassengersGlobal.length / itemsPerPage);
+
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+    // Renderizar cards de pasajeros
+    passengersList.innerHTML = paginatedPassengers.map(passenger => {
+        const categoryColors = {
+            'BLACK': { badge: 'bg-gray-900 text-white' },
+            'SIGNATURE': { badge: 'bg-purple-600 text-white' },
+            'PLATINUM': { badge: 'bg-blue-600 text-white' },
+            'GOLD PLUS': { badge: 'bg-yellow-600 text-white' },
+            'GOLD': { badge: 'bg-yellow-500 text-white' },
+            'SILVER': { badge: 'bg-gray-400 text-white' },
+            'TOP': { badge: 'bg-red-600 text-white' }
+        };
+        const colors = categoryColors[passenger.categoria] || { badge: 'bg-gray-600 text-white' };
+        const actionColors = {
+            'red': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+            'yellow': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+            'green': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
+            'gray': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300' },
+            'slate': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300' }
+        };
+        const actionStyle = actionColors[passenger.action.color];
+
+        return `
+        <div class="passenger-card bg-white rounded-lg border border-gray-200 p-2.5 hover:shadow-md transition-all hover:border-purple-300"
+             data-passenger-name="${passenger.nombre.toLowerCase()}"
+             data-passenger-dni="${passenger.dni_pasaporte.toLowerCase()}"
+             data-passenger-status="${passenger.attended ? 'attended' : 'not-attended'}"
+             data-passenger-category="${passenger.categoria}"
+             data-passenger-action="${passenger.action.type}">
+
+            <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                    <div class="w-10 h-10 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                        <span class="text-white font-bold text-sm">${passenger.nombre.charAt(0)}</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-900 text-sm truncate">${passenger.nombre}</h3>
+                        <span class="${colors.badge} px-1.5 py-0.5 rounded text-xs font-bold">${passenger.categoria.substring(0, 3)}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-600">
+                        <span>${passenger.dni_pasaporte}</span>
+                        ${passenger.attended ? `<span class="text-blue-600">• ${passenger.totalInteractions} int.</span>` : ''}
+                        ${passenger.latestScore !== null && passenger.latestScore !== undefined ? `
+                            <span class="px-1.5 py-0.5 ${Utils.getMedalliaColor(passenger.latestScore)} rounded font-bold text-white">${passenger.latestScore}/10</span>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="${actionStyle.bg} px-2 py-1 rounded text-center">
+                    <span class="text-lg">${passenger.action.icon}</span>
+                </div>
+
+                <div class="flex gap-1.5 flex-shrink-0">
+                    ${passenger.attended ? `
+                        <button onclick="viewPassengerDetails('${passenger.id}')"
+                                class="bg-blue-50 border border-blue-200 text-blue-700 px-2 py-1.5 rounded hover:bg-blue-100 transition text-xs font-medium">
+                            Ver
+                        </button>
+                    ` : ''}
+                    <button onclick="startPassengerInteraction('${passenger.id}')"
+                            class="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition text-xs font-medium">
+                        Atender
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
 // Función para crear nuevo pasajero
 window.createNewPassenger = async function(name) {
     const state = StateManager.getState();
@@ -6177,17 +6286,16 @@ const renderPassengerSearchView = async () => {
             passengersWithInteractions.get(pid).push(interaction);
         });
 
-        // Crear conjunto de todos los IDs de pasajeros únicos
-        const allPassengerIds = new Set([...passengerIds, ...passengersWithInteractions.keys()]);
+        // CARGAR TODOS LOS PASAJEROS DEL AEROPUERTO (no solo los que tienen vuelos o interacciones)
+        const allPassengersFromDB = await ApiService.getAllPassengers(state.currentAirport);
 
-        // Cargar detalles de TODOS los pasajeros (del día + con interacciones históricas)
-        for (const passengerId of allPassengerIds) {
+        // Procesar cada pasajero
+        for (const passenger of allPassengersFromDB) {
             try {
-                const passenger = await ApiService.getPassengerById(passengerId);
                 if (!passenger) continue;
 
                 // Verificar si el pasajero tiene interacciones
-                const interactions = passengersWithInteractions.get(passengerId) || [];
+                const interactions = passengersWithInteractions.get(passenger.id) || [];
                 const hasInteractions = interactions.length > 0;
 
                 if (hasInteractions) {
@@ -6257,7 +6365,7 @@ const renderPassengerSearchView = async () => {
                     });
                 }
             } catch (err) {
-                console.error(`Error loading passenger ${passengerId}:`, err);
+                console.error(`Error loading passenger ${passenger.id}:`, err);
             }
         }
 
@@ -6550,9 +6658,9 @@ const renderPassengerSearchView = async () => {
                         </div>
                     </div>
 
-                    <!-- Lista de pasajeros -->
-                    <div id="passengers-list" class="space-y-3">
-                        ${allPassengers.length > 0 ? allPassengers.map(passenger => {
+                    <!-- Lista de pasajeros con paginación -->
+                    <div id="passengers-list" class="space-y-2">
+                        ${allPassengers.length > 0 ? allPassengers.slice(0, 20).map(passenger => {
                             // Determinar colores según categoría
                             const categoryColors = {
                                 'BLACK': { badge: 'bg-gray-900 text-white' },
@@ -6574,111 +6682,53 @@ const renderPassengerSearchView = async () => {
                             const actionStyle = actionColors[passenger.action.color];
 
                             return `
-                            <div class="passenger-card bg-gradient-to-r from-white to-gray-50 rounded-lg sm:rounded-xl border-2 border-gray-200 p-3 sm:p-4 hover:shadow-lg transition-all duration-300 hover:border-purple-300"
+                            <div class="passenger-card bg-white rounded-lg border border-gray-200 p-2.5 hover:shadow-md transition-all hover:border-purple-300"
                                  data-passenger-name="${passenger.nombre.toLowerCase()}"
                                  data-passenger-dni="${passenger.dni_pasaporte.toLowerCase()}"
                                  data-passenger-status="${passenger.attended ? 'attended' : 'not-attended'}"
                                  data-passenger-category="${passenger.categoria}"
                                  data-passenger-action="${passenger.action.type}">
 
-                                <div class="flex flex-col gap-3">
-                                    <!-- Fila 1: Avatar + Info básica -->
-                                    <div class="flex items-center gap-3">
-                                        ${passenger.foto_url ? `
-                                            <img src="${passenger.foto_url}" alt="${passenger.nombre}" class="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover shadow-md flex-shrink-0">
-                                        ` : `
-                                            <div class="relative flex-shrink-0">
-                                                <div class="w-12 h-12 sm:w-16 sm:h-16 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center shadow-md border-2 border-white">
-                                                    <span class="text-white font-bold text-lg sm:text-2xl">${passenger.nombre.charAt(0)}</span>
-                                                </div>
-                                                <div class="absolute -bottom-1 -right-1 ${colors.badge} rounded-full px-1.5 py-0.5 text-xs font-bold shadow">
-                                                    ${passenger.categoria.substring(0, 3)}
-                                                </div>
-                                            </div>
-                                        `}
-
-                                        <div class="flex-1 min-w-0">
-                                            <h3 class="font-bold text-gray-900 text-sm sm:text-lg mb-1 truncate">${passenger.nombre}</h3>
-                                            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                                <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-white border border-gray-200 text-xs text-gray-700">
-                                                    <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5 sm:mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-                                                    </svg>
-                                                    <span class="hidden sm:inline">${passenger.dni_pasaporte}</span>
-                                                    <span class="sm:hidden">${passenger.dni_pasaporte.substring(0, 8)}...</span>
-                                                </span>
-                                                <span class="${colors.badge} inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold">
-                                                    <span class="hidden sm:inline">${passenger.categoria}</span>
-                                                    <span class="sm:hidden">${passenger.categoria.substring(0, 3)}</span>
-                                                </span>
-                                                ${passenger.attended ? `
-                                                    <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-blue-50 text-blue-700 text-xs font-medium">
-                                                        <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                                        </svg>
-                                                        <span class="hidden sm:inline">${passenger.totalInteractions} interacción${passenger.totalInteractions !== 1 ? 'es' : ''}</span>
-                                                        <span class="sm:hidden">${passenger.totalInteractions}</span>
-                                                    </span>
-                                                ` : ''}
-                                            </div>
+                                <div class="flex items-center gap-3">
+                                    <!-- Avatar compacto -->
+                                    <div class="relative flex-shrink-0">
+                                        <div class="w-10 h-10 ${Utils.getCategoryClass(passenger.categoria)} rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                            <span class="text-white font-bold text-sm">${passenger.nombre.charAt(0)}</span>
                                         </div>
                                     </div>
 
-                                    <!-- Fila 2: Calificación + Acción + Botones (responsive) -->
-                                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                                        <!-- Calificación y fecha -->
-                                        ${passenger.attended ? `
-                                            <div class="flex items-center gap-3 sm:gap-4">
-                                                <div class="text-center">
-                                                    <p class="text-xs text-gray-500 mb-1">Última Calificación</p>
-                                                    ${passenger.latestScore !== null && passenger.latestScore !== undefined ? `
-                                                        <div class="px-2 sm:px-3 py-1 sm:py-2 ${Utils.getMedalliaColor(passenger.latestScore)} rounded-lg font-bold text-base sm:text-lg">
-                                                            ${passenger.latestScore}/10
-                                                        </div>
-                                                    ` : `
-                                                        <div class="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 text-gray-500 rounded-lg text-xs">
-                                                            Sin calificar
-                                                        </div>
-                                                    `}
-                                                    <p class="text-xs text-gray-400 mt-1">
-                                                        ${passenger.latestInteractionDate ? Utils.formatDateTime(passenger.latestInteractionDate) : 'N/A'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ` : ''}
-
-                                        <!-- Acción Necesaria -->
-                                        <div class="flex-1">
-                                            <div class="${actionStyle.bg} ${actionStyle.border} border-2 rounded-lg p-2 sm:p-3 text-center sm:text-left">
-                                                <div class="flex items-center justify-center sm:justify-start gap-2">
-                                                    <span class="text-xl sm:text-2xl">${passenger.action.icon}</span>
-                                                    <p class="${actionStyle.text} text-xs sm:text-sm font-bold">
-                                                        ${passenger.action.label}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                    <!-- Info principal -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <h3 class="font-semibold text-gray-900 text-sm truncate">${passenger.nombre}</h3>
+                                            <span class="${colors.badge} px-1.5 py-0.5 rounded text-xs font-bold">${passenger.categoria.substring(0, 3)}</span>
                                         </div>
-
-                                        <!-- Botones de Acción -->
-                                        <div class="flex gap-2 sm:gap-3">
-                                            ${passenger.attended ? `
-                                                <button onclick="viewPassengerDetails('${passenger.id}')"
-                                                        class="flex-1 sm:flex-none bg-blue-50 border-2 border-blue-300 text-blue-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-100 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center justify-center gap-1 sm:gap-2">
-                                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                                    </svg>
-                                                    <span class="hidden sm:inline">Ver</span>
-                                                </button>
+                                        <div class="flex items-center gap-2 text-xs text-gray-600">
+                                            <span>${passenger.dni_pasaporte}</span>
+                                            ${passenger.attended ? `<span class="text-blue-600">• ${passenger.totalInteractions} int.</span>` : ''}
+                                            ${passenger.latestScore !== null && passenger.latestScore !== undefined ? `
+                                                <span class="px-1.5 py-0.5 ${Utils.getMedalliaColor(passenger.latestScore)} rounded font-bold text-white">${passenger.latestScore}/10</span>
                                             ` : ''}
-                                            <button onclick="startPassengerInteraction('${passenger.id}')"
-                                                    class="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center justify-center gap-1 sm:gap-2 shadow-md">
-                                                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                                </svg>
-                                                <span>${passenger.attended ? 'Atender' : 'Primera Atención'}</span>
-                                            </button>
                                         </div>
+                                    </div>
+
+                                    <!-- Indicador de acción -->
+                                    <div class="${actionStyle.bg} px-2 py-1 rounded text-center">
+                                        <span class="text-lg">${passenger.action.icon}</span>
+                                    </div>
+
+                                    <!-- Botones compactos -->
+                                    <div class="flex gap-1.5 flex-shrink-0">
+                                        ${passenger.attended ? `
+                                            <button onclick="viewPassengerDetails('${passenger.id}')"
+                                                    class="bg-blue-50 border border-blue-200 text-blue-700 px-2 py-1.5 rounded hover:bg-blue-100 transition text-xs font-medium">
+                                                Ver
+                                            </button>
+                                        ` : ''}
+                                        <button onclick="startPassengerInteraction('${passenger.id}')"
+                                                class="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition text-xs font-medium">
+                                            Atender
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -6692,6 +6742,23 @@ const renderPassengerSearchView = async () => {
                             </div>
                         `}
                     </div>
+
+                    <!-- Paginación -->
+                    ${allPassengers.length > 20 ? `
+                    <div class="mt-4 flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
+                        <div class="text-sm text-gray-700">
+                            Mostrando <span class="font-medium" id="page-start">1</span> a <span class="font-medium" id="page-end">20</span> de <span class="font-medium">${allPassengers.length}</span> pasajeros
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="changePage(-1)" id="prev-page" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Anterior
+                            </button>
+                            <button onclick="changePage(1)" id="next-page" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Siguiente
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
 
@@ -6744,6 +6811,15 @@ const renderPassengerSearchView = async () => {
 
             .fade-in { animation: fadeIn 0.3s ease-out; }
         </style>
+
+        <script>
+            // Inicializar variable global con todos los pasajeros para paginación
+            (function() {
+                const passengerCards = document.querySelectorAll('.passenger-card');
+                allPassengersGlobal = ${JSON.stringify(allPassengers)};
+                currentPage = 1;
+            })();
+        </script>
     `;
 };
 
